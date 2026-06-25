@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { readFileSync, writeFileSync } from 'fs'
 import { build, type BuildOptions } from 'esbuild'
 import * as path from 'path'
@@ -45,7 +46,7 @@ const buildOpts: BuildOptions = {
 
 const start = performance.now()
 build(buildOpts).then(res => {
-    const contentCode = res.outputFiles.map(f => f.text).join('\n')
+    const contentCode = res.outputFiles?.map(f => f.text).join('\n')
     writeFileSync(outfile, `${HEADER}\n${contentCode}`)
 
     const elapsed = (performance.now() - start).toFixed(2)

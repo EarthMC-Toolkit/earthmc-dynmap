@@ -8,11 +8,10 @@
     "build": "bun run userscript && bun run extension"
   },
   "devDependencies": {
-    "typescript": "latest",
-    "archiver": "^7.0.1",
+    "@types/node": "^26.0.1",
+    "archiver": "^8.0.0",
     "esbuild": "^0.28.0",
-    "@types/archiver": "latest",
-    "@types/node": "latest"
+    "typescript": "latest"
   },
   "engines": {
     "bun": ">=1.3.0"

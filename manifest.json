@@ -12,11 +12,12 @@
 		"run_at": "document_idle",
 		"matches": ["https://map.earthmc.net/*", "https://aurora.earthmc.net/*"],
 		"resources": [
-			"resources/map-mode-default.png",
-			"resources/map-mode-alliances.png",
-			"resources/map-mode-meganations.png",
-			"resources/map-mode-overclaim.png",
-			"resources/map-mode-nationclaims.png",
+			"resources/gui/map-mode-default.png",
+			"resources/gui/map-mode-alliances.png",
+			"resources/gui/map-mode-meganations.png",
+			"resources/gui/map-mode-overclaim.png",
+			"resources/gui/map-mode-nationclaims.png",
+			"resources/gui/map-mode-newday.png",
 			"resources/interceptor.js",
 			"resources/borders.json"
 		]
@@ -29,7 +30,7 @@
 			"src/dom.js",
 			"src/screenshot.js",
 			"src/modeselector.js",
-			"src/menu.js",
+			"src/gui.js",
 			"src/main.js",
 			"src/entrypoint.js"
 		]

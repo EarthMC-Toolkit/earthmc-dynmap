@@ -1,5 +1,5 @@
-/** ANY CODE RELATING TO THE MAIN ONSCREEN EXTENSION MENU GOES HERE */
-//console.log('emcdynmapplus: loaded menu')
+/** ANY CODE RELATING TO ONSCREEN INTERACTION GOES HERE (MENUS, SELECTORS ETC) */
+//console.log('emcdynmapplus: loaded gui')
 
 // TODO: Use Custom Element Registry and convert the main menu into one.
 
@@ -9,11 +9,11 @@ function addExtensionMenu(parent) {
 	const header = addElement(menu, INSERTABLE_HTML.menuHeader) // for toggling the menu open and closed.
 	const body = addElement(menu, `<div id="menu-body"></div>`)
 	
-	addLocateSection(body) // Locator button and input box
-	addArchiveSection(body)
+	addMenuLocateSection(body) // Locator button and input box
+	addMenuArchiveSection(body)
 
 	// Options button and checkboxes
-	addOptions(body, currentMapMode())
+	addMenuOptionsList(body, currentMapMode())
 
 	const arrow = header.querySelector('#menu-arrow')
 	let collapsed = false
@@ -28,7 +28,7 @@ function addExtensionMenu(parent) {
 }
 
 /** @param {HTMLElement} menu */
-function addLocateSection(menu) {
+function addMenuLocateSection(menu) {
 	const locateMenu = addElement(menu, INSERTABLE_HTML.locateMenu)
 	const locateButton = addElement(locateMenu, INSERTABLE_HTML.buttons.locate)
 	const locateSubmenu = addElement(locateMenu, INSERTABLE_HTML.menuOption, '.menu-option')
@@ -54,7 +54,7 @@ function addLocateSection(menu) {
 }
 
 /** @param {HTMLElement} menu */
-function addArchiveSection(menu) {
+function addMenuArchiveSection(menu) {
 	const archiveMenu = addElement(menu, INSERTABLE_HTML.archiveMenu)
 	const archiveButton = addElement(archiveMenu, INSERTABLE_HTML.buttons.searchArchive)
 	const archiveInput = addElement(archiveMenu, INSERTABLE_HTML.archiveInput)
@@ -73,7 +73,7 @@ function addArchiveSection(menu) {
  * @param {HTMLElement} menu 
  * @param {MapMode} curMapMode 
 */
-function addOptions(menu, curMapMode) {
+function addMenuOptionsList(menu, curMapMode) {
 	const optionsButton = addElement(menu, INSERTABLE_HTML.buttons.options)
 	const optionsMenu = addElement(menu, INSERTABLE_HTML.options.menu)
 	optionsMenu.style.display = 'none'
@@ -83,18 +83,19 @@ function addOptions(menu, curMapMode) {
 	})
 
 	let i = 0
-	addCheckboxOption(optionsMenu, i++, 'toggle-normalize-scroll', 'Normalize scroll inputs', 'normalize-scroll', e => 
+	addMenuCheckboxOption(optionsMenu, i++, 'toggle-normalize-scroll', 'Normalize scroll inputs', 'normalize-scroll', e => 
 		toggleScrollNormalize(e.target.checked)
 	)
-	addCheckboxOption(optionsMenu, i++, 'toggle-darkened', 'Decrease brightness', 'darkened', e => toggleDarkened(e.target.checked))
-	addCheckboxOption(optionsMenu, i++, 'toggle-darkmode', 'Toggle dark mode', 'darkmode', e => toggleDarkMode(e.target.checked))
-	addCheckboxOption(optionsMenu, i++, 'toggle-serverinfo', 'Display server info', 'serverinfo', e => toggleServerInfo(e.target.checked))
+	addMenuCheckboxOption(optionsMenu, i++, 'toggle-darkened', 'Decrease brightness', 'darkened', e => toggleDarkened(e.target.checked))
+	addMenuCheckboxOption(optionsMenu, i++, 'toggle-darkmode', 'Toggle dark mode', 'darkmode', e => toggleDarkMode(e.target.checked))
+	addMenuCheckboxOption(optionsMenu, i++, 'toggle-serverinfo', 'Display server info', 'serverinfo', e => toggleServerInfo(e.target.checked))
 	
 	if (curMapMode != 'archive') {
-		addCheckboxOption(optionsMenu, i++, 'toggle-playerlist', 'Display player list', 'playerlist', 
+		addMenuCheckboxOption(
+			optionsMenu, i++, 'toggle-playerlist', 'Display player list', 'playerlist', 
 			e => togglePlayerList(e.target.checked)
 		)
-		addCheckboxOption(
+		addMenuCheckboxOption(
 			optionsMenu, i++, 'toggle-capital-stars', 'Show capital stars', 'capital-stars', 
 			e => toggleShowCapitalStars(e.target.checked)
 		)
@@ -110,7 +111,7 @@ function addOptions(menu, curMapMode) {
  * @param {string} variable - The variable name in storage used to keep the 'checked' state 
  * @param {(e: Event) => void} listener - An optional function to call when the checkbox is toggled
  */
-function addCheckboxOption(menu, index, optionId, optionText, variable, listener) {
+function addMenuCheckboxOption(menu, index, optionId, optionText, variable, listener) {
 	/** @type {HTMLElement} */
 	const option = addElement(menu, INSERTABLE_HTML.options.option, '.option', true)[index]
 	option.insertAdjacentHTML('beforeend', INSERTABLE_HTML.options.label

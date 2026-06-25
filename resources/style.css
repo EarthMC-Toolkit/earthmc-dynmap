@@ -549,6 +549,11 @@ fieldset#players > a:hover {
 	flex-direction: row;
 }
 
+.leaflet-top.leaflet-right {
+    display: flex;
+    flex-direction: column;
+}
+
 .leaflet-popup {
 	backdrop-filter: blur(2px);
 }

@@ -1,6 +1,7 @@
-import { statSync, readdirSync, createWriteStream } from 'fs'
+/// <reference types="node" />
 import * as path from 'path'
-import * as archiver from 'archiver'
+import { statSync, readdirSync, createWriteStream } from 'fs'
+import { ZipArchive, type Archiver } from 'archiver'
 
 /**
  * Adds a directory to the archive, recursively, skipping ignored files.
@@ -9,7 +10,7 @@ import * as archiver from 'archiver'
  * @param destDir Destination path in the zip
  * @param ignore List of filenames to skip (relative to srcDir)
  */
-function addDirIgnore(archive: archiver.Archiver, srcDir: string, destDir: string, ignore: string[] = []) {
+function addDirIgnore(archive: Archiver, srcDir: string, destDir: string, ignore: string[] = []) {
 	const dirContents = readdirSync(srcDir)
     for (const file of dirContents) {
 		const fullPath = path.join(srcDir, file)
@@ -28,8 +29,9 @@ const EXT_NAME = 'emc-dynmapplus'
 const outfile = path.join('dist', EXT_NAME+".zip")
 
 const start = performance.now()
-const output = createWriteStream(outfile)
-const archive = archiver.create('zip', { zlib: { level: 9 } })
+const archive = new ZipArchive({ zlib: { level: 9 } })
+
+const output = createWriteStream(outfile) // We don't rly use this but its required to gen the zip via pipe()
 archive.pipe(output)
 
 addDirIgnore(archive, 'src', EXT_NAME+'/src', ['types.d.ts']) // Types are just for developing
