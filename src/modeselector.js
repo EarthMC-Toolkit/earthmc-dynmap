@@ -3,12 +3,13 @@
 
 const sortedMapModes = () => Object.values(MAP_MODES).sort((a, b) => a.order - b.order)
 const MAP_MODES = /** @type {const} */ ({
-    DEFAULT:        { name: "default",      img: "resources/map-mode-default.png", order: 0 },
-    MEGANATIONS:    { name: "meganations",  img: "resources/map-mode-meganations.png", order: 1 },
-    ALLIANCES:      { name: "alliances",    img: "resources/map-mode-alliances.png", order: 2 },
-    OVERCLAIM:      { name: "overclaim",    img: "resources/map-mode-overclaim.png", order: 3 },
-    NATIONCLAIMS:   { name: "nationclaims", img: "resources/map-mode-nationclaims.png", order: 4 },
-    ARCHIVE:        { name: "archive",      img: null, order: 5 }, // null img to avoid showing up in the selector
+    DEFAULT:        { name: "default",      img: "resources/gui/map-mode-default.png", order: 0 },
+    MEGANATIONS:    { name: "meganations",  img: "resources/gui/map-mode-meganations.png", order: 1 },
+    ALLIANCES:      { name: "alliances",    img: "resources/gui/map-mode-alliances.png", order: 2 },
+    OVERCLAIM:      { name: "overclaim",    img: "resources/gui/map-mode-overclaim.png", order: 3 },
+    NATIONCLAIMS:   { name: "nationclaims", img: "resources/gui/map-mode-nationclaims.png", order: 4 },
+    NEWDAY:         { name: "newday", img: "resources/gui/map-mode-newday.png", order: 5 },
+    ARCHIVE:        { name: "archive",      img: null, order: 6 }, // null img to avoid showing up in the selector
 })
 
 Object.freeze(MAP_MODES)
