@@ -1,15 +1,6 @@
 /** ANYTHING RELATED TO NETWORKING BELONGS IN HERE */
 //console.log('emcdynmapplus: loaded httputil')
 
-const PROJECT_URL = `https://github.com/3meraldK/earthmc-dynmap`
-const PROXY_URLS = [
-	`https://api.codetabs.com/v1/proxy/?quest=`, // Main proxy
-	`https://everyorigin.jwvbremen.nl/get?url=`, // Fallback #1
-	`https://proxy.corsfix.com`,				 // Fallback #2
-	`https://api.cors.lol/?url=`,				 // Fallback #3
-	`https://proxy.killcors.com/?url=`			 // Fallback #4
-]
-
 const EMC_DOMAIN = "earthmc.net"
 const CURRENT_MAP = location.href.includes('aurora') ? "aurora" : "nostra"
 
@@ -21,6 +12,15 @@ const OAPI_REQ_PER_MIN = 180
 const OAPI_ITEMS_PER_REQ = 100
 
 const currentMapApiUrl = () => CURRENT_MAP == 'aurora' ? `${OAPI_BASE}/v3/aurora` : `${OAPI_BASE}/v4`
+
+const PROJECT_URL = `https://github.com/3meraldK/earthmc-dynmap`
+const PROXY_URLS = [
+	`https://emcstats.bot.nu/proxy?target=`,	 // Our own main CORS proxy
+	`https://api.codetabs.com/v1/proxy/?quest=`, // Fallback #1
+	`https://proxy.corsfix.com`,				 // Fallback #2
+	`https://api.cors.lol/?url=`,				 // Fallback #3
+	`https://everyorigin.jwvbremen.nl/get?url=`, // Fallback #4
+]
 
 /**
  * Token/leaky bucket implementation with localStorage caching.\
