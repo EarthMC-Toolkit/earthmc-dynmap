@@ -92,19 +92,6 @@ var __privateMethod = (obj, member, method) => (__accessCheck(obj, member, "acce
 
 // src/httputil.js
 var _TokenBucket_instances, save_fn;
-var PROJECT_URL = `https://github.com/3meraldK/earthmc-dynmap`;
-var PROXY_URLS = [
-  `https://api.codetabs.com/v1/proxy/?quest=`,
-  // Main proxy
-  `https://everyorigin.jwvbremen.nl/get?url=`,
-  // Fallback #1
-  `https://proxy.corsfix.com`,
-  // Fallback #2
-  `https://api.cors.lol/?url=`,
-  // Fallback #3
-  `https://proxy.killcors.com/?url=`
-  // Fallback #4
-];
 var EMC_DOMAIN = "earthmc.net";
 var CURRENT_MAP = location.href.includes("aurora") ? "aurora" : "nostra";
 var CAPI_BASE = `https://emcstats.bot.nu`;
@@ -113,6 +100,19 @@ var OAPI_BASE = `https://api.${EMC_DOMAIN}`;
 var OAPI_REQ_PER_MIN = 180;
 var OAPI_ITEMS_PER_REQ = 100;
 var currentMapApiUrl = () => CURRENT_MAP == "aurora" ? `${OAPI_BASE}/v3/aurora` : `${OAPI_BASE}/v4`;
+var PROJECT_URL = `https://github.com/3meraldK/earthmc-dynmap`;
+var PROXY_URLS = [
+  `https://emcstats.bot.nu/proxy?target=`,
+  // Our own main CORS proxy
+  `https://api.codetabs.com/v1/proxy/?quest=`,
+  // Fallback #1
+  `https://proxy.corsfix.com`,
+  // Fallback #2
+  `https://api.cors.lol/?url=`,
+  // Fallback #3
+  `https://everyorigin.jwvbremen.nl/get?url=`
+  // Fallback #4
+];
 var TokenBucket = class {
   /** @param {TokenBucketOptions} opts */
   constructor(opts) {
@@ -744,12 +744,13 @@ var sortedMapModes = () => Object.values(MAP_MODES).sort((a, b) => a.order - b.o
 var MAP_MODES = (
   /** @type {const} */
   {
-    DEFAULT: { name: "default", img: "resources/map-mode-default.png", order: 0 },
-    MEGANATIONS: { name: "meganations", img: "resources/map-mode-meganations.png", order: 1 },
-    ALLIANCES: { name: "alliances", img: "resources/map-mode-alliances.png", order: 2 },
-    OVERCLAIM: { name: "overclaim", img: "resources/map-mode-overclaim.png", order: 3 },
-    NATIONCLAIMS: { name: "nationclaims", img: "resources/map-mode-nationclaims.png", order: 4 },
-    ARCHIVE: { name: "archive", img: null, order: 5 }
+    DEFAULT: { name: "default", img: "resources/gui/map-mode-default.png", order: 0 },
+    MEGANATIONS: { name: "meganations", img: "resources/gui/map-mode-meganations.png", order: 1 },
+    ALLIANCES: { name: "alliances", img: "resources/gui/map-mode-alliances.png", order: 2 },
+    OVERCLAIM: { name: "overclaim", img: "resources/gui/map-mode-overclaim.png", order: 3 },
+    NATIONCLAIMS: { name: "nationclaims", img: "resources/gui/map-mode-nationclaims.png", order: 4 },
+    NEWDAY: { name: "nationclaims", img: "resources/gui/map-mode-newday.png", order: 5 },
+    ARCHIVE: { name: "archive", img: null, order: 6 }
     // null img to avoid showing up in the selector
   }
 );
