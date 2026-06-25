@@ -168,9 +168,7 @@ const makePolyline = (linePoints, weight = 1, colour = '#ffffff') => ({
 	'weight': weight, 'color': colour,
 })
 
-/** 
- * @param {MarkersResponse} data - The markers response JSON data. 
- */
+/** @param {MarkersResponse} data - The markers response JSON data. */
 async function modifyMarkers(data) {
 	const mapMode = currentMapMode()
 	console.log(`Modifying markers according to current map mode: ${mapMode.name}`)
@@ -241,7 +239,7 @@ async function modifyMarkers(data) {
 		colorTown(marker, parsedInfo, mapMode)
 	}
 	
-	const elapsed = (performance.now() - start)
+	const elapsed = performance.now() - start
 	console.log(`emcdynmapplus: modified description and colour of all markers. took ${elapsed.toFixed(2)}ms`)
 
 	return data
