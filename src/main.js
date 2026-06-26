@@ -545,11 +545,20 @@ function colorTownNationClaims(marker, nationName, claimsCustomizerInfo, useOpaq
  */
 function colorTownNewDay(marker, parsedMarker) {
 	const isFalling = cachedFallingTowns.some(v => v.name.toLowerCase() == parsedMarker.townName.toLowerCase())
-	if (isFalling) return colorMarker(marker, '#ffa200', '#ffa200')
+	if (isFalling) return colorMarker(marker, '#ffa200', '#ffa200', 2)
 
 	const isRuined = cachedRuinedTowns.some(v => v.name.toLowerCase() == parsedMarker.townName.toLowerCase())
-	if (!isRuined) marker.opacity = marker.fillOpacity = 0
+	if (!isRuined) {
+		marker.fillOpacity = 0.2
+		marker.opacity = 0.8
+		if (marker.type == 'icon') {
+			marker.opacity = marker.fillOpacity = 0
+		}
+
+		return colorMarker(marker, '#000000', '#000000', 0.5)
+	}
 	
+	marker.weight = 3
 	return marker
 }
 
