@@ -189,6 +189,56 @@ var fetchArchive = async (date) => {
   }
   throw new Error(`Could not fetch archive! All ${PROXY_URLS.length} proxies failed :(`);
 };
+async function fetchAlliances() {
+  const alliances = await fetchJSON(`${CAPI_BASE}/${CURRENT_MAP}/alliances`);
+  if (!alliances) {
+    try {
+      const cache = JSON.parse(localStorage["emcdynmapplus-alliances"]);
+      if (!cache) throw new Error("No alliance data in cache");
+      for (const alliance of cache) {
+        const [ownNations, puppetNations] = [alliance.ownNations || [], alliance.puppetNations || []];
+        alliance._nationSet = /* @__PURE__ */ new Set([...ownNations, ...puppetNations]);
+      }
+      showAlert("Service responsible for loading alliances is unavailable, falling back to locally cached data.", 5);
+      return cache;
+    } catch (_) {
+      showAlert("Service responsible for loading alliances will be available later.");
+    }
+    return [];
+  }
+  const childrenByParent = /* @__PURE__ */ new Map();
+  for (const a of alliances) {
+    if (!a.parentAlliance) continue;
+    const arr = childrenByParent.get(a.parentAlliance) || [];
+    arr.push(a);
+    childrenByParent.set(a.parentAlliance, arr);
+  }
+  const allianceData = [];
+  for (const a of alliances) {
+    const allianceType = a.type?.toLowerCase() || "mega";
+    const children = childrenByParent.get(a.identifier) || [];
+    const puppetNations = children.flatMap((a2) => a2.ownNations || []);
+    const ownNations = a.ownNations || [];
+    allianceData.push({
+      name: a.label || a.identifier,
+      modeType: allianceType == "mega" ? "meganations" : "alliances",
+      colours: parseColours(a.optional.colours),
+      ownNations,
+      puppetNations,
+      _nationSet: /* @__PURE__ */ new Set([...ownNations, ...puppetNations])
+    });
+  }
+  localStorage["emcdynmapplus-alliances"] = JSON.stringify(allianceData);
+  return allianceData;
+}
+async function fetchFallingTowns() {
+  const falling = await fetchJSON(`${CAPI_BASE}/${CURRENT_MAP}/falling`);
+  return falling;
+}
+async function fetchRuinedTowns() {
+  const ruined = await fetchJSON(`${CAPI_BASE}/${CURRENT_MAP}/ruined`);
+  return ruined;
+}
 async function queryConcurrent(url, arr) {
   const chunks = chunkArr(arr, OAPI_ITEMS_PER_REQ);
   const promises = chunks.map(async (chunk) => {
@@ -212,6 +262,12 @@ async function sendBatch(url, chunk) {
     return [];
   });
 }
+function parseColours(colours) {
+  if (!colours) return DEFAULT_ALLIANCE_COLOURS;
+  colours.fill = "#" + colours.fill.replaceAll("#", "");
+  colours.outline = "#" + colours.outline.replaceAll("#", "");
+  return colours;
+}
 
 // src/dom.js
 var ARCHIVE_DATE = {
@@ -222,7 +278,7 @@ var MAX_NATION_CLAIM_ENTRIES = 300;
 var SCROLL_BASE_ZOOM = 90;
 var SCROLL_LINE_DELTA = 30;
 var SCROLL_THRESHOLD = 5;
-var BRIGHTNESS_PERCENTAGE = 65;
+var BRIGHTNESS_PERCENTAGE = localStorage["emcdynmapplus-mapmode"] != "newday" ? 65 : 30;
 var CONTRAST_PERCENTAGE = 102;
 var SATURATE_PERCENTAGE = 97;
 var getTilePaneFilter = () => (
@@ -740,22 +796,31 @@ function drawMarkers(ctx, overlay = null) {
 }
 
 // src/modeselector.js
-var sortedMapModes = () => Object.values(MAP_MODES).sort((a, b) => a.order - b.order);
 var MAP_MODES = (
   /** @type {const} */
   {
     DEFAULT: { name: "default", img: "resources/gui/map-mode-default.png", order: 0 },
     MEGANATIONS: { name: "meganations", img: "resources/gui/map-mode-meganations.png", order: 1 },
     ALLIANCES: { name: "alliances", img: "resources/gui/map-mode-alliances.png", order: 2 },
-    OVERCLAIM: { name: "overclaim", img: "resources/gui/map-mode-overclaim.png", order: 3 },
-    NATIONCLAIMS: { name: "nationclaims", img: "resources/gui/map-mode-nationclaims.png", order: 4 },
-    NEWDAY: { name: "newday", img: "resources/gui/map-mode-newday.png", order: 5 },
+    NATIONCLAIMS: { name: "nationclaims", img: "resources/gui/map-mode-nationclaims.png", order: 3 },
+    OVERCLAIM: { name: "overclaim", img: "resources/gui/map-mode-overclaim.png", order: 4, skipIf: () => isAurora },
+    NEWDAY: { name: "newday", img: "resources/gui/map-mode-newday.png", order: 5, skipIf: () => isAurora },
     ARCHIVE: { name: "archive", img: null, order: 6 }
     // null img to avoid showing up in the selector
   }
 );
 Object.freeze(MAP_MODES);
 var MapMode = MAP_MODES;
+var sortedMapModes = () => Object.values(MAP_MODES).sort((a, b) => a.order - b.order);
+var currentMapMode = () => {
+  const name = localStorage["emcdynmapplus-mapmode"];
+  if (!name) return MapMode.DEFAULT;
+  return sortedMapModes().find((m) => m.name == name) ?? MapMode.DEFAULT;
+};
+function selectMapMode(mode) {
+  localStorage["emcdynmapplus-mapmode"] = mode.name;
+  location.reload();
+}
 function addMapModeSelector(parent) {
   const selectorDiv = addElement(parent, INSERTABLE_HTML.mapMode.selector);
   document.addEventListener("keydown", (e) => {
@@ -769,6 +834,7 @@ function addMapModeSelector(parent) {
   const modes = sortedMapModes();
   for (const mode of modes) {
     if (mode.img == null) continue;
+    if (mode.skipIf && mode.skipIf()) continue;
     addMapModeBtn(iconContainer, mode, (_) => selectMapMode(mode));
   }
   const curMode = currentMapMode();
@@ -780,24 +846,15 @@ function addMapModeBtn(iconContainer, mode, clickHandler = null) {
   addElement(button, `<img title="${mode.name}" alt="${mode.name}" src="${GITHUB_REPO + mode.img}">`);
   if (clickHandler) button.addEventListener("click", clickHandler);
 }
-var currentMapMode = () => {
-  const name = localStorage["emcdynmapplus-mapmode"];
-  if (!name) return MapMode.DEFAULT;
-  return sortedMapModes().find((m) => m.name == name) ?? MapMode.DEFAULT;
-};
-function selectMapMode(mode) {
-  localStorage["emcdynmapplus-mapmode"] = mode.name;
-  location.reload();
-}
 
 // src/gui.js
 function addExtensionMenu(parent) {
   const menu = addElement(parent, INSERTABLE_HTML.menu);
   const header = addElement(menu, INSERTABLE_HTML.menuHeader);
   const body = addElement(menu, `<div id="menu-body"></div>`);
-  addLocateSection(body);
-  addArchiveSection(body);
-  addOptions(body, currentMapMode());
+  addMenuLocateSection(body);
+  addMenuArchiveSection(body);
+  addMenuOptionsList(body, currentMapMode());
   const arrow = header.querySelector("#menu-arrow");
   let collapsed = false;
   header.addEventListener("click", () => {
@@ -807,7 +864,7 @@ function addExtensionMenu(parent) {
   });
   return menu;
 }
-function addLocateSection(menu) {
+function addMenuLocateSection(menu) {
   const locateMenu = addElement(menu, INSERTABLE_HTML.locateMenu);
   const locateButton = addElement(locateMenu, INSERTABLE_HTML.buttons.locate);
   const locateSubmenu = addElement(locateMenu, INSERTABLE_HTML.menuOption, ".menu-option");
@@ -834,7 +891,7 @@ function addLocateSection(menu) {
     locate(locateSelect.value, locateInput.value);
   });
 }
-function addArchiveSection(menu) {
+function addMenuArchiveSection(menu) {
   const archiveMenu = addElement(menu, INSERTABLE_HTML.archiveMenu);
   const archiveButton = addElement(archiveMenu, INSERTABLE_HTML.buttons.searchArchive);
   const archiveInput = addElement(archiveMenu, INSERTABLE_HTML.archiveInput);
@@ -847,7 +904,7 @@ function addArchiveSection(menu) {
     localStorage["emcdynmapplus-archive-date"] = URLDate;
   });
 }
-function addOptions(menu, curMapMode) {
+function addMenuOptionsList(menu, curMapMode) {
   const optionsButton = addElement(menu, INSERTABLE_HTML.buttons.options);
   const optionsMenu = addElement(menu, INSERTABLE_HTML.options.menu);
   optionsMenu.style.display = "none";
@@ -856,7 +913,7 @@ function addOptions(menu, curMapMode) {
     optionsButton.textContent = optionsMenu.style.display == "none" ? "Show Options" : "Close Options";
   });
   let i = 0;
-  addCheckboxOption(
+  addMenuCheckboxOption(
     optionsMenu,
     i++,
     "toggle-normalize-scroll",
@@ -864,11 +921,11 @@ function addOptions(menu, curMapMode) {
     "normalize-scroll",
     (e) => toggleScrollNormalize(e.target.checked)
   );
-  addCheckboxOption(optionsMenu, i++, "toggle-darkened", "Decrease brightness", "darkened", (e) => toggleDarkened(e.target.checked));
-  addCheckboxOption(optionsMenu, i++, "toggle-darkmode", "Toggle dark mode", "darkmode", (e) => toggleDarkMode(e.target.checked));
-  addCheckboxOption(optionsMenu, i++, "toggle-serverinfo", "Display server info", "serverinfo", (e) => toggleServerInfo(e.target.checked));
+  addMenuCheckboxOption(optionsMenu, i++, "toggle-darkened", "Decrease brightness", "darkened", (e) => toggleDarkened(e.target.checked));
+  addMenuCheckboxOption(optionsMenu, i++, "toggle-darkmode", "Toggle dark mode", "darkmode", (e) => toggleDarkMode(e.target.checked));
+  addMenuCheckboxOption(optionsMenu, i++, "toggle-serverinfo", "Display server info", "serverinfo", (e) => toggleServerInfo(e.target.checked));
   if (curMapMode != "archive") {
-    addCheckboxOption(
+    addMenuCheckboxOption(
       optionsMenu,
       i++,
       "toggle-playerlist",
@@ -876,7 +933,7 @@ function addOptions(menu, curMapMode) {
       "playerlist",
       (e) => togglePlayerList(e.target.checked)
     );
-    addCheckboxOption(
+    addMenuCheckboxOption(
       optionsMenu,
       i++,
       "toggle-capital-stars",
@@ -886,7 +943,7 @@ function addOptions(menu, curMapMode) {
     );
   }
 }
-function addCheckboxOption(menu, index, optionId, optionText, variable, listener) {
+function addMenuCheckboxOption(menu, index, optionId, optionText, variable, listener) {
   const option = addElement(menu, INSERTABLE_HTML.options.option, ".option", true)[index];
   option.insertAdjacentHTML("beforeend", INSERTABLE_HTML.options.label.replace("{option}", optionId).replace("{optionText}", optionText));
   const checkbox = addElement(option, INSERTABLE_HTML.options.checkbox.replace("{option}", optionId), "#" + optionId);
@@ -1059,8 +1116,10 @@ waitForElement(".leaflet-nameplate-pane").then((element) => {
   });
 });
 var parsedMarkers = [];
-var cachedAlliances = null;
+var cachedFallingTowns = null;
+var cachedRuinedTowns = null;
 var cachedApiNations = null;
+var cachedAlliances = null;
 var BORDER_CHUNK_COORDS = (
   /** @type {const} */
   {
@@ -1171,7 +1230,12 @@ async function modifyMarkers(data) {
   }
   const isAllianceMode = mapMode == MapMode.ALLIANCES || mapMode == MapMode.MEGANATIONS;
   if (isAllianceMode && cachedAlliances == null) {
-    cachedAlliances = await getAlliances();
+    cachedAlliances = await fetchAlliances();
+  }
+  if (mapMode == MapMode.NEWDAY) {
+    if (cachedFallingTowns == null) cachedFallingTowns = await fetchFallingTowns();
+    if (cachedRuinedTowns == null) cachedRuinedTowns = await fetchRuinedTowns();
+    addRuinMarkers(data, cachedRuinedTowns, "#ff1900");
   }
   if (mapMode == MapMode.OVERCLAIM && cachedApiNations == null) {
     const url = `${currentMapApiUrl()}/nations`;
@@ -1189,18 +1253,35 @@ async function modifyMarkers(data) {
   const start = performance.now();
   for (const marker of data[0].markers) {
     if (marker.type != "polygon" && marker.type != "icon") continue;
-    const parsedInfo = isSquaremap ? modifyDescription(marker, mapMode) : modifyDynmapDescription(marker, date);
-    if (marker.type != "polygon") continue;
-    parsedMarkers.push(parsedInfo);
     marker.opacity = 1;
     marker.fillOpacity = 0.33;
     marker.weight = 1.5;
-    if (mapMode == MapMode.DEFAULT || mapMode == MapMode.ARCHIVE) continue;
-    if (mapMode == MapMode.NATIONCLAIMS) {
-      colorTownNationClaims(marker, parsedInfo.nationName, claimsCustomizerInfo, useOpaque, showExcluded);
-      continue;
+    const parsed = isSquaremap ? modifyDescription(marker, mapMode) : modifyDynmapDescription(marker, date);
+    switch (mapMode) {
+      case MapMode.DEFAULT:
+      case MapMode.ARCHIVE:
+        continue;
+      case MapMode.ALLIANCES:
+        colorMarkerAlliances(marker, parsed);
+        break;
+      case MapMode.MEGANATIONS:
+        colorMarkerMeganations(marker, parsed);
+        break;
+      case MapMode.OVERCLAIM:
+        colorMarkerOverclaim(marker, parsed);
+        break;
+      case MapMode.NATIONCLAIMS:
+        colorMarkerNationClaims(marker, parsed.nationName, claimsCustomizerInfo, useOpaque, showExcluded);
+        break;
+      case MapMode.NEWDAY:
+        colorMarkerNewDay(marker, parsed);
+        break;
+      default:
+        const mayor = marker.popup.match(/Mayor: <b>(.*)<\/b>/)?.[1];
+        const isRuin = !!mayor?.match(/NPC[0-1000]+/);
+        if (isRuin) colorMarker(marker, "#000000", "#000000");
     }
-    colorTown(marker, parsedInfo, mapMode);
+    parsedMarkers.push(parsed);
   }
   const elapsed = performance.now() - start;
   console.log(`emcdynmapplus: modified description and colour of all markers. took ${elapsed.toFixed(2)}ms`);
@@ -1244,16 +1325,19 @@ function addCountryBordersLayer(data, borders) {
   }
 }
 function modifyDescription(marker, mapMode) {
+  if (mapMode == MapMode.NEWDAY && marker.tooltip.endsWith("(Ruined)")) {
+    const name = marker.tooltip.substring(marker.tooltip.indexOf(">") + 1, marker.tooltip.lastIndexOf("</"));
+    return { townName: name };
+  }
   const town = marker.tooltip.match(/<b>(.*)<\/b>/)[1];
   const nation = marker.tooltip.match(/\(\b(?:Member|Capital)\b of (.*)\)\n/)?.[1];
   const isCapital = marker.tooltip.match(/\(Capital of (.*)\)/) != null;
   const mayor = marker.popup.match(/Mayor: <b>(.*)<\/b>/)?.[1];
-  const residents = marker.popup.match(/<\/summary>\n    \t(.*)\n   \t<\/details>/)?.[1];
-  const residentNum = residents.split(", ").length;
+  const residents = marker.popup?.match(/<\/summary>\n    \t(.*)\n   \t<\/details>/)?.[1];
+  const residentNum = residents?.split(", ").length ?? 0;
   const councillors = marker.popup.match(/Councillors: <b>(.*)<\/b>/)?.[1].split(", ").filter((councillor) => councillor != "None");
   const fixedTownName = town.replaceAll("<", "&lt;").replaceAll(">", "&gt;");
   const fixedNationName = nation?.replaceAll("<", "&lt;").replaceAll(">", "&gt;") ?? nation;
-  const area = calcMarkerArea(marker);
   let location = { x: 0, z: 0 };
   if (marker.points) location = midrange(marker.points.flat(2));
   const isArchiveMode = mapMode == MapMode.ARCHIVE;
@@ -1264,12 +1348,13 @@ function modifyDescription(marker, mapMode) {
   } else {
     marker.popup = marker.popup.replace(residents + "\n", INSERTABLE_HTML.residentList.replace("{list}", residentList) + "\n");
   }
+  const area = calcMarkerArea(marker);
   marker.popup = marker.popup.replace("</details>\n   	<br>", "</details>").replace("Councillors:", `Size: <b>${area} chunks</b><br/>Councillors:`).replace("<i>/town set board [msg]</i>", "<i></i>").replace("<i></i> \n    <br>\n", "").replace("\n    <i>", '\n    <i style="overflow-wrap: break-word">').replace("Councillors: <b>None</b>\n	<br>", "").replace("Size: <b>0 chunks</b><br/>", "").replace(town, fixedTownName).replace(nation, fixedNationName).replaceAll("<b>false</b>", '<b><span style="color: red">No</span></b>').replaceAll("<b>true</b>", '<b><span style="color: green">Yes</span></b>');
   if (!isArchiveMode) {
     marker.popup = marker.popup.replace(/Mayor: <b>(.*)<\/b>/, `Mayor: <b>${INSERTABLE_HTML.residentClickable.replaceAll("{player}", mayor)}</b>`).replace(/Councillors: <b>(.*)<\/b>/, `Councillors: <b>${councillorList}</b>`);
   }
   if (isCapital) {
-    marker.popup = marker.popup.replace('<span style="font-size:120%;">', '<span style="font-size: 120%">\u2605 ');
+    marker.popup = marker.popup.replace('<span style="font-size:120%;">', '<span style="font-size: 120%">\u2B50 ');
   }
   marker.tooltip = marker.tooltip.replace("<i>/town set board [msg]</i>", "<i></i>").replace("<br>\n    <i></i>", "").replace("\n    <i>", '\n    <i id="clamped-board">').replace(town, fixedTownName).replace(nation, fixedNationName);
   if (mapMode == MapMode.ALLIANCES || mapMode == MapMode.MEGANATIONS) {
@@ -1299,7 +1384,7 @@ function modifyDynmapDescription(marker, curArchiveDate) {
   const isCapital = marker.popup.match(/capital: true/) != null;
   const area = calcPolygonArea(marker.points);
   const location = midrange(marker.points.flat(2));
-  if (isCapital) marker.popup = marker.popup.replace('120%">', '120%">\u2605 ');
+  if (isCapital) marker.popup = marker.popup.replace('120%">', '120%">\u2B50 ');
   if (curArchiveDate < 20220906) {
     marker.popup = marker.popup.replace(/">hasUpkeep:.+?(?<=<br \/>)/, '; white-space:pre">');
   } else marker.popup = marker.popup.replace('">pvp:', '; white-space:pre">pvp:');
@@ -1313,7 +1398,7 @@ function modifyDynmapDescription(marker, curArchiveDate) {
       `<b>[${residentNum}]</b> <div id="scrollable-list"><span style="font-weight:bold">`
     ).replace("<br>Flags", "</div><br>Flags");
   }
-  const clean = marker.popup.replace(/<[^>]+>/g, "").trim().replace(/^★\s*/, "");
+  const clean = marker.popup.replace(/<[^>]+>/g, "").trim().replace(/^⭐\s*/, "");
   const [, town, nation] = clean.match(/^(.+?)\s*\((.+?)\)/) || [];
   return {
     townName: town?.trim() || null,
@@ -1332,28 +1417,30 @@ var colorMarker = (marker, fill, outline, weight = null) => {
 };
 var DEFAULT_BLUE = "#3fb4ff";
 var DEFAULT_GREEN = "#89c500";
-function colorTown(rawMarker, parsedMarker, mapMode) {
-  const mayor = rawMarker.popup.match(/Mayor: <b>(.*)<\/b>/)?.[1];
-  const isRuin = !!mayor?.match(/NPC[0-9]+/);
-  if (isRuin) return colorMarker(rawMarker, "#000000", "#000000");
-  const { nationName } = parsedMarker;
-  if (mapMode == MapMode.MEGANATIONS) {
-    const isDefaultCol = rawMarker.color == DEFAULT_BLUE && rawMarker.fillColor == DEFAULT_BLUE;
-    rawMarker.color = isDefaultCol ? "#363636" : DEFAULT_GREEN;
-    rawMarker.fillColor = isDefaultCol ? hashCode(nationName) : rawMarker.fillColor;
-  } else if (mapMode == MapMode.OVERCLAIM) {
-    const nation = nationName ? cachedApiNations.get(nationName.toLowerCase()) : null;
-    const overclaimInfo = !nation ? checkOverclaimedNationless(parsedMarker.area, parsedMarker.residentNum) : checkOverclaimed(parsedMarker.area, parsedMarker.residentNum, nation.stats.numResidents);
-    const colour = overclaimInfo.isOverclaimed ? "#ff0000" : "#00ff00";
-    colorMarker(rawMarker, colour, colour, overclaimInfo.isOverclaimed ? 2 : 0.5);
-  } else colorMarker(rawMarker, "#000000", "#000000", 1);
+function applyAllianceColours(marker, nationName, mapMode) {
   const nationAlliances = getNationAlliances(nationName, mapMode);
-  if (nationAlliances.length == 0) return;
+  if (nationAlliances.length === 0) return;
   const { colours } = nationAlliances[0];
-  const newWeight = nationAlliances.length > 1 ? 1.5 : 0.75;
-  return colorMarker(rawMarker, colours.fill, colours.outline, newWeight);
+  const weight = nationAlliances.length > 1 ? 1.5 : 0.75;
+  colorMarker(marker, colours.fill, colours.outline, weight);
 }
-function colorTownNationClaims(marker, nationName, claimsCustomizerInfo, useOpaque, showExcluded) {
+function colorMarkerAlliances(marker, parsed) {
+  colorMarker(marker, "#000000", "#000000", 1);
+  applyAllianceColours(marker, parsed.nationName, MapMode.ALLIANCES);
+}
+function colorMarkerMeganations(marker, parsed) {
+  const isDefaultCol = marker.color == DEFAULT_BLUE && marker.fillColor == DEFAULT_BLUE;
+  marker.color = isDefaultCol ? "#363636" : DEFAULT_GREEN;
+  marker.fillColor = isDefaultCol ? hashCode(parsed.nationName) : marker.fillColor;
+  applyAllianceColours(marker, parsed.nationName, MapMode.MEGANATIONS);
+}
+function colorMarkerOverclaim(marker, parsed) {
+  const nation = parsed.nationName ? cachedApiNations.get(parsed.nationName.toLowerCase()) : null;
+  const info = !nation ? checkOverclaimedNationless(parsed.area, parsed.residentNum) : checkOverclaimed(parsed.area, parsed.residentNum, nation.stats.numResidents);
+  const colour = info.isOverclaimed ? "#ff0000" : "#00ff00";
+  colorMarker(marker, colour, colour, info.isOverclaimed ? 2 : 0.5);
+}
+function colorMarkerNationClaims(marker, nationName, claimsCustomizerInfo, useOpaque, showExcluded) {
   const nationColorInput = claimsCustomizerInfo.get(nationName?.toLowerCase());
   if (!nationColorInput) {
     if (useOpaque) marker.fillOpacity = marker.opacity = 0.5;
@@ -1363,6 +1450,103 @@ function colorTownNationClaims(marker, nationName, claimsCustomizerInfo, useOpaq
   if (useOpaque) marker.fillOpacity = marker.opacity = 1;
   return colorMarker(marker, nationColorInput, nationColorInput, 1.5);
 }
+function colorMarkerNewDay(marker, parsedMarker) {
+  const fallingTown = cachedFallingTowns.find((v) => v.name.toLowerCase() == parsedMarker.townName.toLowerCase());
+  if (fallingTown) {
+    parsedMarker.isCapital = fallingTown.status.isCapital;
+    parsedMarker.x = fallingTown.coordinates.spawn.x;
+    parsedMarker.z = fallingTown.coordinates.spawn.z;
+    return fallingTown.status.isOpen ? colorMarker(marker, DEFAULT_GREEN, DEFAULT_GREEN, 2) : colorMarker(marker, "#ffa200", "#ffa200", 2);
+  }
+  const ruinedTown = cachedRuinedTowns.find((v) => v.name.toLowerCase() == parsedMarker.townName.toLowerCase());
+  if (!ruinedTown) {
+    marker.fillOpacity = 0.2;
+    marker.opacity = 0.8;
+    if (marker.type == "icon") {
+      marker.opacity = marker.fillOpacity = 0;
+    }
+    colorMarker(marker, "#000000", "#000000", 0.5);
+  } else {
+    parsedMarker.isCapital = ruinedTown.status.isCapital;
+    parsedMarker.x = ruinedTown.coordinates.spawn.x;
+    parsedMarker.z = ruinedTown.coordinates.spawn.z;
+    marker.weight = 3;
+  }
+  return marker;
+}
+function addRuinMarkers(data, ruined, colour) {
+  ruined.forEach((t) => {
+    const marker = {
+      tooltip: `<b>${t.name}</b> (Ruined)`,
+      popup: buildRuinedPopup(t),
+      type: "polygon",
+      weight: 1.5,
+      opacity: 1,
+      fillOpacity: 0.33,
+      color: colour,
+      fillColor: colour,
+      points: chunksToSquaremap(t.coordinates.townBlocks.map(([x, z]) => [x * 16, z * 16]))
+    };
+    data[0].markers.push(marker);
+  });
+}
+var buildPopup = (t) => `
+<div class="infowindow">
+    <span style="font-size:120%;">\u2B50 ${t.name}</span>
+    <br>
+    <i>${t.board ?? ""}</i>
+    <br>
+    <br>
+    Mayor: <b>${t.mayor ?? "None"}</b>
+    <br>
+    Councillors: <b>${t.councillors?.length ? t.councillors.join(", ") : "None"}</b>
+    <br>
+    Founded: <b>${t.founded ?? "Unknown"}</b>
+    <br>
+    PVP: <b>${t.pvp ? "true" : "false"}</b>
+    <br>
+    Public: <b>${t.public ? "true" : "false"}</b>
+    <br>
+
+    <details style="min-width: 250px">
+        <summary style="cursor: pointer;">
+            Residents: <b>${t.residents?.length ?? 0}</b>
+        </summary>
+        ${t.residents?.join(", ") ?? ""}
+    </details>
+
+    <br>
+</div>
+`;
+var dateOpts = { weekday: "long", year: "numeric", month: "long", day: "numeric" };
+var buildRuinedPopup = (t) => `
+<div class="infowindow">
+    <span style="font-size:120%;">${t.name} (Ruined)</span>
+    <br>
+    <i>${t.board ?? ""}</i>
+    <br>
+    <br>
+    Mayor: <b>${t.mayor.name ?? "Unknown"}</b>
+    <br>
+    Founded: <b>${new Date(t.timestamps.registered).toLocaleDateString("en-US", dateOpts)}</b> by <b>${t.founder}</b>
+    <br>
+    PVP: <b>${t.perms.flags.pvp ? "true" : "false"}</b>
+    <br>
+    Public: <b>${t.status.isPublic ? "true" : "false"}</b>
+    <br>
+	Balance: <b>${t.stats.balance ?? 0}</b>
+    <br>
+
+    <details style="min-width: 250px">
+        <summary style="cursor: pointer;">
+            Residents: <b>${t.residents?.length ?? 0}</b>
+        </summary>
+        ${t.residents?.map((r) => r.name).join(", ") ?? ""}
+    </details>
+
+    <br>
+</div>
+`;
 async function lookupPlayer(playerName, showOnlineStatus = true) {
   document.querySelector("#player-lookup")?.remove();
   document.querySelector("#player-lookup-loading")?.remove();
@@ -1422,54 +1606,6 @@ function timeAgo(ts) {
     if (v >= 1) return `${v} ${name}${v > 1 ? "s" : ""} ago`;
   }
   return "Today";
-}
-function parseColours(colours) {
-  if (!colours) return DEFAULT_ALLIANCE_COLOURS;
-  colours.fill = "#" + colours.fill.replaceAll("#", "");
-  colours.outline = "#" + colours.outline.replaceAll("#", "");
-  return colours;
-}
-async function getAlliances() {
-  const alliances = await fetchJSON(`${CAPI_BASE}/${CURRENT_MAP}/alliances`);
-  if (!alliances) {
-    try {
-      const cache = JSON.parse(localStorage["emcdynmapplus-alliances"]);
-      if (!cache) throw new Error("No alliance data in cache");
-      for (const alliance of cache) {
-        const [ownNations, puppetNations] = [alliance.ownNations || [], alliance.puppetNations || []];
-        alliance._nationSet = /* @__PURE__ */ new Set([...ownNations, ...puppetNations]);
-      }
-      showAlert("Service responsible for loading alliances is unavailable, falling back to locally cached data.", 5);
-      return cache;
-    } catch (_) {
-      showAlert("Service responsible for loading alliances will be available later.");
-    }
-    return [];
-  }
-  const childrenByParent = /* @__PURE__ */ new Map();
-  for (const a of alliances) {
-    if (!a.parentAlliance) continue;
-    const arr = childrenByParent.get(a.parentAlliance) || [];
-    arr.push(a);
-    childrenByParent.set(a.parentAlliance, arr);
-  }
-  const allianceData = [];
-  for (const a of alliances) {
-    const allianceType = a.type?.toLowerCase() || "mega";
-    const children = childrenByParent.get(a.identifier) || [];
-    const puppetNations = children.flatMap((a2) => a2.ownNations || []);
-    const ownNations = a.ownNations || [];
-    allianceData.push({
-      name: a.label || a.identifier,
-      modeType: allianceType == "mega" ? "meganations" : "alliances",
-      colours: parseColours(a.optional.colours),
-      ownNations,
-      puppetNations,
-      _nationSet: /* @__PURE__ */ new Set([...ownNations, ...puppetNations])
-    });
-  }
-  localStorage["emcdynmapplus-alliances"] = JSON.stringify(allianceData);
-  return allianceData;
 }
 function getNationAlliances(nationName, mapMode) {
   if (cachedAlliances == null) return [];
@@ -1551,6 +1687,64 @@ function millerProjection(z) {
   if (millerOldZ < 0) millerOldZ *= NORTH_HEMISPHERE_FACTOR;
   return millerOldZ * MAP_SCALE_FACTOR;
 }
+function chunksToSquaremap(blocks) {
+  const edges = /* @__PURE__ */ new Set();
+  const add = (a, b) => {
+    const k = `${a.x},${a.z}|${b.x},${b.z}`;
+    const r = `${b.x},${b.z}|${a.x},${a.z}`;
+    if (edges.has(r)) edges.delete(r);
+    else edges.add(k);
+  };
+  for (const [x, z] of blocks) {
+    const A = { x, z };
+    const B = { x: x + 16, z };
+    const C = { x: x + 16, z: z + 16 };
+    const D = { x, z: z + 16 };
+    add(A, B);
+    add(B, C);
+    add(C, D);
+    add(D, A);
+  }
+  const edgeMap = /* @__PURE__ */ new Map();
+  for (const k of edges) {
+    const [ax, az, bx, bz] = k.split(/[|,]/).map(Number);
+    const a = { x: ax, z: az };
+    const b = { x: bx, z: bz };
+    const key = `${a.x},${a.z}`;
+    if (!edgeMap.has(key)) edgeMap.set(key, []);
+    edgeMap.get(key).push(b);
+  }
+  const used = /* @__PURE__ */ new Set();
+  const out = [];
+  for (const startKey of edgeMap.keys()) {
+    if (used.has(startKey)) continue;
+    const [sx, sz] = startKey.split(",").map(Number);
+    const start = { x: sx, z: sz };
+    const ring = [];
+    let cur = start;
+    while (true) {
+      ring.push(cur);
+      const nexts = edgeMap.get(`${cur.x},${cur.z}`) || [];
+      let next = null;
+      for (const n of nexts) {
+        const k = `${cur.x},${cur.z}|${n.x},${n.z}`;
+        if (!used.has(k)) {
+          next = n;
+          used.add(k);
+          break;
+        }
+      }
+      if (!next) break;
+      cur = next;
+      if (cur.x === start.x && cur.z === start.z) break;
+    }
+    if (ring.length >= 4) {
+      ring.push({ ...ring[0] });
+      out.push([ring]);
+    }
+  }
+  return out;
+}
 
 // <define:MANIFEST>
 var define_MANIFEST_default = { manifest_version: 3, name: "EarthMC Dynmap+ (Owen3H Fork)", version: "2.2.0", author: "3meraldK", description: "Extension to enrich the EarthMC map experience", icons: { "48": "resources/icon48.png", "128": "resources/icon128.png" }, web_accessible_resources: [{ run_at: "document_idle", matches: ["https://map.earthmc.net/*", "https://aurora.earthmc.net/*"], resources: ["resources/gui/map-mode-default.png", "resources/gui/map-mode-alliances.png", "resources/gui/map-mode-meganations.png", "resources/gui/map-mode-overclaim.png", "resources/gui/map-mode-nationclaims.png", "resources/gui/map-mode-newday.png", "resources/interceptor.js", "resources/borders.json"] }], content_scripts: [{ matches: ["https://map.earthmc.net/*", "https://aurora.earthmc.net/*"], css: ["resources/style.css"], js: ["src/httputil.js", "src/dom.js", "src/screenshot.js", "src/modeselector.js", "src/gui.js", "src/main.js", "src/entrypoint.js"] }] };
@@ -1603,9 +1797,9 @@ async function init(manifest) {
 	--player-lookup-width: 190px;\r
 	--yellow-colour: #b58a3f;\r
 	/** TODO: Make these more robust. Probably not my best idea */\r
-	--screenshot-bg-image: url("https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/refs/heads/main/resources/icon-screenshot.png");\r
-	--show-icon: url("https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/refs/heads/main/resources/icon-show.png");\r
-	--hide-icon: url("https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/refs/heads/main/resources/icon-hide.png");\r
+	--screenshot-bg-image: url("https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/refs/heads/main/resources/gui/icon-screenshot.png");\r
+	--show-icon: url("https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/refs/heads/main/resources/gui/icon-show.png");\r
+	--hide-icon: url("https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/refs/heads/main/resources/gui/icon-hide.png");\r
 }\r
 \r
 /* Onscreen extension menu */\r
