@@ -244,3 +244,11 @@ async function sendBatch(url, chunk) {
 		return []
 	})
 }
+
+/** @param {AllianceColours} colours  */
+function parseColours(colours) {
+	if (!colours) return DEFAULT_ALLIANCE_COLOURS
+	colours.fill = "#" + colours.fill.replaceAll("#", "")
+	colours.outline = "#" + colours.outline.replaceAll("#", "")
+	return colours
+}

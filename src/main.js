@@ -51,10 +51,10 @@ const archiveDate = () => parseInt(localStorage['emcdynmapplus-archive-date'])
 const nationClaimsInfo = () => JSON.parse(localStorage['emcdynmapplus-nation-claims-info'] || '[]')
 
 /** @param {string} str */
-const isNumeric = (str) => Number.isFinite(+str)
+const isNumeric = str => Number.isFinite(+str)
 
 /** @param {number} num */
-const roundTo16 = (num) => Math.round(num / 16) * 16
+const roundTo16 = num => Math.round(num / 16) * 16
 
 /** 
  * Fowler-Noll-Vo hash function
@@ -241,13 +241,28 @@ async function modifyMarkers(data) {
 		switch (mapMode) {
 			case MapMode.DEFAULT: 
 			case MapMode.ARCHIVE: continue
+			case MapMode.ALLIANCES:
+				colorMarkerAlliances(marker, parsed)
+				break
+			case MapMode.MEGANATIONS:
+				colorMarkerMeganations(marker, parsed)
+				break
+			case MapMode.OVERCLAIM:
+				colorMarkerOverclaim(marker, parsed)
+				break
 			case MapMode.NATIONCLAIMS: 
-				colorTownNationClaims(marker, parsed.nationName, claimsCustomizerInfo, useOpaque, showExcluded)
+				colorMarkerNationClaims(marker, parsed.nationName, claimsCustomizerInfo, useOpaque, showExcluded)
 				break
 			case MapMode.NEWDAY:
-				colorTownNewDay(marker, parsed)
+				colorMarkerNewDay(marker, parsed)
 				break
-			default: colorTown(marker, parsed, mapMode) // All other modes (alliances, meganations, overclaim)
+			default: 
+				const mayor = marker.popup.match(/Mayor: <b>(.*)<\/b>/)?.[1]
+				const isRuin = !!mayor?.match(/NPC[0-1000]+/)
+				if (isRuin) {
+					colorMarker(marker, '#000000', '#000000')
+					break
+				}
 		}
 
 		parsedMarkers.push(parsed) // needs to be at very end in case any map mode funcs modify parsed
@@ -483,38 +498,51 @@ const DEFAULT_GREEN = '#89c500'
 
 /**
  * @param {Marker} marker
- * @param {ParsedMarker} parsedMarker
+ * @param {string} nationName
  * @param {MapMode} mapMode - The currently selected map mode.
  */
-function colorTown(marker, parsedMarker, mapMode) {
-	const mayor = marker.popup.match(/Mayor: <b>(.*)<\/b>/)?.[1]
-	const isRuin = !!mayor?.match(/NPC[0-1000]+/)
-	if (isRuin) return colorMarker(marker, '#000000', '#000000')
-
-	const { nationName } = parsedMarker
-	if (mapMode == MapMode.MEGANATIONS) {
-		const isDefaultCol = marker.color == DEFAULT_BLUE && marker.fillColor == DEFAULT_BLUE
-		marker.color = isDefaultCol ? '#363636' : DEFAULT_GREEN
-		marker.fillColor = isDefaultCol ? hashCode(nationName) : marker.fillColor
-	}
-	else if (mapMode == MapMode.OVERCLAIM) {
-		const nation = nationName ? cachedApiNations.get(nationName.toLowerCase()) : null
-		const overclaimInfo = !nation
-			? checkOverclaimedNationless(parsedMarker.area, parsedMarker.residentNum)
-			: checkOverclaimed(parsedMarker.area, parsedMarker.residentNum, nation.stats.numResidents)
-
-		const colour = overclaimInfo.isOverclaimed ? '#ff0000' : '#00ff00'
-		colorMarker(marker, colour, colour, overclaimInfo.isOverclaimed ? 2 : 0.5)
-	}
-	else colorMarker(marker, '#000000', '#000000', 1) // 'alliances' mode
-
-	// Properties for alliances and meganations
+function applyAllianceColours(marker, nationName, mapMode) {
 	const nationAlliances = getNationAlliances(nationName, mapMode)
-	if (nationAlliances.length == 0) return
-	
-	const { colours } = nationAlliances[0]					   // First alliance in related alliances
-	const newWeight = nationAlliances.length > 1 ? 1.5 : 0.75  // Use bolder weight if many related alliances
-	return colorMarker(marker, colours.fill, colours.outline, newWeight)
+	if (nationAlliances.length === 0) return
+
+	const { colours } = nationAlliances[0]
+	const weight = nationAlliances.length > 1 ? 1.5 : 0.75
+	colorMarker(marker, colours.fill, colours.outline, weight)
+}
+
+/**
+ * @param {Marker} marker
+ * @param {ParsedMarker} parsed
+ */
+function colorMarkerAlliances(marker, parsed) {
+	colorMarker(marker, '#000000', '#000000', 1)
+	applyAllianceColours(marker, parsed.nationName, MapMode.ALLIANCES)
+}
+
+/**
+ * @param {Marker} marker
+ * @param {ParsedMarker} parsed
+ */
+function colorMarkerMeganations(marker, parsed) {
+	const isDefaultCol = marker.color == DEFAULT_BLUE && marker.fillColor == DEFAULT_BLUE
+	marker.color = isDefaultCol ? '#363636' : DEFAULT_GREEN
+	marker.fillColor = isDefaultCol ? hashCode(parsed.nationName) : marker.fillColor
+
+	applyAllianceColours(marker, parsed.nationName, MapMode.MEGANATIONS)
+}
+
+/**
+ * @param {Marker} marker
+ * @param {ParsedMarker} parsed
+ */
+function colorMarkerOverclaim(marker, parsed) {
+	const nation = parsed.nationName ? cachedApiNations.get(parsed.nationName.toLowerCase()) : null
+	const info = !nation
+		? checkOverclaimedNationless(parsed.area, parsed.residentNum)
+		: checkOverclaimed(parsed.area, parsed.residentNum, nation.stats.numResidents)
+
+	const colour = info.isOverclaimed ? '#ff0000' : '#00ff00'
+	colorMarker(marker, colour, colour, info.isOverclaimed ? 2 : 0.5)
 }
 
 /**
@@ -524,7 +552,7 @@ function colorTown(marker, parsedMarker, mapMode) {
  * @param {boolean} useOpaque
  * @param {boolean} showExcluded
  */
-function colorTownNationClaims(marker, nationName, claimsCustomizerInfo, useOpaque, showExcluded) {
+function colorMarkerNationClaims(marker, nationName, claimsCustomizerInfo, useOpaque, showExcluded) {
 	//const strippedName = nationName?.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase()
 	const nationColorInput = claimsCustomizerInfo.get(nationName?.toLowerCase())
 	if (!nationColorInput) {
@@ -542,7 +570,7 @@ function colorTownNationClaims(marker, nationName, claimsCustomizerInfo, useOpaq
  * @param {Marker} marker
  * @param {ParsedMarker} parsedMarker
  */
-function colorTownNewDay(marker, parsedMarker) {
+function colorMarkerNewDay(marker, parsedMarker) {
 	const fallingTown = cachedFallingTowns.find(v => v.name.toLowerCase() == parsedMarker.townName.toLowerCase())
 	if (fallingTown) {
 		parsedMarker.isCapital = fallingTown.status.isCapital
@@ -682,16 +710,6 @@ function timeAgo(ts) {
 	}
 
 	return 'Today'
-}
-
-/**
- * @param {AllianceColours} colours  
- */
-function parseColours(colours) {
-	if (!colours) return DEFAULT_ALLIANCE_COLOURS
-	colours.fill = "#" + colours.fill.replaceAll("#", "")
-	colours.outline = "#" + colours.outline.replaceAll("#", "")
-	return colours
 }
 
 /**
