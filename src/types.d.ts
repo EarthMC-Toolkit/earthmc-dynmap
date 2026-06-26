@@ -73,6 +73,41 @@ declare global {
         mayor?: string
     }
 
+    // --------------------- EMC STATS API TYPES ---------------------
+    export interface CAPIFallingTown extends CAPITown {
+        ruinAt: Date
+        deletionAt: Date
+        mayorLastOnline: Date
+        /** Duration in seconds the mayor has been inactive */
+        inactiveDuration: number
+    }
+
+    export type CAPITown = {
+        name: string
+        stats: { balance: number }
+        status: {
+            isOpen: boolean
+            isCapital: boolean
+        }
+        timestamps: {
+            registered: number
+            joinedNationAt: number
+            ruinedAt: number
+        }
+        coordinates: {
+            homeBlock: [number, number]
+            townBlocks: Array<[number, number]>
+            spawn: {
+                x: number
+                z: number
+                y: number
+                world: string
+                pitch: number
+                yaw: number
+            }
+        }
+    }
+
     // --------------------- ALLIANCE TYPES ---------------------
     export interface Alliance {
         name: string
@@ -139,19 +174,6 @@ declare global {
     export interface TokenBucketStored {
         tokens: number
         lastRefill: number
-    }
-
-    export interface CAPICoords {
-        homeBlock: [number, number]
-        townBlocks: Array<[number, number]>
-        spawn: {
-            x: number,
-            z: number,
-            y: number,
-            world: string,
-            pitch: number
-            yaw: number
-        }
     }
 }
 

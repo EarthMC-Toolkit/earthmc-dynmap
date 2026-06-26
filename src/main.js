@@ -13,12 +13,12 @@ waitForElement('.leaflet-nameplate-pane').then(element => {
 })
 
 /** @type {Array<ParsedMarker>} */
-let parsedMarkers = []
+let parsedMarkers = [] // this is essential for the locater to work correctly
 
-/** @type {Array<{name: string}>} */
+/** @type {Array<CAPIFallingTown>} */
 let cachedFallingTowns = null
 
-/** @type {Array<{name: string, coordinates: CAPICoords}>} */
+/** @type {Array<CAPITown}>} */
 let cachedRuinedTowns = null
 
 /** @type {Map<string, any>} */
@@ -206,7 +206,7 @@ async function modifyMarkers(data) {
 		if (cachedFallingTowns == null) cachedFallingTowns = await fetchFallingTowns()
 		if (cachedRuinedTowns == null) cachedRuinedTowns = await fetchRuinedTowns()
 
-		drawRuins(data, cachedRuinedTowns, '#ff1900')
+		addRuinMarkers(data, cachedRuinedTowns, '#ff1900')
 	}
 
 	if (mapMode == MapMode.OVERCLAIM && cachedApiNations == null) {
@@ -232,25 +232,25 @@ async function modifyMarkers(data) {
 	for (const marker of data[0].markers) {
 		if (marker.type != 'polygon' && marker.type != 'icon') continue
 
-		const parsed = isSquaremap ? modifyDescription(marker, mapMode) : modifyDynmapDescription(marker, date)
-		parsedMarkers.push(parsed)
-
 		// Set universal properties. These may be altered l8r depending on map mode.
 		marker.opacity = 1
 		marker.fillOpacity = 0.33
 		marker.weight = 1.5
 
+		const parsed = isSquaremap ? modifyDescription(marker, mapMode) : modifyDynmapDescription(marker, date)
 		switch (mapMode) {
-			case MapMode.DEFAULT: continue
+			case MapMode.DEFAULT: 
 			case MapMode.ARCHIVE: continue
 			case MapMode.NATIONCLAIMS: 
 				colorTownNationClaims(marker, parsed.nationName, claimsCustomizerInfo, useOpaque, showExcluded)
-				continue
+				break
 			case MapMode.NEWDAY:
 				colorTownNewDay(marker, parsed)
-				continue
+				break
 			default: colorTown(marker, parsed, mapMode) // All other modes (alliances, meganations, overclaim)
 		}
+
+		parsedMarkers.push(parsed) // needs to be at very end in case any map mode funcs modify parsed
 	}
 	
 	const elapsed = performance.now() - start
@@ -322,7 +322,7 @@ function addCountryBordersLayer(data, borders) {
  */
 function modifyDescription(marker, mapMode) {
 	if (mapMode == MapMode.NEWDAY && !marker.popup) {
-		const name = marker.tooltip.substring(marker.tooltip.indexOf(">") + 1, marker.tooltip.lastIndexOf("</"))
+		const name = marker.tooltip.substring(marker.tooltip.indexOf(">") + 1, marker.tooltip.lastIndexOf("</"))	
 		return { townName: name }
 	}
 
@@ -341,8 +341,6 @@ function modifyDescription(marker, mapMode) {
 	const fixedTownName = town.replaceAll('<', '&lt;').replaceAll('>', '&gt;')
 	const fixedNationName = nation?.replaceAll('<', '&lt;').replaceAll('>', '&gt;') ?? nation
 
-	const area = calcMarkerArea(marker) // Area excluding interior holes
-
 	let location = { x: 0, z: 0 }
 	if (marker.points) location = midrange(marker.points.flat(2))
 
@@ -360,6 +358,7 @@ function modifyDescription(marker, mapMode) {
 		marker.popup = marker.popup.replace(residents + '\n', INSERTABLE_HTML.residentList.replace('{list}', residentList) + '\n')
 	}
 
+	const area = calcMarkerArea(marker) // Area excluding interior holes
 	marker.popup = marker.popup
 		.replace('</details>\n   \t<br>', '</details>') // Remove line break
 		.replace('Councillors:', `Size: <b>${area} chunks</b><br/>Councillors:`) // Add size info
@@ -544,8 +543,11 @@ function colorTownNationClaims(marker, nationName, claimsCustomizerInfo, useOpaq
  * @param {ParsedMarker} parsedMarker
  */
 function colorTownNewDay(marker, parsedMarker) {
-	const isFalling = cachedFallingTowns.some(v => v.name.toLowerCase() == parsedMarker.townName.toLowerCase())
-	if (isFalling) return colorMarker(marker, '#ffa200', '#ffa200', 2)
+	const fallingTown = cachedFallingTowns.find(v => v.name.toLowerCase() == parsedMarker.townName.toLowerCase())
+	if (fallingTown) {
+		parsedMarker.isCapital = fallingTown.status.isCapital
+		return colorMarker(marker, '#ffa200', '#ffa200', 2)
+	}
 
 	const isRuined = cachedRuinedTowns.some(v => v.name.toLowerCase() == parsedMarker.townName.toLowerCase())
 	if (!isRuined) {
@@ -555,10 +557,11 @@ function colorTownNewDay(marker, parsedMarker) {
 			marker.opacity = marker.fillOpacity = 0
 		}
 
-		return colorMarker(marker, '#000000', '#000000', 0.5)
+		colorMarker(marker, '#000000', '#000000', 0.5)
+	} else {
+		marker.weight = 3 // make ruined town markers stand out
 	}
 	
-	marker.weight = 3
 	return marker
 }
 
@@ -567,7 +570,7 @@ function colorTownNewDay(marker, parsedMarker) {
  * @param {Array<{name: string, coordinates: CAPICoords}>} ruined
  * @param {string} colour
 */
-function drawRuins(data, ruined, colour) {
+function addRuinMarkers(data, ruined, colour) {
 	ruined.forEach(t => {
 		/** @type {SquaremapMarker} */
 		const marker = {
