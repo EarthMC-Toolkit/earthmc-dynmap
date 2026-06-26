@@ -333,7 +333,7 @@ function addCountryBordersLayer(data, borders) {
  * @returns {ParsedMarker}
  */
 function modifyDescription(marker, mapMode) {
-	if (mapMode == MapMode.NEWDAY && !marker.popup) {
+	if (mapMode == MapMode.NEWDAY && marker.tooltip.endsWith("(Ruined)")) {
 		const name = marker.tooltip.substring(marker.tooltip.indexOf(">") + 1, marker.tooltip.lastIndexOf("</"))	
 		return { townName: name }
 	}
@@ -391,7 +391,7 @@ function modifyDescription(marker, mapMode) {
 	}
 	if (isCapital) {
 		// Prepend star indicating a capital
-		marker.popup = marker.popup.replace('<span style="font-size:120%;">', '<span style="font-size: 120%">★ ')
+		marker.popup = marker.popup.replace('<span style="font-size:120%;">', '<span style="font-size: 120%">⭐ ')
 	}
 
 	marker.tooltip = marker.tooltip
@@ -435,7 +435,7 @@ function modifyDynmapDescription(marker, curArchiveDate) {
 	const location = midrange(marker.points.flat(2))
 
 	// Modify description
-	if (isCapital) marker.popup = marker.popup.replace('120%">', '120%">★ ') // Prepend star indicating a capital
+	if (isCapital) marker.popup = marker.popup.replace('120%">', '120%">⭐ ') // Prepend star indicating a capital
 	if (curArchiveDate < 20220906) {
 		marker.popup = marker.popup.replace(/">hasUpkeep:.+?(?<=<br \/>)/, '; white-space:pre">')
 	}
@@ -466,7 +466,7 @@ function modifyDynmapDescription(marker, curArchiveDate) {
 	}
 
 	// Strip all HTML tags and leading star so we can get town and nation names.
-	const clean = marker.popup.replace(/<[^>]+>/g, '').trim().replace(/^★\s*/, '')
+	const clean = marker.popup.replace(/<[^>]+>/g, '').trim().replace(/^⭐\s*/, '')
 	const [, town, nation] = (clean.match(/^(.+?)\s*\((.+?)\)/) || [])
 
 	return {
@@ -571,11 +571,16 @@ function colorMarkerNewDay(marker, parsedMarker) {
 	const fallingTown = cachedFallingTowns.find(v => v.name.toLowerCase() == parsedMarker.townName.toLowerCase())
 	if (fallingTown) {
 		parsedMarker.isCapital = fallingTown.status.isCapital
-		return colorMarker(marker, '#ffa200', '#ffa200', 2)
+		parsedMarker.x = fallingTown.coordinates.spawn.x
+		parsedMarker.z = fallingTown.coordinates.spawn.z
+
+		return fallingTown.status.isOpen 
+			? colorMarker(marker, DEFAULT_GREEN, DEFAULT_GREEN, 2)
+			: colorMarker(marker, '#ffa200', '#ffa200', 2)
 	}
 
-	const isRuined = cachedRuinedTowns.some(v => v.name.toLowerCase() == parsedMarker.townName.toLowerCase())
-	if (!isRuined) {
+	const ruinedTown = cachedRuinedTowns.find(v => v.name.toLowerCase() == parsedMarker.townName.toLowerCase())
+	if (!ruinedTown) {
 		marker.fillOpacity = 0.2
 		marker.opacity = 0.8
 		if (marker.type == 'icon') {
@@ -584,6 +589,10 @@ function colorMarkerNewDay(marker, parsedMarker) {
 
 		colorMarker(marker, '#000000', '#000000', 0.5)
 	} else {
+		parsedMarker.isCapital = ruinedTown.status.isCapital
+		parsedMarker.x = ruinedTown.coordinates.spawn.x
+		parsedMarker.z = ruinedTown.coordinates.spawn.z
+
 		marker.weight = 3 // make ruined town markers stand out
 	}
 	
@@ -592,7 +601,7 @@ function colorMarkerNewDay(marker, parsedMarker) {
 
 /** 
  * @param {MarkersResponse} data 
- * @param {Array<{name: string, coordinates: CAPICoords}>} ruined
+ * @param {Array<CAPIRuinedTown>} ruined
  * @param {string} colour
 */
 function addRuinMarkers(data, ruined, colour) {
@@ -600,7 +609,7 @@ function addRuinMarkers(data, ruined, colour) {
 		/** @type {SquaremapMarker} */
 		const marker = {
 			tooltip: `<b>${t.name}</b> (Ruined)`,
-			popup: '',
+			popup: buildRuinedPopup(t),
 			type: 'polygon',
 			weight: 1.5,
 			opacity: 1,
@@ -613,6 +622,72 @@ function addRuinMarkers(data, ruined, colour) {
 		data[0].markers.push(marker)
 	})
 }
+
+/**
+ * 
+ * @param {CAPITown} t 
+ * @returns 
+ */
+const buildPopup = t => `
+<div class="infowindow">
+    <span style="font-size:120%;">⭐ ${t.name}</span>
+    <br>
+    <i>${t.board ?? ''}</i>
+    <br>
+    <br>
+    Mayor: <b>${t.mayor ?? 'None'}</b>
+    <br>
+    Councillors: <b>${t.councillors?.length ? t.councillors.join(', ') : 'None'}</b>
+    <br>
+    Founded: <b>${t.founded ?? 'Unknown'}</b>
+    <br>
+    PVP: <b>${t.pvp ? 'true' : 'false'}</b>
+    <br>
+    Public: <b>${t.public ? 'true' : 'false'}</b>
+    <br>
+
+    <details style="min-width: 250px">
+        <summary style="cursor: pointer;">
+            Residents: <b>${t.residents?.length ?? 0}</b>
+        </summary>
+        ${t.residents?.join(', ') ?? ''}
+    </details>
+
+    <br>
+</div>
+`
+
+const dateOpts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
+
+/** @param {CAPIRuinedTown} t */
+const buildRuinedPopup = t => `
+<div class="infowindow">
+    <span style="font-size:120%;">${t.name} (Ruined)</span>
+    <br>
+    <i>${t.board ?? ''}</i>
+    <br>
+    <br>
+    Mayor: <b>${t.mayor.name ?? 'Unknown'}</b>
+    <br>
+    Founded: <b>${new Date(t.timestamps.registered).toLocaleDateString("en-US", dateOpts)}</b> by <b>${t.founder}</b>
+    <br>
+    PVP: <b>${t.perms.flags.pvp ? 'true' : 'false'}</b>
+    <br>
+    Public: <b>${t.status.isPublic ? 'true' : 'false'}</b>
+    <br>
+	Balance: <b>${t.stats.balance ?? 0}</b>
+    <br>
+
+    <details style="min-width: 250px">
+        <summary style="cursor: pointer;">
+            Residents: <b>${t.residents?.length ?? 0}</b>
+        </summary>
+        ${t.residents?.map(r => r.name).join(', ') ?? ''}
+    </details>
+
+    <br>
+</div>
+`
 
 /**
  * @param {string} playerName

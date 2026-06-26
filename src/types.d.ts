@@ -80,18 +80,29 @@ declare global {
         mayorLastOnline: Date
         /** Duration in seconds the mayor has been inactive */
         inactiveDuration: number
+        nation: { name: string, uuid: string }
+    }
+
+    export interface CAPIRuinedTown extends CAPITown {
+        nation: { name: null, uuid: null }
     }
 
     export type CAPITown = {
         name: string
+        uuid: string
+        board: string
+        founder: string
+        mayor: { name: string, uuid: string }
+        residents: Array<{ name: string, uuid: string }>
         stats: { balance: number }
         status: {
+            isPublic: boolean
             isOpen: boolean
             isCapital: boolean
         }
         timestamps: {
             registered: number
-            joinedNationAt: number
+            joinedNationAt: number // when ruined: null
             ruinedAt: number
         }
         coordinates: {
@@ -104,6 +115,18 @@ declare global {
                 world: string
                 pitch: number
                 yaw: number
+            }
+        }
+        perms: {
+            build: [boolean, boolean, boolean, boolean]     // when ruined: true, true, true, true
+            destroy: [boolean, boolean, boolean, boolean]   // when ruined: true, true, true, true
+            switch: [boolean, boolean, boolean, boolean]    // when ruined: true, true, true, true
+            itemUse: [boolean, boolean, boolean, boolean]   // when ruined: true, true, true, true
+            flags: {
+                pvp: boolean        // when ruined: true
+                explosions: boolean // when ruined: false
+                fire: boolean       // when ruined: true
+                mobs: boolean       // when ruined: true
             }
         }
     }
