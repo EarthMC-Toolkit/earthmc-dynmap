@@ -140,6 +140,19 @@ declare global {
         tokens: number
         lastRefill: number
     }
+
+    export interface CAPICoords {
+        homeBlock: [number, number]
+        townBlocks: Array<[number, number]>
+        spawn: {
+            x: number,
+            z: number,
+            y: number,
+            world: string,
+            pitch: number
+            yaw: number
+        }
+    }
 }
 
 export {}

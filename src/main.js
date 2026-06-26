@@ -15,11 +15,17 @@ waitForElement('.leaflet-nameplate-pane').then(element => {
 /** @type {Array<ParsedMarker>} */
 let parsedMarkers = []
 
-/** @type {Array<Alliance>} */
-let cachedAlliances = null
+/** @type {Array<{name: string}>} */
+let cachedFallingTowns = null
+
+/** @type {Array<{name: string, coordinates: CAPICoords}>} */
+let cachedRuinedTowns = null
 
 /** @type {Map<string, any>} */
 let cachedApiNations = null
+
+/** @type {Array<Alliance>} */
+let cachedAlliances = null
 
 const BORDER_CHUNK_COORDS = /** @type {const} */ ({ 
 	L: -33280, R: 33088,
@@ -193,8 +199,15 @@ async function modifyMarkers(data) {
 
 	const isAllianceMode = mapMode == MapMode.ALLIANCES || mapMode == MapMode.MEGANATIONS
     if (isAllianceMode && cachedAlliances == null) {
-        cachedAlliances = await getAlliances()
+        cachedAlliances = await fetchAlliances()
     }
+
+	if (mapMode == MapMode.NEWDAY) {
+		if (cachedFallingTowns == null) cachedFallingTowns = await fetchFallingTowns()
+		if (cachedRuinedTowns == null) cachedRuinedTowns = await fetchRuinedTowns()
+
+		drawRuins(data, cachedRuinedTowns, '#ff1900')
+	}
 
 	if (mapMode == MapMode.OVERCLAIM && cachedApiNations == null) {
 		const url = `${currentMapApiUrl()}/nations`
@@ -219,24 +232,25 @@ async function modifyMarkers(data) {
 	for (const marker of data[0].markers) {
 		if (marker.type != 'polygon' && marker.type != 'icon') continue
 
-		const parsedInfo = isSquaremap ? modifyDescription(marker, mapMode) : modifyDynmapDescription(marker, date)
-		if (marker.type != 'polygon') continue
+		const parsed = isSquaremap ? modifyDescription(marker, mapMode) : modifyDynmapDescription(marker, date)
+		parsedMarkers.push(parsed)
 
-		parsedMarkers.push(parsedInfo)
-
-		// Universal properties
+		// Set universal properties. These may be altered l8r depending on map mode.
 		marker.opacity = 1
 		marker.fillOpacity = 0.33
 		marker.weight = 1.5
 
-		if (mapMode == MapMode.DEFAULT || mapMode == MapMode.ARCHIVE) continue
-		if (mapMode == MapMode.NATIONCLAIMS) {
-			colorTownNationClaims(marker, parsedInfo.nationName, claimsCustomizerInfo, useOpaque, showExcluded)
-			continue
+		switch (mapMode) {
+			case MapMode.DEFAULT: continue
+			case MapMode.ARCHIVE: continue
+			case MapMode.NATIONCLAIMS: 
+				colorTownNationClaims(marker, parsed.nationName, claimsCustomizerInfo, useOpaque, showExcluded)
+				continue
+			case MapMode.NEWDAY:
+				colorTownNewDay(marker, parsed)
+				continue
+			default: colorTown(marker, parsed, mapMode) // All other modes (alliances, meganations, overclaim)
 		}
-
-		// All other modes (alliances, meganations, overclaim)
-		colorTown(marker, parsedInfo, mapMode)
 	}
 	
 	const elapsed = performance.now() - start
@@ -257,7 +271,6 @@ const MOVE_RIGHT = isAurora ? 0 : 382.5 // How much to move the layer right by
  * Projects the Z coordinate for the current map.
  * Aurora uses raw coordinates (borders are Plate Carree), while Nostra uses Miller projection.
  * @param {number} z
- * @returns {number}
  */
 const projectZ = z => isAurora ? z : millerProjection(z) + MOVE_DOWN
 
@@ -305,17 +318,21 @@ function addCountryBordersLayer(data, borders) {
  * Modifies a town description of a Squaremap marker.
  * @param {SquaremapMarker} marker
  * @param {MapMode} mapMode - The currently selected map mode.
- * 
  * @returns {ParsedMarker}
  */
 function modifyDescription(marker, mapMode) {
+	if (mapMode == MapMode.NEWDAY && !marker.popup) {
+		const name = marker.tooltip.substring(marker.tooltip.indexOf(">") + 1, marker.tooltip.lastIndexOf("</"))
+		return { townName: name }
+	}
+
 	const town = marker.tooltip.match(/<b>(.*)<\/b>/)[1]
 	const nation = marker.tooltip.match(/\(\b(?:Member|Capital)\b of (.*)\)\n/)?.[1]
 	const isCapital = marker.tooltip.match(/\(Capital of (.*)\)/) != null
 	const mayor = marker.popup.match(/Mayor: <b>(.*)<\/b>/)?.[1]
 
-	const residents = marker.popup.match(/<\/summary>\n    \t(.*)\n   \t<\/details>/)?.[1]
-	const residentNum = residents.split(', ').length
+	const residents = marker.popup?.match(/<\/summary>\n    \t(.*)\n   \t<\/details>/)?.[1]
+	const residentNum = residents?.split(', ').length ?? 0
 
 	const councillors = marker.popup.match(/Councillors: <b>(.*)<\/b>/)?.[1]
 		.split(', ').filter(councillor => councillor != 'None')
@@ -451,9 +468,12 @@ function modifyDynmapDescription(marker, curArchiveDate) {
 
 /** 
  * Sets the colours of a marker with optional weight and returns it back.
- * @param {Marker} marker 
+ * @param {Marker} marker
+ * @param {string} fill
+ * @param {string} outline
+ * @param {number} weight
  */
-const colorMarker = (marker, fill, outline, weight=null) => {
+const colorMarker = (marker, fill, outline, weight = null) => {
 	marker.fillColor = fill
 	marker.color = outline
 	if (weight) marker.weight = weight
@@ -463,21 +483,20 @@ const DEFAULT_BLUE = '#3fb4ff'
 const DEFAULT_GREEN = '#89c500'
 
 /**
- * @param {Marker} rawMarker
+ * @param {Marker} marker
  * @param {ParsedMarker} parsedMarker
  * @param {MapMode} mapMode - The currently selected map mode.
  */
-function colorTown(rawMarker, parsedMarker, mapMode) {
-	const mayor = rawMarker.popup.match(/Mayor: <b>(.*)<\/b>/)?.[1]
-	const isRuin = !!mayor?.match(/NPC[0-9]+/)
-	if (isRuin) return colorMarker(rawMarker, '#000000', '#000000')
+function colorTown(marker, parsedMarker, mapMode) {
+	const mayor = marker.popup.match(/Mayor: <b>(.*)<\/b>/)?.[1]
+	const isRuin = !!mayor?.match(/NPC[0-1000]+/)
+	if (isRuin) return colorMarker(marker, '#000000', '#000000')
 
 	const { nationName } = parsedMarker
-
 	if (mapMode == MapMode.MEGANATIONS) {
-		const isDefaultCol = rawMarker.color == DEFAULT_BLUE && rawMarker.fillColor == DEFAULT_BLUE
-		rawMarker.color = isDefaultCol ? '#363636' : DEFAULT_GREEN
-		rawMarker.fillColor = isDefaultCol ? hashCode(nationName) : rawMarker.fillColor
+		const isDefaultCol = marker.color == DEFAULT_BLUE && marker.fillColor == DEFAULT_BLUE
+		marker.color = isDefaultCol ? '#363636' : DEFAULT_GREEN
+		marker.fillColor = isDefaultCol ? hashCode(nationName) : marker.fillColor
 	}
 	else if (mapMode == MapMode.OVERCLAIM) {
 		const nation = nationName ? cachedApiNations.get(nationName.toLowerCase()) : null
@@ -486,23 +505,25 @@ function colorTown(rawMarker, parsedMarker, mapMode) {
 			: checkOverclaimed(parsedMarker.area, parsedMarker.residentNum, nation.stats.numResidents)
 
 		const colour = overclaimInfo.isOverclaimed ? '#ff0000' : '#00ff00'
-		colorMarker(rawMarker, colour, colour, overclaimInfo.isOverclaimed ? 2 : 0.5)
+		colorMarker(marker, colour, colour, overclaimInfo.isOverclaimed ? 2 : 0.5)
 	}
-	else colorMarker(rawMarker, '#000000', '#000000', 1) // 'alliances' mode
+	else colorMarker(marker, '#000000', '#000000', 1) // 'alliances' mode
 
 	// Properties for alliances and meganations
 	const nationAlliances = getNationAlliances(nationName, mapMode)
 	if (nationAlliances.length == 0) return
 	
-	const { colours } = nationAlliances[0] // First alliance in related alliances
-	const newWeight = nationAlliances.length > 1 ? 1.5 : 0.75 // Use bolder weight if many related alliances
-	return colorMarker(rawMarker, colours.fill, colours.outline, newWeight)
+	const { colours } = nationAlliances[0]					   // First alliance in related alliances
+	const newWeight = nationAlliances.length > 1 ? 1.5 : 0.75  // Use bolder weight if many related alliances
+	return colorMarker(marker, colours.fill, colours.outline, newWeight)
 }
 
 /**
  * @param {Marker} marker
  * @param {string} nationName
  * @param {Map<string|null, string|null>} claimsCustomizerInfo
+ * @param {boolean} useOpaque
+ * @param {boolean} showExcluded
  */
 function colorTownNationClaims(marker, nationName, claimsCustomizerInfo, useOpaque, showExcluded) {
 	//const strippedName = nationName?.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase()
@@ -516,6 +537,44 @@ function colorTownNationClaims(marker, nationName, claimsCustomizerInfo, useOpaq
 
 	if (useOpaque) marker.fillOpacity = marker.opacity = 1 // 100% opacity similar to manual player drawn claim maps
 	return colorMarker(marker, nationColorInput, nationColorInput, 1.5)
+}
+
+/**
+ * @param {Marker} marker
+ * @param {ParsedMarker} parsedMarker
+ */
+function colorTownNewDay(marker, parsedMarker) {
+	const isFalling = cachedFallingTowns.some(v => v.name.toLowerCase() == parsedMarker.townName.toLowerCase())
+	if (isFalling) return colorMarker(marker, '#ffa200', '#ffa200')
+
+	const isRuined = cachedRuinedTowns.some(v => v.name.toLowerCase() == parsedMarker.townName.toLowerCase())
+	if (!isRuined) marker.opacity = marker.fillOpacity = 0
+	
+	return marker
+}
+
+/** 
+ * @param {MarkersResponse} data 
+ * @param {Array<{name: string, coordinates: CAPICoords}>} ruined
+ * @param {string} colour
+*/
+function drawRuins(data, ruined, colour) {
+	ruined.forEach(t => {
+		/** @type {SquaremapMarker} */
+		const marker = {
+			tooltip: `<b>${t.name}</b> (Ruined)`,
+			popup: '',
+			type: 'polygon',
+			weight: 1.5,
+			opacity: 1,
+			fillOpacity: 0.33,
+			color: colour,
+			fillColor: colour,
+			points: chunksToSquaremap(t.coordinates.townBlocks.map(([x, z]) => [x * 16, z * 16]))
+		}
+
+		data[0].markers.push(marker)
+	})
 }
 
 /**
@@ -621,60 +680,6 @@ function parseColours(colours) {
 	colours.fill = "#" + colours.fill.replaceAll("#", "")
 	colours.outline = "#" + colours.outline.replaceAll("#", "")
 	return colours
-}
-
-async function getAlliances() {
-	const alliances = await fetchJSON(`${CAPI_BASE}/${CURRENT_MAP}/alliances`)
-	if (!alliances) {
-		try {
-			const cache = JSON.parse(localStorage['emcdynmapplus-alliances'])
-			if (!cache) throw new Error('No alliance data in cache')
-
-			for (const alliance of cache) {
-				const [ownNations, puppetNations] = [alliance.ownNations || [], alliance.puppetNations || []]
-				alliance._nationSet = new Set([...ownNations, ...puppetNations])
-			}
-
-			showAlert('Service responsible for loading alliances is unavailable, falling back to locally cached data.', 5)
-			return cache
-		} catch (_) {
-			showAlert('Service responsible for loading alliances will be available later.')
-		}
-		
-		return []
-	}
-
-	// Build map of parentAlliance (identifier) -> child alliances for O(1) lookup
-	const childrenByParent = new Map()
-	for (const a of alliances) {
-		if (!a.parentAlliance) continue
-
-		const arr = childrenByParent.get(a.parentAlliance) || []
-		arr.push(a)
-		childrenByParent.set(a.parentAlliance, arr)
-	}
-
-	/** @type {Array<Alliance>} */
-	const allianceData = []
-	for (const a of alliances) {
-		const allianceType = a.type?.toLowerCase() || 'mega'
-		//if (alliance.parentAlliance) continue // this is a child alliance, skip it
-
-		const children = childrenByParent.get(a.identifier) || []
-		const puppetNations = children.flatMap(a => a.ownNations || [])
-		const ownNations = a.ownNations || []
-
-		allianceData.push({
-			name: a.label || a.identifier,
-			modeType: allianceType == 'mega' ? 'meganations' : 'alliances',
-			colours: parseColours(a.optional.colours),
-			ownNations, puppetNations,
-			_nationSet: new Set([...ownNations, ...puppetNations])
-		})
-	}
-
-	localStorage['emcdynmapplus-alliances'] = JSON.stringify(allianceData)
-	return allianceData
 }
 
 /**
@@ -806,4 +811,84 @@ function millerProjection(z) {
 	if (millerOldZ < 0) millerOldZ *= NORTH_HEMISPHERE_FACTOR
 
 	return millerOldZ * MAP_SCALE_FACTOR
+}
+
+/**
+ * Convert Towny chunk blocks into Squaremap multipolygon rings.
+ * Each chunk is treated as a 1x1 square and merged into outer boundary edges.
+ *
+ * @param {Array<[number, number]>} blocks - Chunk coordinates [x, z]
+ * @returns {MultiPolygonPoints} MultiPolygon (Squaremap format)
+ */
+function chunksToSquaremap(blocks) {
+	const edges = new Set()
+
+	const add = (a, b) => {
+		const k = `${a.x},${a.z}|${b.x},${b.z}`
+		const r = `${b.x},${b.z}|${a.x},${a.z}`
+		if (edges.has(r)) edges.delete(r)
+		else edges.add(k)
+	}
+
+	for (const [x, z] of blocks) {
+		const A = { x, z }
+		const B = { x: x + 16, z }
+		const C = { x: x + 16, z: z + 16 }
+		const D = { x, z: z + 16 }
+
+		add(A, B); add(B, C); add(C, D); add(D, A)
+	}
+
+	const edgeMap = new Map()
+	for (const k of edges) {
+		const [ax, az, bx, bz] = k.split(/[|,]/).map(Number)
+
+		const a = { x: ax, z: az }
+		const b = { x: bx, z: bz }
+
+		const key = `${a.x},${a.z}`
+		if (!edgeMap.has(key)) edgeMap.set(key, [])
+		edgeMap.get(key).push(b)
+	}
+
+	const used = new Set()
+	const out = []
+
+	for (const startKey of edgeMap.keys()) {
+		if (used.has(startKey)) continue
+
+		const [sx, sz] = startKey.split(',').map(Number)
+		const start = { x: sx, z: sz }
+
+		const ring = []
+		let cur = start
+
+		while (true) {
+			ring.push(cur)
+
+			const nexts = edgeMap.get(`${cur.x},${cur.z}`) || []
+			let next = null
+
+			for (const n of nexts) {
+				const k = `${cur.x},${cur.z}|${n.x},${n.z}`
+				if (!used.has(k)) {
+					next = n
+					used.add(k)
+					break
+				}
+			}
+
+			if (!next) break
+
+			cur = next
+			if (cur.x === start.x && cur.z === start.z) break
+		}
+
+		if (ring.length >= 4) {
+			ring.push({ ...ring[0] }) // close loop (important for Squaremap)
+			out.push([ring])
+		}
+	}
+
+	return out
 }

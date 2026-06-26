@@ -140,6 +140,70 @@ const fetchArchive = async date => {
 	throw new Error(`Could not fetch archive! All ${PROXY_URLS.length} proxies failed :(`)
 }
 
+async function fetchAlliances() {
+	const alliances = await fetchJSON(`${CAPI_BASE}/${CURRENT_MAP}/alliances`)
+	if (!alliances) {
+		try {
+			const cache = JSON.parse(localStorage['emcdynmapplus-alliances'])
+			if (!cache) throw new Error('No alliance data in cache')
+
+			for (const alliance of cache) {
+				const [ownNations, puppetNations] = [alliance.ownNations || [], alliance.puppetNations || []]
+				alliance._nationSet = new Set([...ownNations, ...puppetNations])
+			}
+
+			showAlert('Service responsible for loading alliances is unavailable, falling back to locally cached data.', 5)
+			return cache
+		} catch (_) {
+			showAlert('Service responsible for loading alliances will be available later.')
+		}
+		
+		return []
+	}
+
+	// Build map of parentAlliance (identifier) -> child alliances for O(1) lookup
+	const childrenByParent = new Map()
+	for (const a of alliances) {
+		if (!a.parentAlliance) continue
+
+		const arr = childrenByParent.get(a.parentAlliance) || []
+		arr.push(a)
+		childrenByParent.set(a.parentAlliance, arr)
+	}
+
+	/** @type {Array<Alliance>} */
+	const allianceData = []
+	for (const a of alliances) {
+		const allianceType = a.type?.toLowerCase() || 'mega'
+		//if (alliance.parentAlliance) continue // this is a child alliance, skip it
+
+		const children = childrenByParent.get(a.identifier) || []
+		const puppetNations = children.flatMap(a => a.ownNations || [])
+		const ownNations = a.ownNations || []
+
+		allianceData.push({
+			name: a.label || a.identifier,
+			modeType: allianceType == 'mega' ? 'meganations' : 'alliances',
+			colours: parseColours(a.optional.colours),
+			ownNations, puppetNations,
+			_nationSet: new Set([...ownNations, ...puppetNations])
+		})
+	}
+
+	localStorage['emcdynmapplus-alliances'] = JSON.stringify(allianceData)
+	return allianceData
+}
+
+async function fetchFallingTowns() {
+	const falling = await fetchJSON(`${CAPI_BASE}/${CURRENT_MAP}/falling`)
+	return falling
+}
+
+async function fetchRuinedTowns() {
+	const ruined = await fetchJSON(`${CAPI_BASE}/${CURRENT_MAP}/ruined`)
+	return ruined
+}
+
 /**
  * Sends multiple requests and concatenates the results to circumvent 
  * the query limit while adhering to the rate limit.
