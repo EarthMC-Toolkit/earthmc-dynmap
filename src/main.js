@@ -259,10 +259,7 @@ async function modifyMarkers(data) {
 			default: 
 				const mayor = marker.popup.match(/Mayor: <b>(.*)<\/b>/)?.[1]
 				const isRuin = !!mayor?.match(/NPC[0-1000]+/)
-				if (isRuin) {
-					colorMarker(marker, '#000000', '#000000')
-					break
-				}
+				if (isRuin) colorMarker(marker, '#000000', '#000000')
 		}
 
 		parsedMarkers.push(parsed) // needs to be at very end in case any map mode funcs modify parsed
