@@ -419,6 +419,12 @@ const buildFallingPopup = t => `
 	Open: <b>${t.status.isOpen ? 'true' : 'false'}</b>
     <br>
 	<br>
+	<details style="min-width: 250px">
+        <summary style="cursor: pointer;">
+            Councillors: <b>${(t.ranks?.['Councillor'] || []).length}</b>
+        </summary>
+        ${(t.ranks?.['Councillor'] || []).map(r => r.name).join(', ') ?? ''}
+    </details>
     <details style="min-width: 250px">
         <summary style="cursor: pointer;">
             Residents: <b>${t.residents?.length ?? 0}</b>

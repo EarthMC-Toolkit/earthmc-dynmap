@@ -74,26 +74,29 @@ declare global {
     }
 
     // --------------------- EMC STATS API TYPES ---------------------
+    export interface Entity { name: string, uuid: string }
+
     export interface CAPIFallingTown extends CAPITown {
         ruinAt: Date
         deletionAt: Date
         mayorLastOnline: Date
         /** Duration in seconds the mayor has been inactive */
         inactiveDuration: number
-        nation: { name: string, uuid: string }
+        nation: Entity
+        ranks: {
+            [key: string]: Array<Entity>
+        }
     }
 
     export interface CAPIRuinedTown extends CAPITown {
         nation: { name: null, uuid: null }
     }
 
-    export type CAPITown = {
-        name: string
-        uuid: string
+    export type CAPITown = Entity & {
         board: string
         founder: string
-        mayor: { name: string, uuid: string }
-        residents: Array<{ name: string, uuid: string }>
+        mayor: Entity
+        residents: Array<Entity>
         stats: { balance: number }
         status: {
             isPublic: boolean
