@@ -59,7 +59,7 @@ function addMapModeSelector(parent) {
     }
 
     const curMode = currentMapMode()
-    label.textContent = `Map Mode: ${curMode.name}`
+    label.textContent = `Current Mode: ${curMode.name}`
 }
 
 const GITHUB_REPO = "https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/refs/heads/main/"

@@ -13,7 +13,7 @@ const SCROLL_LINE_DELTA = 30  // 1 scroll line = ~30 deltaY in windows
 const SCROLL_THRESHOLD 	= 5	  // increase zoom by this many scroll lines
 
 // TODO: Add sliders under a "Tile Filters" section and bind these variables to their respective values.
-const BRIGHTNESS_PERCENTAGE = localStorage['emcdynmapplus-mapmode'] != 'newday' ? 65 : 30
+const BRIGHTNESS_PERCENTAGE = localStorage['emcdynmapplus-mapmode'] != 'newday' ? 65 : 40
 const CONTRAST_PERCENTAGE = 102
 const SATURATE_PERCENTAGE = 97
 const getTilePaneFilter = () => /** @type {const} */ (
@@ -55,7 +55,7 @@ const INSERTABLE_HTML = /** @type {const} */ ({
 		selector: '<div class="leaflet-control-layers leaflet-control" id="map-mode-selector"></div>',
 		optionContainer: '<div id="map-mode-option-container"></div>',
 		btnOption: '<button class="map-mode-btn-option"></button>',
-		currentModeLabel: '<div id="current-map-mode-label">Map Mode: null</div>',
+		currentModeLabel: '<div id="current-map-mode-label">Current Mode: null</div>',
 	},
     followingPlayer: '<h1 id="following-warning">Stop following this player by clicking on the map.</h1>',
     alertBox: '<div id="alert"><p id="alert-message">{message}</p><button id="alert-close">Dismiss</button></div>',
