@@ -36,6 +36,7 @@ archive.pipe(output)
 
 addDirIgnore(archive, 'src', EXT_NAME+'/src', ['types.d.ts']) // Types are just for developing
 
+archive.file('worker.js', { name: EXT_NAME + '/worker.js' })
 archive.file('manifest.json', { name: EXT_NAME+'/manifest.json' })
 archive.file('README.md', { name: EXT_NAME+'/README.md' })
 

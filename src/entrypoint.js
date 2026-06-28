@@ -53,10 +53,7 @@ function injectScript(resource) {
 
 /** @param {Manifest} manifest */
 async function init(manifest) {
-	const isUserscript = typeof IS_USERSCRIPT !== 'undefined' && IS_USERSCRIPT
-	if (isUserscript) {
-		GM_addStyle(STYLE_CSS)
-	}
+	if (isUserscript()) GM_addStyle(STYLE_CSS)
 
     localStorage['emcdynmapplus-mapmode'] ??= MapMode.MEGANATIONS.name
 	localStorage['emcdynmapplus-normalize-scroll'] ??= 'true'

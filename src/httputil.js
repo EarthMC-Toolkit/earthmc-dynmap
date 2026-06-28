@@ -13,15 +13,6 @@ const OAPI_ITEMS_PER_REQ = 100
 
 const currentMapApiUrl = () => CURRENT_MAP == 'aurora' ? `${OAPI_BASE}/v3/aurora` : `${OAPI_BASE}/v4`
 
-const PROJECT_URL = `https://github.com/3meraldK/earthmc-dynmap`
-const PROXY_URLS = [
-	`https://emcstats.bot.nu/proxy?target=`,	 // Our own main CORS proxy
-	`https://api.codetabs.com/v1/proxy/?quest=`, // Fallback #1
-	`https://proxy.corsfix.com`,				 // Fallback #2
-	`https://api.cors.lol/?url=`,				 // Fallback #3
-	`https://everyorigin.jwvbremen.nl/get?url=`, // Fallback #4
-]
-
 /**
  * Token/leaky bucket implementation with localStorage caching.\
  * Useful for rate limiting requests client side while persisting the bucket state through reloads.
@@ -128,16 +119,13 @@ const fetchArchive = async date => {
 		`https://map.earthmc.net/tiles/minecraft_overworld/markers.json` // latest
 
 	const archiveURL = `https://web.archive.org/web/${date}id_/${markersURL}`
-	for (const proxyUrl of PROXY_URLS) {
-		try {
-			const res = await fetch(proxyUrl + archiveURL)
-			if (!res.ok) continue
 
-			return await res.json()
-		} catch {}
-	}
+	const fetcher = createCorsFetcher()
 
-	throw new Error(`Could not fetch archive! All ${PROXY_URLS.length} proxies failed :(`)
+	const res = await fetcher(archiveURL)
+	if (!res.ok) throw new Error('error fetching archive: ' + res.status)
+	
+	return await res.json()
 }
 
 async function fetchAlliances() {
@@ -251,4 +239,21 @@ function parseColours(colours) {
 	colours.fill = "#" + colours.fill.replaceAll("#", "")
 	colours.outline = "#" + colours.outline.replaceAll("#", "")
 	return colours
+}
+
+function createCorsFetcher() {
+	if (isUserscript()) return url => new Promise((res, rej) => GM_xmlhttpRequest({
+		url, method: 'GET',
+		onerror: rej,
+		onload: r => res({
+			ok: true,
+			text: r.responseText,
+			json: async () => JSON.parse(r.responseText)
+		})
+	}))
+
+	return url => chrome.runtime.sendMessage({ url, type: 'fetch' }).then(r => {
+		if (!r.ok) throw new Error(r.error)
+		return { ok: true, text: r.text, json: async () => JSON.parse(r.text) }
+	})
 }

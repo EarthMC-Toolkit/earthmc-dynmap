@@ -8,6 +8,16 @@
 		"48": "resources/icon48.png",
 		"128": "resources/icon128.png"
 	},
+	"background": {
+		"service_worker": "worker.js",
+		"type": "module"
+	},
+	"permissions": ["scripting", "storage"],
+	"host_permissions": [
+		"https://*.earthmc.net/*",
+		"https://web.archive.org/web/*",
+		"https://raw.githubusercontent.com/EarthMC-Toolkit/*"
+	],
 	"web_accessible_resources": [{
 		"run_at": "document_idle",
 		"matches": ["https://map.earthmc.net/*", "https://aurora.earthmc.net/*"],

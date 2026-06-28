@@ -100,19 +100,6 @@ var OAPI_BASE = `https://api.${EMC_DOMAIN}`;
 var OAPI_REQ_PER_MIN = 180;
 var OAPI_ITEMS_PER_REQ = 100;
 var currentMapApiUrl = () => CURRENT_MAP == "aurora" ? `${OAPI_BASE}/v3/aurora` : `${OAPI_BASE}/v4`;
-var PROJECT_URL = `https://github.com/3meraldK/earthmc-dynmap`;
-var PROXY_URLS = [
-  `https://emcstats.bot.nu/proxy?target=`,
-  // Our own main CORS proxy
-  `https://api.codetabs.com/v1/proxy/?quest=`,
-  // Fallback #1
-  `https://proxy.corsfix.com`,
-  // Fallback #2
-  `https://api.cors.lol/?url=`,
-  // Fallback #3
-  `https://everyorigin.jwvbremen.nl/get?url=`
-  // Fallback #4
-];
 var TokenBucket = class {
   /** @param {TokenBucketOptions} opts */
   constructor(opts) {
@@ -179,15 +166,10 @@ var fetchArchive = async (date) => {
     date < 20230212 ? `https://earthmc.net/map/aurora/tiles/_markers_/marker_earth.json` : date < 20240701 ? `https://earthmc.net/map/aurora/standalone/MySQL_markers.php?marker=_markers_/marker_earth.json` : `https://map.earthmc.net/tiles/minecraft_overworld/markers.json`
   );
   const archiveURL = `https://web.archive.org/web/${date}id_/${markersURL}`;
-  for (const proxyUrl of PROXY_URLS) {
-    try {
-      const res = await fetch(proxyUrl + archiveURL);
-      if (!res.ok) continue;
-      return await res.json();
-    } catch {
-    }
-  }
-  throw new Error(`Could not fetch archive! All ${PROXY_URLS.length} proxies failed :(`);
+  const fetcher = createCorsFetcher();
+  const res = await fetcher(archiveURL);
+  if (!res.ok) throw new Error("error fetching archive: " + res.status);
+  return await res.json();
 };
 async function fetchAlliances() {
   const alliances = await fetchJSON(`${CAPI_BASE}/${CURRENT_MAP}/alliances`);
@@ -267,6 +249,22 @@ function parseColours(colours) {
   colours.fill = "#" + colours.fill.replaceAll("#", "");
   colours.outline = "#" + colours.outline.replaceAll("#", "");
   return colours;
+}
+function createCorsFetcher() {
+  if (isUserscript()) return (url) => new Promise((res, rej) => GM_xmlhttpRequest({
+    url,
+    method: "GET",
+    onerror: rej,
+    onload: (r) => res({
+      ok: true,
+      text: r.responseText,
+      json: async () => JSON.parse(r.responseText)
+    })
+  }));
+  return (url) => chrome.runtime.sendMessage({ url, type: "fetch" }).then((r) => {
+    if (!r.ok) throw new Error(r.error);
+    return { ok: true, text: r.text, json: async () => JSON.parse(r.text) };
+  });
 }
 
 // src/dom.js
@@ -1773,7 +1771,7 @@ function chunksToSquaremap(blocks) {
 }
 
 // <define:MANIFEST>
-var define_MANIFEST_default = { manifest_version: 3, name: "EarthMC Dynmap+ (Owen3H Fork)", version: "2.3.0", author: "3meraldK", description: "Extension to enrich the EarthMC map experience", icons: { "48": "resources/icon48.png", "128": "resources/icon128.png" }, web_accessible_resources: [{ run_at: "document_idle", matches: ["https://map.earthmc.net/*", "https://aurora.earthmc.net/*"], resources: ["resources/gui/map-mode-default.png", "resources/gui/map-mode-alliances.png", "resources/gui/map-mode-meganations.png", "resources/gui/map-mode-overclaim.png", "resources/gui/map-mode-nationclaims.png", "resources/gui/map-mode-newday.png", "resources/interceptor.js", "resources/borders.json"] }], content_scripts: [{ matches: ["https://map.earthmc.net/*", "https://aurora.earthmc.net/*"], css: ["resources/style.css"], js: ["src/httputil.js", "src/dom.js", "src/screenshot.js", "src/modeselector.js", "src/gui.js", "src/main.js", "src/entrypoint.js"] }] };
+var define_MANIFEST_default = { manifest_version: 3, name: "EarthMC Dynmap+ (Owen3H Fork)", version: "2.3.0", author: "3meraldK", description: "Extension to enrich the EarthMC map experience", icons: { "48": "resources/icon48.png", "128": "resources/icon128.png" }, background: { service_worker: "worker.js", type: "module" }, permissions: ["scripting", "storage"], host_permissions: ["https://*.earthmc.net/*", "https://web.archive.org/web/*", "https://raw.githubusercontent.com/EarthMC-Toolkit/*"], web_accessible_resources: [{ run_at: "document_idle", matches: ["https://map.earthmc.net/*", "https://aurora.earthmc.net/*"], resources: ["resources/gui/map-mode-default.png", "resources/gui/map-mode-alliances.png", "resources/gui/map-mode-meganations.png", "resources/gui/map-mode-overclaim.png", "resources/gui/map-mode-nationclaims.png", "resources/gui/map-mode-newday.png", "resources/interceptor.js", "resources/borders.json"] }], content_scripts: [{ matches: ["https://map.earthmc.net/*", "https://aurora.earthmc.net/*"], css: ["resources/style.css"], js: ["src/httputil.js", "src/dom.js", "src/screenshot.js", "src/modeselector.js", "src/gui.js", "src/main.js", "src/entrypoint.js"] }] };
 
 // src/entrypoint.js
 function isUserscript() {
@@ -1815,9 +1813,7 @@ function injectScript(resource) {
   });
 }
 async function init(manifest) {
-  const isUserscript2 = true;
-  if (isUserscript2) {
-    GM_addStyle(`:root {\r
+  if (isUserscript()) GM_addStyle(`:root {\r
 	--max-menu-width: 200px;\r
 	--max-server-info-width: 200px;\r
 	--player-lookup-width: 190px;\r
@@ -2414,7 +2410,6 @@ div.leaflet-control-layers.screenshot img {\r
 	image-rendering: optimize-contrast;         /* CSS3 Proposed	*/\r
 	image-rendering: crisp-edges;               /* CSS4 Proposed  	*/\r
 }`);
-  }
   localStorage["emcdynmapplus-mapmode"] ?? (localStorage["emcdynmapplus-mapmode"] = MapMode.MEGANATIONS.name);
   localStorage["emcdynmapplus-normalize-scroll"] ?? (localStorage["emcdynmapplus-normalize-scroll"] = "true");
   localStorage["emcdynmapplus-darkened"] ?? (localStorage["emcdynmapplus-darkened"] = "true");
