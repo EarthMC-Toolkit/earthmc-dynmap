@@ -48,6 +48,5 @@ archive.directory('resources/gui', EXT_NAME+'/resources/gui', entry => {
 archive.finalize().then(() => {
 	const elapsed = (performance.now() - start).toFixed(2)
 	const relPath = '.' + path.sep + path.relative(process.cwd(), outfile)
-
-	console.log(`Successfully generated extension.\n  Output: ${relPath}\n  Took: ${elapsed}ms\n`)
+	console.log(`Successfully generated extension.\n\tOutput: ${relPath}\n\tTook: ${elapsed}ms\n`)
 })

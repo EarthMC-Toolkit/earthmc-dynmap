@@ -51,6 +51,5 @@ build(buildOpts).then(res => {
 
     const elapsed = (performance.now() - start).toFixed(2)
     const relPath = '.' + path.sep + path.relative(process.cwd(), outfile)
-
-    console.log(`Successfully generated userscript.\n  Output: ${relPath}\n  Took: ${elapsed}ms\n`)
+    console.log(`Successfully generated userscript.\n\tOutput: ${relPath}\n\tTook: ${elapsed}ms\n`)
 })
