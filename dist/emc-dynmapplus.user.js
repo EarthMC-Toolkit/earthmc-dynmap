@@ -276,7 +276,7 @@ var MAX_NATION_CLAIM_ENTRIES = 300;
 var SCROLL_BASE_ZOOM = 90;
 var SCROLL_LINE_DELTA = 30;
 var SCROLL_THRESHOLD = 5;
-var BRIGHTNESS_PERCENTAGE = localStorage["emcdynmapplus-mapmode"] != "newday" ? 65 : 30;
+var BRIGHTNESS_PERCENTAGE = localStorage["emcdynmapplus-mapmode"] != "newday" ? 65 : 40;
 var CONTRAST_PERCENTAGE = 102;
 var SATURATE_PERCENTAGE = 97;
 var getTilePaneFilter = () => (
@@ -316,7 +316,7 @@ var INSERTABLE_HTML = (
       selector: '<div class="leaflet-control-layers leaflet-control" id="map-mode-selector"></div>',
       optionContainer: '<div id="map-mode-option-container"></div>',
       btnOption: '<button class="map-mode-btn-option"></button>',
-      currentModeLabel: '<div id="current-map-mode-label">Map Mode: null</div>'
+      currentModeLabel: '<div id="current-map-mode-label">Current Mode: null</div>'
     },
     followingPlayer: '<h1 id="following-warning">Stop following this player by clicking on the map.</h1>',
     alertBox: '<div id="alert"><p id="alert-message">{message}</p><button id="alert-close">Dismiss</button></div>',
@@ -836,7 +836,7 @@ function addMapModeSelector(parent) {
     addMapModeBtn(iconContainer, mode, (_) => selectMapMode(mode));
   }
   const curMode = currentMapMode();
-  label.textContent = `Map Mode: ${curMode.name}`;
+  label.textContent = `Current Mode: ${curMode.name}`;
 }
 var GITHUB_REPO = "https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/refs/heads/main/";
 function addMapModeBtn(iconContainer, mode, clickHandler = null) {
@@ -853,12 +853,17 @@ function addExtensionMenu(parent) {
   addMenuLocateSection(body);
   addMenuArchiveSection(body);
   addMenuOptionsList(body, currentMapMode());
+  let collapsed = localStorage["emcdynmapplus-menu-collapsed"] == "true";
   const arrow = header.querySelector("#menu-arrow");
-  let collapsed = false;
-  header.addEventListener("click", () => {
-    collapsed = !collapsed;
+  const apply = () => {
     body.classList.toggle("collapsed", collapsed);
     if (arrow) arrow.style.transform = collapsed ? "rotate(-90deg)" : "rotate(0deg)";
+  };
+  apply();
+  header.addEventListener("click", () => {
+    collapsed = !collapsed;
+    localStorage["emcdynmapplus-menu-collapsed"] = String(collapsed);
+    apply();
   });
   return menu;
 }
@@ -1390,12 +1395,12 @@ var buildFallingPopup = (t) => `
 	Deletion Date: <b>${formatStrDate(t.deletionAt, dateTimeOptsUTC)}AM UTC</b>
     <br>
 	<br>
-    Mayor: <b>${t.mayor.name ?? "Unknown"} (Last Online: ${formatStrDateTime(t.mayorLastOnline, dateOpts)})</b>
-    <br>
     Founded: <b>${timestampToDateTimeStr(t.timestamps.registered, dateOpts)}</b>
     <br>
 	Founder: <b>${t.founder}</b>
 	<br>
+	Mayor: <b>${t.mayor.name ?? "Unknown"} (Last Online: ${formatStrDateTime(t.mayorLastOnline, dateOpts)})</b>
+    <br>
 	<br>
 	Balance: <b>${t.stats.balance ?? 0}G</b>
 	<br>
@@ -1771,7 +1776,7 @@ function chunksToSquaremap(blocks) {
 }
 
 // <define:MANIFEST>
-var define_MANIFEST_default = { manifest_version: 3, name: "EarthMC Dynmap+ (Owen3H Fork)", version: "2.3.0", author: "3meraldK", description: "Extension to enrich the EarthMC map experience", icons: { "48": "resources/icon48.png", "128": "resources/icon128.png" }, background: { service_worker: "worker.js", type: "module" }, permissions: ["scripting", "storage"], host_permissions: ["https://*.earthmc.net/*", "https://web.archive.org/web/*", "https://raw.githubusercontent.com/EarthMC-Toolkit/*"], web_accessible_resources: [{ run_at: "document_idle", matches: ["https://map.earthmc.net/*", "https://aurora.earthmc.net/*"], resources: ["resources/gui/map-mode-default.png", "resources/gui/map-mode-alliances.png", "resources/gui/map-mode-meganations.png", "resources/gui/map-mode-overclaim.png", "resources/gui/map-mode-nationclaims.png", "resources/gui/map-mode-newday.png", "resources/interceptor.js", "resources/borders.json"] }], content_scripts: [{ matches: ["https://map.earthmc.net/*", "https://aurora.earthmc.net/*"], css: ["resources/style.css"], js: ["src/httputil.js", "src/dom.js", "src/screenshot.js", "src/modeselector.js", "src/gui.js", "src/main.js", "src/entrypoint.js"] }] };
+var define_MANIFEST_default = { manifest_version: 3, name: "EarthMC Dynmap+ (Owen3H Fork)", version: "2.3.0", author: "3meraldK", description: "Extension to enrich the EarthMC map experience", icons: { "48": "resources/icon48.png", "128": "resources/icon128.png" }, background: { service_worker: "worker.js" }, permissions: ["scripting", "storage"], host_permissions: ["https://*.earthmc.net/*", "https://web.archive.org/web/*", "https://raw.githubusercontent.com/EarthMC-Toolkit/*"], web_accessible_resources: [{ run_at: "document_idle", matches: ["https://map.earthmc.net/*", "https://aurora.earthmc.net/*"], resources: ["resources/gui/map-mode-default.png", "resources/gui/map-mode-alliances.png", "resources/gui/map-mode-meganations.png", "resources/gui/map-mode-overclaim.png", "resources/gui/map-mode-nationclaims.png", "resources/gui/map-mode-newday.png", "resources/interceptor.js", "resources/borders.json"] }], content_scripts: [{ matches: ["https://map.earthmc.net/*", "https://aurora.earthmc.net/*"], css: ["resources/style.css"], js: ["src/httputil.js", "src/dom.js", "src/screenshot.js", "src/modeselector.js", "src/gui.js", "src/main.js", "src/entrypoint.js"] }] };
 
 // src/entrypoint.js
 function isUserscript() {
@@ -1953,14 +1958,14 @@ async function init(manifest) {
     left: 50%;\r
     transform: translateX(-50%);\r
 	min-width: var(--max-menu-width);\r
-    padding: 15px 18px 18px 18px;\r
-	gap: 10px;\r
+    padding: 10px 14px 15px 14px;\r
+	gap: 9px;\r
 }\r
 \r
 #current-map-mode-label {\r
     font-family: 'Inter';\r
-    font-size: 18px;\r
-    font-weight: 600;\r
+    font-size: 16.5px;\r
+    font-weight: 550;\r
 	line-height: normal;\r
 	text-align: center;\r
 	white-space: nowrap;\r
@@ -1979,10 +1984,9 @@ async function init(manifest) {
 	background: white;\r
 	border: 2px dashed black;\r
 	box-sizing: border-box;\r
-	width: 35px;\r
-	height: 35px;\r
+	width: 33px;\r
+	height: 33px;\r
 	overflow: visible;\r
-\r
 	transition: transform 0.1s ease, background 0.1s ease;\r
 	transform-origin: center;\r
 	position: relative;\r
@@ -1990,7 +1994,7 @@ async function init(manifest) {
 }\r
 \r
 .map-mode-btn-option:hover {\r
-	transform: scale(1.15);\r
+	transform: scale(1.3);\r
 	background: var(--yellow-colour);\r
 	border: 3px dashed black;\r
 	cursor: pointer;\r

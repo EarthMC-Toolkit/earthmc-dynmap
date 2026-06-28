@@ -9,7 +9,7 @@ A web extension for all browsers. Designed specifically for EarthMC's dynamic ma
 
 ## Features
 When creating the extension, the main idea was to group countries together into their respective organizations and "meganations". Later on, in the natural course of things, the number of new features began to grow with new releases.
-* Many map modes to switch between: alliances, meganations, default, overclaim, nationclaims 
+* Many map modes to switch between: alliances, meganations, default
 * Archive mode to view old claims and statistics (from the Wayback Machine)
 * Locate towns, players and nations quickly
 * Notifications about new releases
@@ -17,29 +17,33 @@ When creating the extension, the main idea was to group countries together into 
 * Dark mode
 * View chunks and real country borders
 
-**This fork**:
-* Updated alliances mode to new API
-* Overclaim mode
-* Nationclaims mode
-* UI revamp/design tweaks
-* Bug fixes
-* Performance improvements
-* Searching now works in archive mode
-* Screenshot button
-* Changed link button behaviour (updates URL)
-* Improved safety by splitting content & page contexts and communicating via events
-* Restructured backend for clarity & maintainability (including build system)
+**Extra features provided by this fork**:
+* Bug fixes & performance improvements.
+* UI revamp/design tweaks with dedicated mode selector (Toggle with Shift+M).
+* Ability to show server info and list of online players.
+* Updated `alliances` mode to work again with the new API.
+* New modes: `overclaim`, `nationclaims`, `newday` (falling+ruined towns).
+* New screenshot button.
+* Searching now works in archive mode.
+* Changed link button behaviour (updates URL).
+* Improved safety by splitting content & page contexts, which communicate via events.
+* Restructured backend for clarity & maintainability (including build system).
 
 ## Installation (2 methods)
 > [!TIP]
 > Extension works for desktop and mobile! For the best experience, it is also recommended to use ad-blockers.
 
-### 1. Extension (Recommended)
-There are no extension releases on GitHub or the store. Please visit the aforementioned Discord for up to date builds or install the userscript which will update automatically.
+### 1. Chromium Extension (Recommended)
+There are no extension releases on GitHub or the store. Please visit the aforementioned Discord for up to date builds or install the userscript which will update automatically. Alternatively, you can download this repo source code and do the following:
+
+1. Unzip the repo source code.
+1. Go to your browser extension settings.
+1. Enable developer mode.
+1. Click `Load Unpacked` and select the unzipped folder.
 
 ### 2. Userscript
 1. Install Violentmonkey extension in either the Firefox, Safari or Chrome store (for Chromium based browsers).
-2. Install the **EarthMC Dynmap+ (Owen3H Fork)** script by adding the contents of `./dist/emc-dynmapplus.user.js` into a new script, then save and enable it.
+1. Install the **EarthMC Dynmap+ (Owen3H Fork)** script by adding the contents of `./dist/emc-dynmapplus.user.js` into a new script, then save and enable it.
 
 Remember to check for updates frequently if Violentmonkey does not do it automatically.
 

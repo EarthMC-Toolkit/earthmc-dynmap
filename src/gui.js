@@ -11,17 +11,21 @@ function addExtensionMenu(parent) {
 	
 	addMenuLocateSection(body) // Locator button and input box
 	addMenuArchiveSection(body)
+	addMenuOptionsList(body, currentMapMode()) // Options button and checkboxes
 
-	// Options button and checkboxes
-	addMenuOptionsList(body, currentMapMode())
+	let collapsed = localStorage['emcdynmapplus-menu-collapsed'] == 'true'
 
 	const arrow = header.querySelector('#menu-arrow')
-	let collapsed = false
+	const apply = () => {
+		body.classList.toggle('collapsed', collapsed)
+		if (arrow) arrow.style.transform = collapsed ? 'rotate(-90deg)' : 'rotate(0deg)'
+	}
+
+	apply()
 	header.addEventListener('click', () => {
 		collapsed = !collapsed
-		body.classList.toggle('collapsed', collapsed)
-
-		if (arrow) arrow.style.transform = collapsed ? 'rotate(-90deg)' : 'rotate(0deg)'
+		localStorage['emcdynmapplus-menu-collapsed'] = String(collapsed)
+		apply()
 	})
 
 	return menu

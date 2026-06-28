@@ -403,12 +403,12 @@ const buildFallingPopup = t => `
 	Deletion Date: <b>${formatStrDate(t.deletionAt, dateTimeOptsUTC)}AM UTC</b>
     <br>
 	<br>
-    Mayor: <b>${t.mayor.name ?? 'Unknown'} (Last Online: ${formatStrDateTime(t.mayorLastOnline, dateOpts)})</b>
-    <br>
     Founded: <b>${timestampToDateTimeStr(t.timestamps.registered, dateOpts)}</b>
     <br>
 	Founder: <b>${t.founder}</b>
 	<br>
+	Mayor: <b>${t.mayor.name ?? 'Unknown'} (Last Online: ${formatStrDateTime(t.mayorLastOnline, dateOpts)})</b>
+    <br>
 	<br>
 	Balance: <b>${t.stats.balance ?? 0}G</b>
 	<br>
