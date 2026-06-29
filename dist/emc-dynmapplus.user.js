@@ -1471,7 +1471,7 @@ async function modifyMarkers(data) {
     switch (mapMode) {
       case MapMode.DEFAULT:
       case MapMode.ARCHIVE:
-        continue;
+        break;
       case MapMode.ALLIANCES:
         colorMarkerAlliances(marker, parsed);
         break;

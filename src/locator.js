@@ -91,8 +91,6 @@ async function getTownSpawn(townName) {
 
 /** @param {string} townName */
 function getTownMidpoint(townName) {
-	console.log("Len of parsedMarkers: " + parsedMarkers.length)
-
 	const town = parsedMarkers.find(m => m.townName && m.townName.toLowerCase() == townName)
 	if (!town) return null
 
