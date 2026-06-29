@@ -20,6 +20,8 @@ const HEADER = `// ==UserScript==
 // @icon        https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/main/resources/icon48.png
 // @downloadURL https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/main/dist/emc-dynmapplus.user.js
 // @grant       GM_addStyle
+// @grant       GM_getResourceURL
+// @grant       GM_xmlhttpRequest
 // ==/UserScript==
 `
 
@@ -29,19 +31,21 @@ const outfile = path.join(outdir, 'emc-dynmapplus.user.js')
 const buildOpts: BuildOptions = {
     entryPoints: ['resources/interceptor.js', ...contentScripts.js],
     outdir: outdir,
-    bundle: true,
-    write: false,
-    format: 'cjs',
-    target: ['es2020'],
-    treeShaking: false,
+    format: 'esm',
+    target: ['es2020'], // Backwards compatible enough. Most browsers support it.
+    bundle: true,       // IMPORTANT: must be true otherwise we don't get a single user.js file with inlined dependencies.
+    write: false,       // Do not write to a file, we do that ourselves below after appending header etc.
+    treeShaking: false, // Don't remove dead code since false positives are common and doing so will cause errors.
     define: {
+        // Make some resources and flags available to userscript when in use.
         IS_USERSCRIPT: 'true',
         STYLE_CSS: JSON.stringify(STYLE_CSS),
         BORDERS: JSON.stringify(BORDERS),
         MANIFEST: JSON.stringify(MANIFEST),
+        // Swap out instances of keywords with their userscript compatible counterpart.
         window: 'unsafeWindow',
         'chrome.runtime.getURL': 'GM_getResourceURL',
-    },
+    }
 }
 
 const start = performance.now()

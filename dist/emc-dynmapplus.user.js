@@ -8,6 +8,8 @@
 // @icon        https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/main/resources/icon48.png
 // @downloadURL https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/main/dist/emc-dynmapplus.user.js
 // @grant       GM_addStyle
+// @grant       GM_getResourceURL
+// @grant       GM_xmlhttpRequest
 // ==/UserScript==
 
 // resources/interceptor.js
@@ -79,6 +81,79 @@ document.addEventListener("EMCDYNMAPPLUS_ADJUST_SCROLL", (e) => {
     unsafeWindow.L.Map.mergeOptions({ wheelPxPerZoomLevel: adjustedZoom });
   }
 });
+
+// src/util.js
+var isNumeric = (str) => Number.isFinite(+str);
+var roundTo16 = (num) => Math.round(num / 16) * 16;
+function hashCode(str) {
+  let hexValue = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    hexValue ^= str.charCodeAt(i);
+    hexValue += (hexValue << 1) + (hexValue << 4) + (hexValue << 7) + (hexValue << 8) + (hexValue << 24);
+  }
+  return "#" + ((hexValue >>> 0) % 16777216).toString(16).padStart(6, "0");
+}
+function calcPolygonArea(vertices) {
+  let area = 0;
+  const amtVerts = vertices.length;
+  for (let i = 0; i < amtVerts; i++) {
+    const j = (i + 1) % amtVerts;
+    area += roundTo16(vertices[i].x) * roundTo16(vertices[j].z);
+    area -= roundTo16(vertices[j].x) * roundTo16(vertices[i].z);
+  }
+  return Math.abs(area) / 2 / (16 * 16);
+}
+function calcMarkerArea(marker) {
+  if (marker.type !== "polygon") return 0;
+  let area = 0;
+  const processed = [];
+  for (const multiPolygon of marker.points || []) {
+    for (let polygon of multiPolygon) {
+      if (!polygon || polygon.length < 3) continue;
+      polygon = polygon.map((v) => ({ x: Number(v.x), z: Number(v.z) })).filter((v) => Number.isFinite(v.x) && Number.isFinite(v.z));
+      if (polygon.length < 3) continue;
+      const isHole = processed.some((prev) => polygon.every((v) => pointInPolygon(v, prev)));
+      area += isHole ? -calcPolygonArea(polygon) : calcPolygonArea(polygon);
+      processed.push(polygon);
+    }
+  }
+  return area;
+}
+function pointInPolygon(vertex, polygon) {
+  let { x, z } = vertex;
+  let n = polygon.length;
+  let inside = false;
+  for (let i = 0, j = n - 1; i < n; j = i++) {
+    let xi = polygon[i].x, xj = polygon[j].x;
+    let zi = polygon[i].z, zj = polygon[j].z;
+    let intersect = zi > z != zj > z && x < (xj - xi) * (z - zi) / (zj - zi) + xi;
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+function midrange(vertices) {
+  let minX = Infinity, maxX = -Infinity;
+  let minZ = Infinity, maxZ = -Infinity;
+  for (const vert of vertices) {
+    if (vert.x < minX) minX = vert.x;
+    if (vert.x > maxX) maxX = vert.x;
+    if (vert.z < minZ) minZ = vert.z;
+    if (vert.z > maxZ) maxZ = vert.z;
+  }
+  return {
+    x: roundTo16((minX + maxX) / 2),
+    z: roundTo16((minZ + maxZ) / 2)
+  };
+}
+function timeAgo(ts) {
+  const diff = Date.now() - ts;
+  const units = [["year", 365 * DAY_MS], ["month", 30 * DAY_MS], ["day", DAY_MS]];
+  for (const [name, ms] of units) {
+    const v = Math.floor(diff / ms);
+    if (v >= 1) return `${v} ${name}${v > 1 ? "s" : ""} ago`;
+  }
+  return "Today";
+}
 
 var __defProp = Object.defineProperty;
 var __typeError = (msg) => {
@@ -715,6 +790,284 @@ function followWarningTick() {
   requestAnimationFrame(followWarningTick);
 }
 
+// src/layer.js
+var isAurora = CURRENT_MAP == "aurora";
+var SCALE_X = isAurora ? 1.0015 : 1.94133;
+var MOVE_DOWN = isAurora ? 0 : 8175;
+var MOVE_RIGHT = isAurora ? 0 : 382.5;
+var AURORA_ZBOUNDS = { min: -16640, max: 16508 };
+var NORTH_HEMISPHERE_FACTOR = 0.994;
+var MAP_SCALE_FACTOR = 94704 / 33148;
+var MILLER_Y_NORMALIZER = 16574 / 2.3034125433763912;
+function millerProjection(z) {
+  const latDeg = (z - AURORA_ZBOUNDS.min) * 180 / (AURORA_ZBOUNDS.max - AURORA_ZBOUNDS.min) - 90;
+  const latRad = latDeg * (Math.PI / 180);
+  let millerOldZ = 5 / 4 * Math.asinh(Math.tan(4 / 5 * latRad)) * MILLER_Y_NORMALIZER;
+  if (millerOldZ < 0) millerOldZ *= NORTH_HEMISPHERE_FACTOR;
+  return millerOldZ * MAP_SCALE_FACTOR;
+}
+function addCountryBordersLayer(data, borders) {
+  try {
+    const points = Object.keys(borders).map((country) => {
+      const countryPoly = [];
+      const line = borders[country];
+      for (let i = 0; i < line.x.length; i++) {
+        const xCoord = line.x[i];
+        if (!isNumeric(xCoord)) continue;
+        const zCoord = line.z[i];
+        countryPoly.push(isAurora ? { x: xCoord * SCALE_X, z: zCoord } : {
+          x: xCoord * SCALE_X + MOVE_RIGHT,
+          z: millerProjection(zCoord) + MOVE_DOWN
+        });
+      }
+      return countryPoly;
+    });
+    data.push({
+      "name": "Country Borders",
+      "id": "borders",
+      "order": 125,
+      // Put it before the last layer 'Folia Regions' (150) but after the 'Chunk Borders' (100) layer.
+      "hide": false,
+      "control": true,
+      "markers": [makePolyline(points)]
+    });
+  } catch (e) {
+    showAlert(`Could not set up a layer of country borders. You may need to clear this website's data. If problem persists, contact the developer.`);
+    console.error(e);
+    return null;
+  }
+}
+
+// src/marker.js
+function addRuinMarkers(data, ruined, colour) {
+  ruined.forEach((t) => {
+    const marker = {
+      tooltip: `<b>${t.name}</b> (Ruined)`,
+      popup: buildRuinedPopup(t),
+      type: "polygon",
+      weight: 1.5,
+      opacity: 1,
+      fillOpacity: 0.33,
+      color: colour,
+      fillColor: colour,
+      points: chunksToSquaremap(t.coordinates.townBlocks.map(([x, z]) => [x * 16, z * 16]))
+    };
+    data[0].markers.push(marker);
+  });
+}
+var dateOpts = { year: "numeric", month: "numeric", day: "numeric" };
+var dateTimeOptsUTC = {
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+  hour: "numeric",
+  timeZone: "UTC"
+};
+var timestampToDateStr = (ts, opts = null) => new Date(ts).toLocaleDateString(navigator.language, opts);
+var timestampToDateTimeStr = (ts, opts = null) => {
+  const d = new Date(ts);
+  const dateStr = d.toLocaleDateString(navigator.language, opts) + " at ";
+  return dateStr + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "numeric" });
+};
+var formatStrDate = (str, opts = null) => timestampToDateStr(new Date(Date.parse(str)), opts);
+var formatStrDateTime = (str, opts = null) => timestampToDateTimeStr(new Date(Date.parse(str)), opts);
+var buildRuinedPopup = (t) => `
+<div class="infowindow">
+    <span style="font-size:120%;">${t.name} (Ruined)</span>
+    <br>
+    ${t.board && t.board !== "/town set board [msg]" ? `<i>${t.board}</i><br><br>` : "<br>"}
+    Founded: <b>${timestampToDateTimeStr(t.timestamps.registered, dateOpts)}</b>
+    <br>
+	Founder: <b>${t.founder}</b>
+	<br>
+    Mayor: <b>${t.mayor.name ?? "Unknown"}</b>
+    <br>
+	<br>
+	Balance: <b>${t.stats.balance ?? 0}G</b>
+    <br>
+    PVP: <b>${t.perms.flags.pvp ? "true" : "false"}</b>
+    <br>
+    Public: <b>${t.status.isPublic ? "true" : "false"}</b>
+    <br>
+	<br>
+    <details style="min-width: 250px">
+        <summary style="cursor: pointer;">
+            Residents: <b>${t.residents?.length ?? 0}</b>
+        </summary>
+        ${t.residents?.map((r) => r.name).join(", ") ?? ""}
+    </details>
+</div>
+`;
+var buildFallingPopup = (t) => `
+<div class="infowindow">
+    <span style="font-size:120%;">${t.status.isCapital ? "\u2B50 " : ""}${t.name} (${t.nation.name || "No Nation"}) (Falling)</span>
+    <br>
+	${t.board && t.board !== "/town set board [msg]" ? `<i>${t.board}</i><br><br>` : "<br>"}
+	Fall Date: <b>${formatStrDate(t.ruinAt, dateTimeOptsUTC)}AM UTC</b>
+    <br>
+	Deletion Date: <b>${formatStrDate(t.deletionAt, dateTimeOptsUTC)}AM UTC</b>
+    <br>
+	<br>
+    Founded: <b>${timestampToDateTimeStr(t.timestamps.registered, dateOpts)}</b>
+    <br>
+	Founder: <b>${t.founder}</b>
+	<br>
+	Mayor: <b>${t.mayor.name ?? "Unknown"} (Last Online: ${formatStrDateTime(t.mayorLastOnline, dateOpts)})</b>
+    <br>
+	<br>
+	Balance: <b>${t.stats.balance ?? 0}G</b>
+	<br>
+    PVP: <b>${t.perms.flags.pvp ? "true" : "false"}</b>
+    <br>
+    Public: <b>${t.status.isPublic ? "true" : "false"}</b>
+    <br>
+	Open: <b>${t.status.isOpen ? "true" : "false"}</b>
+    <br>
+	<br>
+	<details style="min-width: 250px">
+        <summary style="cursor: pointer;">
+            Councillors: <b>${(t.ranks?.["Councillor"] || []).length}</b>
+        </summary>
+        ${(t.ranks?.["Councillor"] || []).map((r) => r.name).join(", ") ?? ""}
+    </details>
+    <details style="min-width: 250px">
+        <summary style="cursor: pointer;">
+            Residents: <b>${t.residents?.length ?? 0}</b>
+        </summary>
+        ${t.residents?.map((r) => r.name).join(", ") ?? ""}
+    </details>
+</div>
+`;
+function chunksToSquaremap(blocks) {
+  const edges = /* @__PURE__ */ new Set();
+  const add = (a, b) => {
+    const k = `${a.x},${a.z}|${b.x},${b.z}`;
+    const r = `${b.x},${b.z}|${a.x},${a.z}`;
+    if (edges.has(r)) edges.delete(r);
+    else edges.add(k);
+  };
+  for (const [x, z] of blocks) {
+    const A = { x, z };
+    const B = { x: x + 16, z };
+    const C = { x: x + 16, z: z + 16 };
+    const D = { x, z: z + 16 };
+    add(A, B);
+    add(B, C);
+    add(C, D);
+    add(D, A);
+  }
+  const edgeMap = /* @__PURE__ */ new Map();
+  for (const k of edges) {
+    const [ax, az, bx, bz] = k.split(/[|,]/).map(Number);
+    const a = { x: ax, z: az };
+    const b = { x: bx, z: bz };
+    const key = `${a.x},${a.z}`;
+    if (!edgeMap.has(key)) edgeMap.set(key, []);
+    edgeMap.get(key).push(b);
+  }
+  const used = /* @__PURE__ */ new Set();
+  const out = [];
+  for (const startKey of edgeMap.keys()) {
+    if (used.has(startKey)) continue;
+    const [sx, sz] = startKey.split(",").map(Number);
+    const start = { x: sx, z: sz };
+    const ring = [];
+    let cur = start;
+    while (true) {
+      ring.push(cur);
+      const nexts = edgeMap.get(`${cur.x},${cur.z}`) || [];
+      let next = null;
+      for (const n of nexts) {
+        const k = `${cur.x},${cur.z}|${n.x},${n.z}`;
+        if (!used.has(k)) {
+          next = n;
+          used.add(k);
+          break;
+        }
+      }
+      if (!next) break;
+      cur = next;
+      if (cur.x === start.x && cur.z === start.z) break;
+    }
+    if (ring.length >= 4) {
+      ring.push({ ...ring[0] });
+      out.push([ring]);
+    }
+  }
+  return out;
+}
+
+// src/locator.js
+function locate(selectValue, inputValue, isArchiveMode) {
+  switch (selectValue) {
+    case "Town":
+      locateTown(inputValue, isArchiveMode);
+      break;
+    case "Nation":
+      locateNation(inputValue, isArchiveMode);
+      break;
+    case "Resident":
+      locateResident(inputValue, isArchiveMode);
+      break;
+  }
+}
+async function locateTown(name, isArchiveMode) {
+  name = name.trim();
+  const townName = name.toLowerCase();
+  if (townName == "") return;
+  let coords = null;
+  if (!isArchiveMode) coords = await getTownSpawn(townName);
+  if (!coords) coords = getTownMidpoint(townName);
+  if (!coords) return showAlert(`Could not find town/capital with name '${name}'.`, 5);
+  updateUrlLocation(coords);
+}
+async function locateNation(name, isArchiveMode) {
+  name = name.trim();
+  const nationName = name.toLowerCase();
+  if (nationName == "") return;
+  let capitalName = null;
+  if (!isArchiveMode) {
+    const queryBody = { query: [nationName], template: { capital: true } };
+    const nations = await postJSON(`${currentMapApiUrl()}/nations`, queryBody);
+    if (nations && nations.length > 0) capitalName = nations[0].capital?.name;
+  }
+  if (!capitalName) {
+    const marker = parsedMarkers.find((m) => m.nationName && m.nationName.toLowerCase() == nationName && m.isCapital);
+    if (marker) capitalName = marker.townName;
+  }
+  if (!capitalName) return showAlert("Searched nation could not be found.", 3);
+  await locateTown(capitalName, isArchiveMode);
+}
+async function locateResident(name, isArchiveMode) {
+  name = name.trim();
+  const residentName = name.toLowerCase();
+  if (residentName == "") return;
+  let townName = null;
+  if (!isArchiveMode) {
+    const queryBody = { query: [residentName], template: { town: true } };
+    const players = await postJSON(`${currentMapApiUrl()}/players`, queryBody);
+    if (players && players.length > 0) townName = players[0].town?.name;
+  }
+  if (!townName) {
+    const marker = parsedMarkers.find((m) => m.residentList && m.residentList.some((r) => r.toLowerCase() == residentName));
+    if (marker) townName = marker.townName;
+  }
+  if (!townName) return showAlert("Searched resident could not be found.", 3);
+  await locateTown(townName, isArchiveMode);
+}
+async function getTownSpawn(townName) {
+  const queryBody = { query: [townName], template: { coordinates: true } };
+  const towns = await postJSON(`${currentMapApiUrl()}/towns`, queryBody);
+  if (!towns || towns.length < 1) return null;
+  const spawn = towns[0].coordinates.spawn;
+  return { x: Math.round(spawn.x), z: Math.round(spawn.z) };
+}
+function getTownMidpoint(townName) {
+  const town = parsedMarkers.find((m) => m.townName && m.townName.toLowerCase() == townName);
+  if (!town) return null;
+  return { x: town.x, z: town.z };
+}
+
 // src/screenshot.js
 var delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 var queryTileElements = () => document.querySelectorAll(".leaflet-tile-pane .leaflet-layer img.leaflet-tile");
@@ -886,12 +1239,13 @@ function addMenuLocateSection(menu) {
         break;
     }
   });
+  const isArchiveMode = currentMapMode() == MapMode.ARCHIVE;
   locateInput.addEventListener("keyup", (event) => {
     if (event.key != "Enter") return;
-    locate(locateSelect.value, locateInput.value);
+    locate(locateSelect.value, locateInput.value, isArchiveMode);
   });
   locateButton.addEventListener("click", () => {
-    locate(locateSelect.value, locateInput.value);
+    locate(locateSelect.value, locateInput.value, isArchiveMode);
   });
 }
 function addMenuArchiveSection(menu) {
@@ -994,9 +1348,6 @@ function toggleDarkMode(boxTicked) {
   localStorage["emcdynmapplus-darkmode"] = boxTicked;
   return boxTicked ? loadDarkMode() : unloadDarkMode();
 }
-function insertCustomStylesheets() {
-  document.head.insertAdjacentHTML("beforeend", INSERTABLE_HTML.interFont);
-}
 function loadDarkMode() {
   document.documentElement.style.colorScheme = "dark";
   document.head.insertAdjacentHTML("beforeend", INSERTABLE_HTML.darkMode);
@@ -1008,11 +1359,6 @@ function unloadDarkMode() {
   waitForElement(".leaflet-map-pane").then((el) => el.style.filter = "");
 }
 var scrollListener = null;
-function toggleScrollNormalize(boxTicked) {
-  localStorage["emcdynmapplus-normalize-scroll"] = boxTicked;
-  const el = unsafeWindow.document.querySelector("#map");
-  return boxTicked ? addScrollNormalizer(el) : removeScrollNormalizer(el);
-}
 function addScrollNormalizer(mapEl) {
   scrollListener = (e) => {
     e.preventDefault();
@@ -1025,82 +1371,16 @@ function removeScrollNormalizer(mapEl) {
   const eventData = { detail: { pxPerZoomLevel: 60 } };
   document.dispatchEvent(new CustomEvent("EMCDYNMAPPLUS_ADJUST_SCROLL", eventData));
 }
-function locate(selectValue, inputValue) {
-  const isArchiveMode = currentMapMode() == MapMode.ARCHIVE;
-  switch (selectValue) {
-    case "Town":
-      locateTown(inputValue, isArchiveMode);
-      break;
-    case "Nation":
-      locateNation(inputValue, isArchiveMode);
-      break;
-    case "Resident":
-      locateResident(inputValue, isArchiveMode);
-      break;
-  }
+function toggleScrollNormalize(boxTicked) {
+  localStorage["emcdynmapplus-normalize-scroll"] = boxTicked;
+  const el = unsafeWindow.document.querySelector("#map");
+  return boxTicked ? addScrollNormalizer(el) : removeScrollNormalizer(el);
 }
 function searchArchive(date) {
   if (date == "") return;
-  const URLDate = date.replaceAll("-", "");
-  localStorage["emcdynmapplus-archive-date"] = URLDate;
+  localStorage["emcdynmapplus-archive-date"] = date.replaceAll("-", "");
   localStorage["emcdynmapplus-mapmode"] = MapMode.ARCHIVE.name;
   location.reload();
-}
-async function locateTown(name, isArchiveMode) {
-  name = name.trim();
-  const townName = name.toLowerCase();
-  if (townName == "") return;
-  let coords = null;
-  if (!isArchiveMode) coords = await getTownSpawn(townName);
-  if (!coords) coords = getTownMidpoint(townName);
-  if (!coords) return showAlert(`Could not find town/capital with name '${name}'.`, 5);
-  updateUrlLocation(coords);
-}
-async function locateNation(name, isArchiveMode) {
-  name = name.trim();
-  const nationName = name.toLowerCase();
-  if (nationName == "") return;
-  let capitalName = null;
-  if (!isArchiveMode) {
-    const queryBody = { query: [nationName], template: { capital: true } };
-    const nations = await postJSON(`${currentMapApiUrl()}/nations`, queryBody);
-    if (nations && nations.length > 0) capitalName = nations[0].capital?.name;
-  }
-  if (!capitalName) {
-    const marker = parsedMarkers.find((m) => m.nationName && m.nationName.toLowerCase() == nationName && m.isCapital);
-    if (marker) capitalName = marker.townName;
-  }
-  if (!capitalName) return showAlert("Searched nation could not be found.", 3);
-  await locateTown(capitalName, isArchiveMode);
-}
-async function locateResident(name, isArchiveMode) {
-  name = name.trim();
-  const residentName = name.toLowerCase();
-  if (residentName == "") return;
-  let townName = null;
-  if (!isArchiveMode) {
-    const queryBody = { query: [residentName], template: { town: true } };
-    const players = await postJSON(`${currentMapApiUrl()}/players`, queryBody);
-    if (players && players.length > 0) townName = players[0].town?.name;
-  }
-  if (!townName) {
-    const marker = parsedMarkers.find((m) => m.residentList && m.residentList.some((r) => r.toLowerCase() == residentName));
-    if (marker) townName = marker.townName;
-  }
-  if (!townName) return showAlert("Searched resident could not be found.", 3);
-  await locateTown(townName, isArchiveMode);
-}
-async function getTownSpawn(townName) {
-  const queryBody = { query: [townName], template: { coordinates: true } };
-  const towns = await postJSON(`${currentMapApiUrl()}/towns`, queryBody);
-  if (!towns || towns.length < 1) return null;
-  const spawn = towns[0].coordinates.spawn;
-  return { x: Math.round(spawn.x), z: Math.round(spawn.z) };
-}
-function getTownMidpoint(townName) {
-  const town = parsedMarkers.find((m) => m.townName && m.townName.toLowerCase() == townName);
-  if (!town) return null;
-  return { x: town.x, z: town.z };
 }
 function updateUrlLocation(coords, zoom = 4) {
   location.href = `${MAPI_BASE}?zoom=${zoom}&x=${coords.x}&z=${coords.z}`;
@@ -1123,15 +1403,6 @@ var cachedFallingTowns = null;
 var cachedRuinedTowns = null;
 var cachedApiNations = null;
 var cachedAlliances = null;
-var BORDER_CHUNK_COORDS = (
-  /** @type {const} */
-  {
-    L: -33280,
-    R: 33088,
-    U: -16640,
-    D: 16512
-  }
-);
 var EXTRA_BORDER_OPTS = {
   label: "Country Border",
   opacity: 0.5,
@@ -1142,71 +1413,8 @@ var EXTRA_BORDER_OPTS = {
 var DEFAULT_ALLIANCE_COLOURS = { fill: "#000000", outline: "#000000" };
 var CHUNKS_PER_RES = 12;
 var DAY_MS = 864e5;
-var archiveDate = () => parseInt(localStorage["emcdynmapplus-archive-date"]);
 var nationClaimsInfo = () => JSON.parse(localStorage["emcdynmapplus-nation-claims-info"] || "[]");
-var isNumeric = (str) => Number.isFinite(+str);
-var roundTo16 = (num) => Math.round(num / 16) * 16;
-function hashCode(str) {
-  let hexValue = 2166136261;
-  for (let i = 0; i < str.length; i++) {
-    hexValue ^= str.charCodeAt(i);
-    hexValue += (hexValue << 1) + (hexValue << 4) + (hexValue << 7) + (hexValue << 8) + (hexValue << 24);
-  }
-  return "#" + ((hexValue >>> 0) % 16777216).toString(16).padStart(6, "0");
-}
-function calcPolygonArea(vertices) {
-  let area = 0;
-  const amtVerts = vertices.length;
-  for (let i = 0; i < amtVerts; i++) {
-    const j = (i + 1) % amtVerts;
-    area += roundTo16(vertices[i].x) * roundTo16(vertices[j].z);
-    area -= roundTo16(vertices[j].x) * roundTo16(vertices[i].z);
-  }
-  return Math.abs(area) / 2 / (16 * 16);
-}
-function calcMarkerArea(marker) {
-  if (marker.type !== "polygon") return 0;
-  let area = 0;
-  const processed = [];
-  for (const multiPolygon of marker.points || []) {
-    for (let polygon of multiPolygon) {
-      if (!polygon || polygon.length < 3) continue;
-      polygon = polygon.map((v) => ({ x: Number(v.x), z: Number(v.z) })).filter((v) => Number.isFinite(v.x) && Number.isFinite(v.z));
-      if (polygon.length < 3) continue;
-      const isHole = processed.some((prev) => polygon.every((v) => pointInPolygon(v, prev)));
-      area += isHole ? -calcPolygonArea(polygon) : calcPolygonArea(polygon);
-      processed.push(polygon);
-    }
-  }
-  return area;
-}
-function pointInPolygon(vertex, polygon) {
-  let { x, z } = vertex;
-  let n = polygon.length;
-  let inside = false;
-  for (let i = 0, j = n - 1; i < n; j = i++) {
-    let xi = polygon[i].x, xj = polygon[j].x;
-    let zi = polygon[i].z, zj = polygon[j].z;
-    let intersect = zi > z != zj > z && x < (xj - xi) * (z - zi) / (zj - zi) + xi;
-    if (intersect) inside = !inside;
-  }
-  return inside;
-}
-var roundToNearest16 = (n) => Math.round(n / 16) * 16;
-function midrange(vertices) {
-  let minX = Infinity, maxX = -Infinity;
-  let minZ = Infinity, maxZ = -Infinity;
-  for (const vert of vertices) {
-    if (vert.x < minX) minX = vert.x;
-    if (vert.x > maxX) maxX = vert.x;
-    if (vert.z < minZ) minZ = vert.z;
-    if (vert.z > maxZ) maxZ = vert.z;
-  }
-  return {
-    x: roundToNearest16((minX + maxX) / 2),
-    z: roundToNearest16((minZ + maxZ) / 2)
-  };
-}
+var archiveDate = () => parseInt(localStorage["emcdynmapplus-archive-date"]);
 var makePolyline = (linePoints, weight = 1, colour = "#ffffff") => ({
   "type": "polyline",
   "points": linePoints,
@@ -1290,141 +1498,6 @@ async function modifyMarkers(data) {
   console.log(`emcdynmapplus: modified description and colour of all markers. took ${elapsed.toFixed(2)}ms`);
   return data;
 }
-var isAurora = CURRENT_MAP === "aurora";
-var SCALE_X = isAurora ? 1.0015 : 1.94133;
-var MOVE_DOWN = isAurora ? 0 : 8175;
-var MOVE_RIGHT = isAurora ? 0 : 382.5;
-function addCountryBordersLayer(data, borders) {
-  const isAurora2 = CURRENT_MAP == "aurora";
-  try {
-    const points = Object.keys(borders).map((country) => {
-      const countryPoly = [];
-      const line = borders[country];
-      for (let i = 0; i < line.x.length; i++) {
-        const xCoord = line.x[i];
-        if (!isNumeric(xCoord)) continue;
-        const zCoord = line.z[i];
-        countryPoly.push(isAurora2 ? { x: xCoord * SCALE_X, z: zCoord } : {
-          x: xCoord * SCALE_X + MOVE_RIGHT,
-          z: millerProjection(zCoord) + MOVE_DOWN
-        });
-      }
-      return countryPoly;
-    });
-    data.push({
-      "name": "Country Borders",
-      "id": "borders",
-      "order": 125,
-      // Put it before the last layer 'Folia Regions' (150) but after the 'Chunk Borders' (100) layer.
-      "hide": false,
-      "control": true,
-      "markers": [makePolyline(points)]
-    });
-  } catch (e) {
-    showAlert(`Could not set up a layer of country borders. You may need to clear this website's data. If problem persists, contact the developer.`);
-    console.error(e);
-    return null;
-  }
-}
-function addRuinMarkers(data, ruined, colour) {
-  ruined.forEach((t) => {
-    const marker = {
-      tooltip: `<b>${t.name}</b> (Ruined)`,
-      popup: buildRuinedPopup(t),
-      type: "polygon",
-      weight: 1.5,
-      opacity: 1,
-      fillOpacity: 0.33,
-      color: colour,
-      fillColor: colour,
-      points: chunksToSquaremap(t.coordinates.townBlocks.map(([x, z]) => [x * 16, z * 16]))
-    };
-    data[0].markers.push(marker);
-  });
-}
-var dateOpts = { year: "numeric", month: "numeric", day: "numeric" };
-var dateTimeOptsUTC = {
-  year: "numeric",
-  month: "long",
-  day: "numeric",
-  hour: "numeric",
-  timeZone: "UTC"
-};
-var timestampToDateStr = (ts, opts = null) => new Date(ts).toLocaleDateString(navigator.language, opts);
-var timestampToDateTimeStr = (ts, opts = null) => {
-  const d = new Date(ts);
-  const dateStr = d.toLocaleDateString(navigator.language, opts) + " at ";
-  return dateStr + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "numeric" });
-};
-var formatStrDate = (str, opts = null) => timestampToDateStr(new Date(Date.parse(str)), opts);
-var formatStrDateTime = (str, opts = null) => timestampToDateTimeStr(new Date(Date.parse(str)), opts);
-var buildRuinedPopup = (t) => `
-<div class="infowindow">
-    <span style="font-size:120%;">${t.name} (Ruined)</span>
-    <br>
-    ${t.board && t.board !== "/town set board [msg]" ? `<i>${t.board}</i><br><br>` : "<br>"}
-    Founded: <b>${timestampToDateTimeStr(t.timestamps.registered, dateOpts)}</b>
-    <br>
-	Founder: <b>${t.founder}</b>
-	<br>
-    Mayor: <b>${t.mayor.name ?? "Unknown"}</b>
-    <br>
-	<br>
-	Balance: <b>${t.stats.balance ?? 0}G</b>
-    <br>
-    PVP: <b>${t.perms.flags.pvp ? "true" : "false"}</b>
-    <br>
-    Public: <b>${t.status.isPublic ? "true" : "false"}</b>
-    <br>
-	<br>
-    <details style="min-width: 250px">
-        <summary style="cursor: pointer;">
-            Residents: <b>${t.residents?.length ?? 0}</b>
-        </summary>
-        ${t.residents?.map((r) => r.name).join(", ") ?? ""}
-    </details>
-</div>
-`;
-var buildFallingPopup = (t) => `
-<div class="infowindow">
-    <span style="font-size:120%;">${t.status.isCapital ? "\u2B50 " : ""}${t.name} (${t.nation.name || "No Nation"}) (Falling)</span>
-    <br>
-	${t.board && t.board !== "/town set board [msg]" ? `<i>${t.board}</i><br><br>` : "<br>"}
-	Fall Date: <b>${formatStrDate(t.ruinAt, dateTimeOptsUTC)}AM UTC</b>
-    <br>
-	Deletion Date: <b>${formatStrDate(t.deletionAt, dateTimeOptsUTC)}AM UTC</b>
-    <br>
-	<br>
-    Founded: <b>${timestampToDateTimeStr(t.timestamps.registered, dateOpts)}</b>
-    <br>
-	Founder: <b>${t.founder}</b>
-	<br>
-	Mayor: <b>${t.mayor.name ?? "Unknown"} (Last Online: ${formatStrDateTime(t.mayorLastOnline, dateOpts)})</b>
-    <br>
-	<br>
-	Balance: <b>${t.stats.balance ?? 0}G</b>
-	<br>
-    PVP: <b>${t.perms.flags.pvp ? "true" : "false"}</b>
-    <br>
-    Public: <b>${t.status.isPublic ? "true" : "false"}</b>
-    <br>
-	Open: <b>${t.status.isOpen ? "true" : "false"}</b>
-    <br>
-	<br>
-	<details style="min-width: 250px">
-        <summary style="cursor: pointer;">
-            Councillors: <b>${(t.ranks?.["Councillor"] || []).length}</b>
-        </summary>
-        ${(t.ranks?.["Councillor"] || []).map((r) => r.name).join(", ") ?? ""}
-    </details>
-    <details style="min-width: 250px">
-        <summary style="cursor: pointer;">
-            Residents: <b>${t.residents?.length ?? 0}</b>
-        </summary>
-        ${t.residents?.map((r) => r.name).join(", ") ?? ""}
-    </details>
-</div>
-`;
 function modifyDescription(marker, mapMode) {
   if (mapMode == MapMode.NEWDAY && marker.tooltip.endsWith("(Ruined)")) {
     const name = marker.tooltip.substring(marker.tooltip.indexOf(">") + 1, marker.tooltip.lastIndexOf("</"));
@@ -1627,15 +1700,6 @@ async function lookupPlayer(playerName, showOnlineStatus = true) {
     event.target.parentElement.remove();
   });
 }
-function timeAgo(ts) {
-  const diff = Date.now() - ts;
-  const units = [["year", 365 * DAY_MS], ["month", 30 * DAY_MS], ["day", DAY_MS]];
-  for (const [name, ms] of units) {
-    const v = Math.floor(diff / ms);
-    if (v >= 1) return `${v} ${name}${v > 1 ? "s" : ""} ago`;
-  }
-  return "Today";
-}
 function getNationAlliances(nationName, mapMode) {
   if (cachedAlliances == null) return [];
   const nationAlliances = [];
@@ -1705,78 +1769,9 @@ function checkOverclaimed(claimedChunks, numResidents, numNationResidents) {
   };
 }
 var auroraNationBonus = (numNationResidents) => numNationResidents >= 200 ? 100 : numNationResidents >= 120 ? 80 : numNationResidents >= 80 ? 60 : numNationResidents >= 60 ? 50 : numNationResidents >= 40 ? 30 : numNationResidents >= 20 ? 10 : 0;
-var AURORA_ZBOUNDS = { min: -16640, max: 16508 };
-var NORTH_HEMISPHERE_FACTOR = 0.994;
-var MAP_SCALE_FACTOR = 94704 / 33148;
-var MILLER_Y_NORMALIZER = 16574 / 2.3034125433763912;
-function millerProjection(z) {
-  const latDeg = (z - AURORA_ZBOUNDS.min) * 180 / (AURORA_ZBOUNDS.max - AURORA_ZBOUNDS.min) - 90;
-  const latRad = latDeg * (Math.PI / 180);
-  let millerOldZ = 5 / 4 * Math.asinh(Math.tan(4 / 5 * latRad)) * MILLER_Y_NORMALIZER;
-  if (millerOldZ < 0) millerOldZ *= NORTH_HEMISPHERE_FACTOR;
-  return millerOldZ * MAP_SCALE_FACTOR;
-}
-function chunksToSquaremap(blocks) {
-  const edges = /* @__PURE__ */ new Set();
-  const add = (a, b) => {
-    const k = `${a.x},${a.z}|${b.x},${b.z}`;
-    const r = `${b.x},${b.z}|${a.x},${a.z}`;
-    if (edges.has(r)) edges.delete(r);
-    else edges.add(k);
-  };
-  for (const [x, z] of blocks) {
-    const A = { x, z };
-    const B = { x: x + 16, z };
-    const C = { x: x + 16, z: z + 16 };
-    const D = { x, z: z + 16 };
-    add(A, B);
-    add(B, C);
-    add(C, D);
-    add(D, A);
-  }
-  const edgeMap = /* @__PURE__ */ new Map();
-  for (const k of edges) {
-    const [ax, az, bx, bz] = k.split(/[|,]/).map(Number);
-    const a = { x: ax, z: az };
-    const b = { x: bx, z: bz };
-    const key = `${a.x},${a.z}`;
-    if (!edgeMap.has(key)) edgeMap.set(key, []);
-    edgeMap.get(key).push(b);
-  }
-  const used = /* @__PURE__ */ new Set();
-  const out = [];
-  for (const startKey of edgeMap.keys()) {
-    if (used.has(startKey)) continue;
-    const [sx, sz] = startKey.split(",").map(Number);
-    const start = { x: sx, z: sz };
-    const ring = [];
-    let cur = start;
-    while (true) {
-      ring.push(cur);
-      const nexts = edgeMap.get(`${cur.x},${cur.z}`) || [];
-      let next = null;
-      for (const n of nexts) {
-        const k = `${cur.x},${cur.z}|${n.x},${n.z}`;
-        if (!used.has(k)) {
-          next = n;
-          used.add(k);
-          break;
-        }
-      }
-      if (!next) break;
-      cur = next;
-      if (cur.x === start.x && cur.z === start.z) break;
-    }
-    if (ring.length >= 4) {
-      ring.push({ ...ring[0] });
-      out.push([ring]);
-    }
-  }
-  return out;
-}
 
 // <define:MANIFEST>
-var define_MANIFEST_default = { manifest_version: 3, name: "EarthMC Dynmap+ (Owen3H Fork)", version: "2.3.0", author: "3meraldK", description: "Extension to enrich the EarthMC map experience", icons: { "48": "resources/icon48.png", "128": "resources/icon128.png" }, background: { service_worker: "worker.js" }, permissions: ["scripting", "storage"], host_permissions: ["https://*.earthmc.net/*", "https://web.archive.org/web/*", "https://raw.githubusercontent.com/EarthMC-Toolkit/*"], web_accessible_resources: [{ run_at: "document_idle", matches: ["https://map.earthmc.net/*", "https://aurora.earthmc.net/*"], resources: ["resources/gui/map-mode-default.png", "resources/gui/map-mode-alliances.png", "resources/gui/map-mode-meganations.png", "resources/gui/map-mode-overclaim.png", "resources/gui/map-mode-nationclaims.png", "resources/gui/map-mode-newday.png", "resources/interceptor.js", "resources/borders.json"] }], content_scripts: [{ matches: ["https://map.earthmc.net/*", "https://aurora.earthmc.net/*"], css: ["resources/style.css"], js: ["src/httputil.js", "src/dom.js", "src/screenshot.js", "src/modeselector.js", "src/gui.js", "src/main.js", "src/entrypoint.js"] }] };
+var define_MANIFEST_default = { manifest_version: 3, name: "EarthMC Dynmap+ (Owen3H Fork)", version: "2.3.0", author: "3meraldK", description: "Extension to enrich the EarthMC map experience", icons: { "48": "resources/icon48.png", "128": "resources/icon128.png" }, background: { service_worker: "worker.js" }, permissions: ["scripting", "storage"], host_permissions: ["https://*.earthmc.net/*", "https://web.archive.org/web/*", "https://raw.githubusercontent.com/EarthMC-Toolkit/*"], web_accessible_resources: [{ run_at: "document_idle", matches: ["https://map.earthmc.net/*", "https://aurora.earthmc.net/*"], resources: ["resources/gui/map-mode-default.png", "resources/gui/map-mode-alliances.png", "resources/gui/map-mode-meganations.png", "resources/gui/map-mode-overclaim.png", "resources/gui/map-mode-nationclaims.png", "resources/gui/map-mode-newday.png", "resources/interceptor.js", "resources/borders.json"] }], content_scripts: [{ matches: ["https://map.earthmc.net/*", "https://aurora.earthmc.net/*"], css: ["resources/style.css"], js: ["src/util.js", "src/httputil.js", "src/dom.js", "src/layer.js", "src/marker.js", "src/locator.js", "src/screenshot.js", "src/modeselector.js", "src/gui.js", "src/main.js", "src/entrypoint.js"] }] };
 
 // src/entrypoint.js
 function isUserscript() {
@@ -1816,6 +1811,9 @@ function injectScript(resource) {
     };
     (document.head || document.documentElement).appendChild(script);
   });
+}
+function insertCustomStylesheets() {
+  document.head.insertAdjacentHTML("beforeend", INSERTABLE_HTML.interFont);
 }
 async function init(manifest) {
   if (isUserscript()) GM_addStyle(`:root {\r

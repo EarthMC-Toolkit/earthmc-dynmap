@@ -1,6 +1,9 @@
 /** THIS FILE CONTAINS ALL TYPES FOR DEVELOPMENT AND IT IS NOT INCLUDED IN THE FINAL BUNDLE */
 
 declare global {
+    // --------------------- GENERIC SHARED TYPES ---------------------
+    export interface Entity { name: string, uuid: string }
+
     // --------------------- BUILD SCRIPT TYPES ---------------------
     export interface Manifest {
         [key: string]: any
@@ -74,8 +77,6 @@ declare global {
     }
 
     // --------------------- EMC STATS API TYPES ---------------------
-    export interface Entity { name: string, uuid: string }
-
     export interface CAPIFallingTown extends CAPITown {
         ruinAt: Date
         deletionAt: Date

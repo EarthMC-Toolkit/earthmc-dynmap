@@ -51,6 +51,11 @@ function injectScript(resource) {
 	})
 }
 
+function insertCustomStylesheets() {
+	document.head.insertAdjacentHTML('beforeend', INSERTABLE_HTML.interFont)
+	// other stylesheet html links ... 
+}
+
 /** @param {Manifest} manifest */
 async function init(manifest) {
 	if (isUserscript()) GM_addStyle(STYLE_CSS)

@@ -15,22 +15,10 @@ waitForElement('.leaflet-nameplate-pane').then(element => {
 /** @type {Array<ParsedMarker>} */
 let parsedMarkers = [] // this is essential for the locater to work correctly
 
-/** @type {Array<CAPIFallingTown>} */
-let cachedFallingTowns = null
-
-/** @type {Array<CAPITown}>} */
-let cachedRuinedTowns = null
-
-/** @type {Map<string, any>} */
-let cachedApiNations = null
-
-/** @type {Array<Alliance>} */
-let cachedAlliances = null
-
-const BORDER_CHUNK_COORDS = /** @type {const} */ ({ 
-	L: -33280, R: 33088,
-	U: -16640, D: 16512
-})
+/** @type {Array<CAPIFallingTown>} */ let cachedFallingTowns = null
+/** @type {Array<CAPITown>} 	   */ let cachedRuinedTowns  = null
+/** @type {Map<string, any>} 	   */ let cachedApiNations 	 = null
+/** @type {Array<Alliance>} 	   */ let cachedAlliances 	 = null
 
 const EXTRA_BORDER_OPTS = {
 	label: "Country Border",
@@ -45,124 +33,9 @@ const DEFAULT_ALLIANCE_COLOURS = { fill: '#000000', outline: '#000000' }
 const CHUNKS_PER_RES = 12
 const DAY_MS = 86_400_000 // 24hr in millisec
 
-const archiveDate = () => parseInt(localStorage['emcdynmapplus-archive-date'])
-
 /** @type {() => Array<{color: string | null, input: string | null}>} */
 const nationClaimsInfo = () => JSON.parse(localStorage['emcdynmapplus-nation-claims-info'] || '[]')
-
-/** @param {string} str */
-const isNumeric = str => Number.isFinite(+str)
-
-/** @param {number} num */
-const roundTo16 = num => Math.round(num / 16) * 16
-
-/** 
- * Fowler-Noll-Vo hash function
- * @param {string} str
- */
-function hashCode(str) {
-	let hexValue = 0x811c9dc5
-	for (let i = 0; i < str.length; i++) {
-		hexValue ^= str.charCodeAt(i)
-		hexValue += (hexValue << 1) + (hexValue << 4) + (hexValue << 7) + (hexValue << 8) + (hexValue << 24)
-	}
-
-	return '#' + ((hexValue >>> 0) % 16777216).toString(16).padStart(6, '0')
-}
-
-/**
- * Shoelace formula
- * @param {Polygon} vertices 
- */
-function calcPolygonArea(vertices) {
-	let area = 0
-	const amtVerts = vertices.length
-	for (let i = 0; i < amtVerts; i++) {
-		const j = (i + 1) % amtVerts
-
-		// Vertices need rounding to 16 because data has imprecise coordinates
-		area += roundTo16(vertices[i].x) * roundTo16(vertices[j].z)
-		area -= roundTo16(vertices[j].x) * roundTo16(vertices[i].z)
-	}
-
-	return (Math.abs(area) / 2) / (16 * 16)
-}
-
-/**
- * Computes total area of a marker, accounting for holes.
- * @param {SquaremapMarker} marker
- * @returns {number}
- */
-function calcMarkerArea(marker) {
-    if (marker.type !== 'polygon') return 0
-
-    let area = 0
-    const processed = [] // Temp array of polys used to check existence of holes
-    for (const multiPolygon of marker.points || []) {
-        for (let polygon of multiPolygon) {
-            if (!polygon || polygon.length < 3) continue
-
-			// Filter out any NaN points
-			polygon = polygon
-				.map(v => ({ x: Number(v.x), z: Number(v.z) }))
-				.filter(v => Number.isFinite(v.x) && Number.isFinite(v.z))
-            
-            if (polygon.length < 3) continue
-
-            // Check if polygon is fully inside any previous polygon
-            const isHole = processed.some(prev => polygon.every(v => pointInPolygon(v, prev)))
-            area += isHole ? -calcPolygonArea(polygon) : calcPolygonArea(polygon)
-            processed.push(polygon)
-        }
-    }
-
-    return area
-}
-
-/**
- * Credit: James Halliday (substack)
- * @param {Vertex} vertex 
- * @param {Polygon} polygon
- */
-function pointInPolygon(vertex, polygon) {
-	let { x, z } = vertex
-	let n = polygon.length
-	let inside = false
-	for (let i = 0, j = n - 1; i < n; j = i++) {
-		let xi = polygon[i].x, xj = polygon[j].x
-		let zi = polygon[i].z, zj = polygon[j].z
-
-		let intersect = ((zi > z) != (zj > z))
-			&& (x < (xj - xi) * (z - zi) / (zj - zi) + xi)
-		if (intersect) inside = !inside
-	}
-
-	return inside
-}
-
-/** @param {number} n */
-const roundToNearest16 = n => Math.round(n / 16) * 16
-
-/**
- * @param {Polygon} vertices 
- * @returns {Vertex}
- */
-function midrange(vertices) {
-	let minX = Infinity, maxX = -Infinity
-	let minZ = Infinity, maxZ = -Infinity
-
-	for (const vert of vertices) {
-		if (vert.x < minX) minX = vert.x
-		if (vert.x > maxX) maxX = vert.x
-		if (vert.z < minZ) minZ = vert.z
-		if (vert.z > maxZ) maxZ = vert.z
-	}
-
-	return {
-		x: roundToNearest16((minX + maxX) / 2),
-		z: roundToNearest16((minZ + maxZ) / 2)
-	}
-}
+const archiveDate = () => parseInt(localStorage['emcdynmapplus-archive-date'])
 
 /**
  * @param {MarkerPoints} linePoints
@@ -191,7 +64,6 @@ async function modifyMarkers(data) {
 	if (mapMode == MapMode.ARCHIVE) {
 		data = await getArchive(data)
 	}
-
 	if (!data?.[0]?.markers?.length) {
 		showAlert('Unexpected error occurred while loading the map, EarthMC may be down. Try again later.')
 		return data
@@ -240,7 +112,7 @@ async function modifyMarkers(data) {
 		const parsed = isSquaremap ? modifyDescription(marker, mapMode) : modifyDynmapDescription(marker, date)
 		switch (mapMode) {
 			case MapMode.DEFAULT: 
-			case MapMode.ARCHIVE: continue
+			case MapMode.ARCHIVE: break
 			case MapMode.ALLIANCES:
 				colorMarkerAlliances(marker, parsed)
 				break
@@ -270,169 +142,6 @@ async function modifyMarkers(data) {
 
 	return data
 }
-
-const isAurora = CURRENT_MAP === 'aurora'
-
-// Hand-picked constants
-// 1.94 is how many times Nostra's map is horizontally bigger than Aurora's
-const SCALE_X = isAurora ? 1.0015 : 1.94133 // Aurora is slightly stretched horizontally
-const MOVE_DOWN = isAurora ? 0 : 8175 // How much to move the layer down by
-const MOVE_RIGHT = isAurora ? 0 : 382.5 // How much to move the layer right by
-
-/**
- * @param {MarkersResponse} data - The markers response JSON data.
- * @param {Object} borders - The borders JSON data.
- */
-function addCountryBordersLayer(data, borders) {
-	const isAurora = CURRENT_MAP == 'aurora'
-	try {
-		const points = Object.keys(borders).map(country => {
-			/** @type {Polygon} */
-			const countryPoly = []
-			const line = borders[country]
-			for (let i = 0; i < line.x.length; i++) {
-				const xCoord = line.x[i]
-				if (!isNumeric(xCoord)) continue
-
-				const zCoord = line.z[i]
-				countryPoly.push(isAurora ? { x: xCoord * SCALE_X, z: zCoord } : {
-					x: xCoord * SCALE_X + MOVE_RIGHT,
-					z: millerProjection(zCoord) + MOVE_DOWN
-				})
-			}
-
-			return countryPoly
-		})
-
-		data.push({
-			'name': 'Country Borders',
-			'id': 'borders',
-			'order': 125, // Put it before the last layer 'Folia Regions' (150) but after the 'Chunk Borders' (100) layer.
-			'hide': false,
-			'control': true,
-			'markers': [makePolyline(points)]
-		})
-	} catch (e) {
-		showAlert(`Could not set up a layer of country borders. You may need to clear this website's data. If problem persists, contact the developer.`)
-		console.error(e)
-		return null
-	}
-}
-
-/** 
- * @param {MarkersResponse} data 
- * @param {Array<CAPIRuinedTown>} ruined
- * @param {string} colour
-*/
-function addRuinMarkers(data, ruined, colour) {
-	ruined.forEach(t => {
-		/** @type {SquaremapMarker} */
-		const marker = {
-			tooltip: `<b>${t.name}</b> (Ruined)`,
-			popup: buildRuinedPopup(t),
-			type: 'polygon',
-			weight: 1.5,
-			opacity: 1,
-			fillOpacity: 0.33,
-			color: colour,
-			fillColor: colour,
-			points: chunksToSquaremap(t.coordinates.townBlocks.map(([x, z]) => [x * 16, z * 16]))
-		}
-
-		data[0].markers.push(marker)
-	})
-}
-
-/** @type {Intl.DateTimeFormatOptions} */
-const dateOpts = { year: 'numeric', month: 'numeric', day: 'numeric' }
-
-/** @type {Intl.DateTimeFormatOptions} */
-const dateTimeOptsUTC = { 
-	year: 'numeric', month: 'long',
-	day: 'numeric', hour: 'numeric',
-	timeZone: 'UTC'
-}
-
-const timestampToDateStr = (ts, opts = null) => new Date(ts).toLocaleDateString(navigator.language, opts)
-const timestampToDateTimeStr = (ts, opts = null) => {
-	const d = new Date(ts)
-	const dateStr = d.toLocaleDateString(navigator.language, opts) + " at " 
-	return dateStr + d.toLocaleTimeString("en-US", { hour: 'numeric', minute: 'numeric' })
-}
-
-const formatStrDate = (str, opts = null) => timestampToDateStr(new Date(Date.parse(str)), opts)
-const formatStrDateTime = (str, opts = null) => timestampToDateTimeStr(new Date(Date.parse(str)), opts)
-
-/** @param {CAPIRuinedTown} t */
-const buildRuinedPopup = t => `
-<div class="infowindow">
-    <span style="font-size:120%;">${t.name} (Ruined)</span>
-    <br>
-    ${t.board && t.board !== '/town set board [msg]' ? `<i>${t.board}</i><br><br>`: '<br>' }
-    Founded: <b>${timestampToDateTimeStr(t.timestamps.registered, dateOpts)}</b>
-    <br>
-	Founder: <b>${t.founder}</b>
-	<br>
-    Mayor: <b>${t.mayor.name ?? 'Unknown'}</b>
-    <br>
-	<br>
-	Balance: <b>${t.stats.balance ?? 0}G</b>
-    <br>
-    PVP: <b>${t.perms.flags.pvp ? 'true' : 'false'}</b>
-    <br>
-    Public: <b>${t.status.isPublic ? 'true' : 'false'}</b>
-    <br>
-	<br>
-    <details style="min-width: 250px">
-        <summary style="cursor: pointer;">
-            Residents: <b>${t.residents?.length ?? 0}</b>
-        </summary>
-        ${t.residents?.map(r => r.name).join(', ') ?? ''}
-    </details>
-</div>
-`
-
-/** @param {CAPIFallingTown} t */
-const buildFallingPopup = t => `
-<div class="infowindow">
-    <span style="font-size:120%;">${t.status.isCapital ? '⭐ ' : ''}${t.name} (${t.nation.name || 'No Nation'}) (Falling)</span>
-    <br>
-	${t.board && t.board !== '/town set board [msg]' ? `<i>${t.board}</i><br><br>`: '<br>' }
-	Fall Date: <b>${formatStrDate(t.ruinAt, dateTimeOptsUTC)}AM UTC</b>
-    <br>
-	Deletion Date: <b>${formatStrDate(t.deletionAt, dateTimeOptsUTC)}AM UTC</b>
-    <br>
-	<br>
-    Founded: <b>${timestampToDateTimeStr(t.timestamps.registered, dateOpts)}</b>
-    <br>
-	Founder: <b>${t.founder}</b>
-	<br>
-	Mayor: <b>${t.mayor.name ?? 'Unknown'} (Last Online: ${formatStrDateTime(t.mayorLastOnline, dateOpts)})</b>
-    <br>
-	<br>
-	Balance: <b>${t.stats.balance ?? 0}G</b>
-	<br>
-    PVP: <b>${t.perms.flags.pvp ? 'true' : 'false'}</b>
-    <br>
-    Public: <b>${t.status.isPublic ? 'true' : 'false'}</b>
-    <br>
-	Open: <b>${t.status.isOpen ? 'true' : 'false'}</b>
-    <br>
-	<br>
-	<details style="min-width: 250px">
-        <summary style="cursor: pointer;">
-            Councillors: <b>${(t.ranks?.['Councillor'] || []).length}</b>
-        </summary>
-        ${(t.ranks?.['Councillor'] || []).map(r => r.name).join(', ') ?? ''}
-    </details>
-    <details style="min-width: 250px">
-        <summary style="cursor: pointer;">
-            Residents: <b>${t.residents?.length ?? 0}</b>
-        </summary>
-        ${t.residents?.map(r => r.name).join(', ') ?? ''}
-    </details>
-</div>
-`
 
 /**
  * Modifies a town description of a Squaremap marker.
@@ -790,21 +499,6 @@ async function lookupPlayer(playerName, showOnlineStatus = true) {
 }
 
 /**
- * Formats a timestamp into a string. Ex: "Today", "2 days ago", "3 months ago" or "1 year ago" 
- * @param {number} ts The UNIX timestamp to format 
- */
-function timeAgo(ts) {
-	const diff = Date.now() - ts
-	const units = [['year', 365*DAY_MS], ['month', 30*DAY_MS], ['day', DAY_MS]]
-	for (const [name, ms] of units) {
-		const v = Math.floor(diff / ms)
-		if (v >= 1) return `${v} ${name}${v > 1 ? 's' : ''} ago`
-	}
-
-	return 'Today'
-}
-
-/**
  * Gets all alliances the input nation exists within / is related to.
  * @param {string} nationName - The name of the nation to get related alliances.
  * @param {MapMode} mapMode - The currently selected map mode.
@@ -824,7 +518,7 @@ function getNationAlliances(nationName, mapMode) {
 	return nationAlliances
 }
 
-/** @param {Object} markers - The old markers response JSON data */
+/** @param {MarkersResponse} data - The markers response JSON data. */
 async function getArchive(data) {
 	const loadingAlert = showAlert('Loading archive, please wait...', 10)
 	const date = archiveDate()
@@ -915,102 +609,3 @@ const auroraNationBonus = numNationResidents => numNationResidents >= 200 ? 100
 	: numNationResidents >= 60 ? 50
 	: numNationResidents >= 40 ? 30
 	: numNationResidents >= 20 ? 10 : 0
-
-const AURORA_ZBOUNDS = { min: -16640, max: 16508 } // Vertical bounds of old map (Plate Carree projection)
-const NORTH_HEMISPHERE_FACTOR = 0.994 // Project from Plate Carree to Miller Cylindrical. Adjust projection of north hemisphere
-const MAP_SCALE_FACTOR = 94704 / 33148 // Estimated height of new (Nostra) map if it wasn't cropped / Height of old map
-
-// 16574 is a mean average of old map vertical bounds
-// 2.304 is a magic number from 5/4 * Math.asinh(Math.tan(4/5 * (90 * (Math.PI / 180))))
-const MILLER_Y_NORMALIZER = 16574 / 2.3034125433763912
-
-function millerProjection(z) {
-	// Converts old (Aurora) map's Z-coord to latitude. Assuming old map covers every latitude. 
-	const latDeg = ((z - AURORA_ZBOUNDS.min) * 180 / (AURORA_ZBOUNDS.max - AURORA_ZBOUNDS.min)) - 90
-	const latRad = latDeg * (Math.PI / 180)
-
-	let millerOldZ = (5/4) * Math.asinh(Math.tan((4 / 5) * latRad)) * MILLER_Y_NORMALIZER
-	if (millerOldZ < 0) millerOldZ *= NORTH_HEMISPHERE_FACTOR
-
-	return millerOldZ * MAP_SCALE_FACTOR
-}
-
-/**
- * Convert Towny chunk blocks into Squaremap multipolygon rings.
- * Each chunk is treated as a 1x1 square and merged into outer boundary edges.
- *
- * @param {Array<[number, number]>} blocks - Chunk coordinates [x, z]
- * @returns {MultiPolygonPoints} MultiPolygon (Squaremap format)
- */
-function chunksToSquaremap(blocks) {
-	const edges = new Set()
-
-	const add = (a, b) => {
-		const k = `${a.x},${a.z}|${b.x},${b.z}`
-		const r = `${b.x},${b.z}|${a.x},${a.z}`
-		if (edges.has(r)) edges.delete(r)
-		else edges.add(k)
-	}
-
-	for (const [x, z] of blocks) {
-		const A = { x, z }
-		const B = { x: x + 16, z }
-		const C = { x: x + 16, z: z + 16 }
-		const D = { x, z: z + 16 }
-
-		add(A, B); add(B, C); add(C, D); add(D, A)
-	}
-
-	const edgeMap = new Map()
-	for (const k of edges) {
-		const [ax, az, bx, bz] = k.split(/[|,]/).map(Number)
-
-		const a = { x: ax, z: az }
-		const b = { x: bx, z: bz }
-
-		const key = `${a.x},${a.z}`
-		if (!edgeMap.has(key)) edgeMap.set(key, [])
-		edgeMap.get(key).push(b)
-	}
-
-	const used = new Set()
-	const out = []
-
-	for (const startKey of edgeMap.keys()) {
-		if (used.has(startKey)) continue
-
-		const [sx, sz] = startKey.split(',').map(Number)
-		const start = { x: sx, z: sz }
-
-		const ring = []
-		let cur = start
-
-		while (true) {
-			ring.push(cur)
-
-			const nexts = edgeMap.get(`${cur.x},${cur.z}`) || []
-			let next = null
-
-			for (const n of nexts) {
-				const k = `${cur.x},${cur.z}|${n.x},${n.z}`
-				if (!used.has(k)) {
-					next = n
-					used.add(k)
-					break
-				}
-			}
-
-			if (!next) break
-
-			cur = next
-			if (cur.x === start.x && cur.z === start.z) break
-		}
-
-		if (ring.length >= 4) {
-			ring.push({ ...ring[0] }) // close loop (important for Squaremap)
-			out.push([ring])
-		}
-	}
-
-	return out
-}

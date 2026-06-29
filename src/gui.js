@@ -1,4 +1,4 @@
-/** ANY CODE RELATING TO ONSCREEN INTERACTION GOES HERE (MENUS, SELECTORS ETC) */
+/** ANY CODE RELATING TO ONSCREEN INTERACTION GOES HERE IF IT DOES NOT HAVE ITS OWN FILE */
 //console.log('emcdynmapplus: loaded gui')
 
 // TODO: Use Custom Element Registry and convert the main menu into one.
@@ -47,12 +47,14 @@ function addMenuLocateSection(menu) {
 			case 'Resident': locateInput.placeholder = 'Fix'; break
 		}
 	})
+
+	const isArchiveMode = currentMapMode() == MapMode.ARCHIVE
 	locateInput.addEventListener('keyup', event => {
 		if (event.key != 'Enter') return
-		locate(locateSelect.value, locateInput.value)
+		locate(locateSelect.value, locateInput.value, isArchiveMode)
 	})
 	locateButton.addEventListener('click', () => {
-		locate(locateSelect.value, locateInput.value)
+		locate(locateSelect.value, locateInput.value, isArchiveMode)
 	})
 	//#endregion
 }
@@ -192,11 +194,6 @@ function toggleDarkMode(boxTicked) {
 	return boxTicked ? loadDarkMode() : unloadDarkMode()
 }
 
-function insertCustomStylesheets() {
-	document.head.insertAdjacentHTML('beforeend', INSERTABLE_HTML.interFont)
-	// other stylesheet html links ... 
-}
-
 function loadDarkMode() {
 	// tell browser not to apply its auto dark mode.
 	// this fixes some inverted elements when both are enabled.
@@ -216,14 +213,6 @@ function unloadDarkMode() {
 //#region Scroll normalization
 let scrollListener = null
 
-/** @param {boolean} boxTicked */
-function toggleScrollNormalize(boxTicked) {
-	localStorage['emcdynmapplus-normalize-scroll'] = boxTicked
-
-	const el = window.document.querySelector('#map')
-	return boxTicked ? addScrollNormalizer(el) : removeScrollNormalizer(el)
-}
-
 /** @param {HTMLElement} mapEl */
 function addScrollNormalizer(mapEl) {
     scrollListener = e => {
@@ -241,116 +230,25 @@ function removeScrollNormalizer(mapEl) {
 	const eventData = { detail: { pxPerZoomLevel: 60 } }
 	document.dispatchEvent(new CustomEvent('EMCDYNMAPPLUS_ADJUST_SCROLL', eventData))
 }
-//#endregion
 
-//#region Entity locator
-/**
- * Runs appropriate locator func based on selectValue, passing inputValue as the argument. 
- * @param {string} selectValue
- * @param {string} inputValue
- */
-function locate(selectValue, inputValue) {
-	const isArchiveMode = currentMapMode() == MapMode.ARCHIVE
-	switch (selectValue) {
-		case 'Town': locateTown(inputValue, isArchiveMode); break
-		case 'Nation': locateNation(inputValue, isArchiveMode); break
-		case 'Resident': locateResident(inputValue, isArchiveMode); break
-	}
+/** @param {boolean} boxTicked */
+function toggleScrollNormalize(boxTicked) {
+	localStorage['emcdynmapplus-normalize-scroll'] = boxTicked
+
+	const el = window.document.querySelector('#map')
+	return boxTicked ? addScrollNormalizer(el) : removeScrollNormalizer(el)
 }
+//#endregion
 
 /** @param {string} date */
 function searchArchive(date) {
 	if (date == '') return
-	const URLDate = date.replaceAll('-', '') // 2026-06-01 -> 20260601
-	localStorage['emcdynmapplus-archive-date'] = URLDate // In case 'change' event doesn't already update it
+
+    // In case 'change' event doesn't already update it
+	localStorage['emcdynmapplus-archive-date'] = date.replaceAll('-', '') 
 	localStorage['emcdynmapplus-mapmode'] = MapMode.ARCHIVE.name
+
 	location.reload()
-}
-
-/** 
- * @param {string} name
- * @param {boolean} isArchiveMode
- */
-async function locateTown(name, isArchiveMode) {
-	name = name.trim()
-
-	const townName = name.toLowerCase()
-	if (townName == '') return
-
-	let coords = null
-	if (!isArchiveMode) coords = await getTownSpawn(townName)
-	if (!coords) coords = getTownMidpoint(townName)
-
-	if (!coords) return showAlert(`Could not find town/capital with name '${name}'.`, 5)
-	updateUrlLocation(coords)
-}
-
-/** 
- * @param {string} name
- * @param {boolean} isArchiveMode
- */
-async function locateNation(name, isArchiveMode) {
-	name = name.trim()
-	
-	const nationName = name.toLowerCase()
-	if (nationName == '') return
-
-	let capitalName = null
-	if (!isArchiveMode) {
-		const queryBody = { query: [nationName], template: { capital: true } }
-		const nations = await postJSON(`${currentMapApiUrl()}/nations`, queryBody)
-		if (nations && nations.length > 0) capitalName = nations[0].capital?.name
-	}
-	if (!capitalName) {
-		const marker = parsedMarkers.find(m => m.nationName && m.nationName.toLowerCase() == nationName && m.isCapital)
-		if (marker) capitalName = marker.townName
-	}
-
-	if (!capitalName) return showAlert('Searched nation could not be found.', 3)
-	await locateTown(capitalName, isArchiveMode)
-}
-
-/** 
- * @param {string} name
- * @param {boolean} isArchiveMode
- */
-async function locateResident(name, isArchiveMode) {
-	name = name.trim()
-
-	const residentName = name.toLowerCase()
-	if (residentName == '') return
-
-	let townName = null
-	if (!isArchiveMode) {
-		const queryBody = { query: [residentName], template: { town: true } }
-		const players = await postJSON(`${currentMapApiUrl()}/players`, queryBody)
-		if (players && players.length > 0) townName = players[0].town?.name
-	}
-	if (!townName) {
-		const marker = parsedMarkers.find(m => m.residentList && m.residentList.some(r => r.toLowerCase() == residentName))
-		if (marker) townName = marker.townName
-	}
-
-	if (!townName) return showAlert('Searched resident could not be found.', 3)
-	await locateTown(townName, isArchiveMode)
-}
-
-/** @param {string} townName */
-async function getTownSpawn(townName) {
-	const queryBody = { query: [townName], template: { coordinates: true } }
-	const towns = await postJSON(`${currentMapApiUrl()}/towns`, queryBody)
-	if (!towns || towns.length < 1) return null
-
-	const spawn = towns[0].coordinates.spawn
-	return { x: Math.round(spawn.x), z: Math.round(spawn.z) }
-}
-
-/** @param {string} townName */
-function getTownMidpoint(townName) {
-	const town = parsedMarkers.find(m => m.townName && m.townName.toLowerCase() == townName)
-	if (!town) return null
-
-	return { x: town.x, z: town.z }
 }
 
 /**
@@ -361,4 +259,3 @@ function getTownMidpoint(townName) {
 function updateUrlLocation(coords, zoom = 4) {
 	location.href = `${MAPI_BASE}?zoom=${zoom}&x=${coords.x}&z=${coords.z}`
 }
-//#endregion
