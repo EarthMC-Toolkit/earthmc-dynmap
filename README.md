@@ -34,7 +34,7 @@ When creating the extension, the main idea was to group countries together into 
 > Extension works for desktop and mobile! For the best experience, it is also recommended to use ad-blockers.
 
 ### 1. Chromium Extension (Recommended)
-There are no extension releases on GitHub or the store. Please visit the aforementioned Discord for up to date builds or install the userscript which will update automatically. Alternatively, you can download this repo source code and do the following:
+There are no extension releases on GitHub or the store. Please visit the [Toolkit Discord](https://discord.gg/AVtgkcRgFs) for up to date builds or install the userscript which will update automatically. Alternatively, you can download this repo source code and do the following:
 
 1. Unzip the repo source code.
 1. Go to your browser extension settings.
@@ -50,7 +50,7 @@ Remember to check for updates frequently if Violentmonkey does not do it automat
 ## Maintainability
 Neither this extension nor its maintainer are affiliated with **EarthMC**. Please keep in mind, that the extension may temporarily render unusable due to unexpected **EarthMC** updates. If that is the case, the maintainer will address potential problems sooner or later.
 
-You can report any new issues in the aforementioned Discord server.
+You can report any new issues in the [Toolkit Discord](https://discord.gg/AVtgkcRgFs).
 
-## Contribution <a href="https://discord.gg/AVtgkcRgFs"><img src="https://img.shields.io/discord/966271635894190090?logo=discord"></a>
+## Support and Contribution <a href="https://discord.gg/AVtgkcRgFs"><img src="https://img.shields.io/discord/966271635894190090?logo=discord"></a>
 The maintainer actively cooperates with **EMC Toolkit** (developers of "EarthMC Stats" Discord bot and more), which provides the latest alliance data. You can help maintaining the database by registering a new alliance or requesting a change. [Click here to join](https://discord.gg/AVtgkcRgFs).
