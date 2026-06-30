@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install deps & Build
+        run: bun i && bun run build
+ 
+      - name: Get current version from manifest
+        id: version
+        run: echo "version=$(jq -r .version manifest.json)" >> $GITHUB_OUTPUT
+
+      - name: Get latest release version
+        id: latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          latest=$(gh release view --json tagName -q .tagName 2>/dev/null || echo "")
+          echo "version=$latest" >> $GITHUB_OUTPUT
+
+      - name: Skip if version unchanged
+        run: |
+          if [ -n "${{ steps.latest.outputs.version }}" ] && \
+             [ "${{ steps.version.outputs.version }}" = "${{ steps.latest.outputs.version }}" ]; then
+            echo "Version unchanged, skipping release"
+            exit 0
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+            tag_name: ${{ steps.version.outputs.version }}
+            name: "EarthMC Dynmap+ (Owen3H Fork) v${{ steps.version.outputs.version }}"
+            files: |
+                dist/emc-dynmapplus.zip
+                dist/emc-dynmapplus.user.js
+            body: |
+                [See changelog announcements](https://discord.com/channels/966271635894190090/966822836096364636)
+
+                # 📜 Userscript
+                1. Install a userscript manager (Violentmonkey recommended).
+                1. Click [this link](https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/refs/heads/main/dist/emc-dynmapplus.user.js) and hit **Install** or **Reinstall** to update.
+                1. Make sure the script is enabled and refresh the map.
+
+                # 📦 Chromium Extension
+                ## First time prerequisites
+                1. Head to your browser extension settings. 
+                1. Click **Enable Developer Mode**.
+                
+                ## Installing or Updating
+                1. Download the `emc-dynmapplus.zip` file below and unzip it.
+                1. Click **Load Unpacked** in your browser extension settings.
+                1. Find the unzipped folder and select it, then refresh the map if you have it open.

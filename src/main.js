@@ -37,16 +37,6 @@ let parsedMarkers = [] // this is essential for the locater to work correctly
 /** @type {Map<string, any>} 	   */ let cachedApiNations 	 = null
 /** @type {Array<Alliance>} 	   */ let cachedAlliances 	 = null
 
-/**
- * @param {MarkerPoints} linePoints
- * @param {string} weight 
- * @param {string} colour 
- */
-const makePolyline = (linePoints, weight = 1, colour = '#ffffff') => ({
-	'type': 'polyline', 'points': linePoints,
-	'weight': weight, 'color': colour,
-})
-
 /** @param {MarkersResponse} data - The markers response JSON data. */
 async function modifyMarkers(data) {
 	const mapMode = currentMapMode()
