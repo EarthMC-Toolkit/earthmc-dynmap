@@ -207,29 +207,33 @@ const colorMarker = (marker, fill, outline, weight = null) => {
 	marker.fillColor = fill
 	marker.color = outline
 	if (weight) marker.weight = weight
+	return marker
 }
 
 /**
  * @param {Marker} marker
  * @param {string} nationName
  * @param {MapMode} mapMode - The currently selected map mode.
+ * @returns {Marker}
  */
 function applyAllianceColours(marker, nationName, mapMode) {
 	const nationAlliances = getNationAlliances(nationName, mapMode)
-	if (nationAlliances.length === 0) return
+	if (nationAlliances.length === 0) return marker
 
 	const { colours } = nationAlliances[0]
 	const weight = nationAlliances.length > 1 ? 1.5 : 0.75
-	colorMarker(marker, colours.fill, colours.outline, weight)
+	return colorMarker(marker, colours.fill, colours.outline, weight)
 }
 
 /**
  * @param {Marker} marker
  * @param {ParsedMarker} parsed
+ * @returns {Marker}
  */
 function colorMarkerAlliances(marker, parsed) {
 	colorMarker(marker, '#000000', '#000000', 1)
 	applyAllianceColours(marker, parsed.nationName, MapMode.ALLIANCES)
+	return marker
 }
 
 /**
@@ -247,6 +251,7 @@ function colorMarkerMeganations(marker, parsed) {
 /**
  * @param {Marker} marker
  * @param {ParsedMarker} parsed
+ * @returns {Marker}
  */
 function colorMarkerOverclaim(marker, parsed) {
 	const nation = parsed.nationName ? cachedApiNations.get(parsed.nationName.toLowerCase()) : null
@@ -255,7 +260,7 @@ function colorMarkerOverclaim(marker, parsed) {
 		: checkOverclaimed(parsed.area, parsed.residentNum, nation.stats.numResidents)
 
 	const colour = info.isOverclaimed ? '#ff0000' : '#00ff00'
-	colorMarker(marker, colour, colour, info.isOverclaimed ? 2 : 0.5)
+	return colorMarker(marker, colour, colour, info.isOverclaimed ? 2 : 0.5)
 }
 
 /**
@@ -264,6 +269,7 @@ function colorMarkerOverclaim(marker, parsed) {
  * @param {Map<string|null, string|null>} claimsCustomizerInfo
  * @param {boolean} useOpaque
  * @param {boolean} showExcluded
+ * @returns {Marker}
  */
 function colorMarkerNationClaims(marker, nationName, claimsCustomizerInfo, useOpaque, showExcluded) {
 	//const strippedName = nationName?.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase()
@@ -282,6 +288,7 @@ function colorMarkerNationClaims(marker, nationName, claimsCustomizerInfo, useOp
 /**
  * @param {Marker} marker
  * @param {ParsedMarker} parsedMarker
+ * @returns {Marker}
  */
 function colorMarkerNewDay(marker, parsedMarker) {
 	const fallingTown = cachedFallingTowns.find(v => v.name.toLowerCase() == parsedMarker.townName.toLowerCase())
@@ -299,20 +306,20 @@ function colorMarkerNewDay(marker, parsedMarker) {
 
 	const ruinedTown = cachedRuinedTowns.find(v => v.name.toLowerCase() == parsedMarker.townName.toLowerCase())
 	if (!ruinedTown) {
-		marker.fillOpacity = 0.2
-		marker.opacity = 0.8
 		if (marker.type == 'icon') {
 			marker.opacity = marker.fillOpacity = 0
+			return marker // don't show icons like capital stars
 		}
 
-		colorMarker(marker, '#000000', '#000000', 0.5)
-	} else {
-		parsedMarker.isCapital = ruinedTown.status.isCapital
-		parsedMarker.x = ruinedTown.coordinates.spawn.x
-		parsedMarker.z = ruinedTown.coordinates.spawn.z
-
-		marker.weight = 3 // make ruined town markers stand out
+		marker.fillOpacity = 0.35
+		marker.opacity = 0.8
+		return colorMarker(marker, '#151515', '#151515', 0.85)
 	}
-	
+
+	marker.weight = 3 // make ruined town markers stand out
+	parsedMarker.isCapital = ruinedTown.status.isCapital
+	parsedMarker.x = ruinedTown.coordinates.spawn.x
+	parsedMarker.z = ruinedTown.coordinates.spawn.z
+
 	return marker
 }

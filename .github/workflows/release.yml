@@ -60,7 +60,7 @@ jobs:
                 1. Head to your browser extension settings. 
                 1. Click **Enable Developer Mode**.
                 
-                ## Installing or Updating
+                ## Installing or updating
                 1. Download the `emc-dynmapplus.zip` file below and unzip it.
                 1. Click **Load Unpacked** in your browser extension settings.
                 1. Find the unzipped folder and select it, then refresh the map if you have it open.
