@@ -1,6 +1,8 @@
 /** ANY CODE RELATING TO THE MAP MODE SELECTOR GOES HERE */
 //console.log('emcdynmapplus: loaded mode selector')
 
+const GITHUB_REPO = "https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/refs/heads/main/"
+
 const MAP_MODES = /** @type {const} */ ({
     DEFAULT:        { name: "default",      img: "resources/gui/map-mode-default.png", order: 0 },
     MEGANATIONS:    { name: "meganations",  img: "resources/gui/map-mode-meganations.png", order: 1 },
@@ -59,8 +61,6 @@ function addMapModeSelector(parent) {
     const curMode = currentMapMode()
     label.textContent = `Current Mode: ${curMode.name}`
 }
-
-const GITHUB_REPO = "https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/refs/heads/main/"
 
 /**
  * Adds a map mode button to its parent container div using its img/icon and btn handler.

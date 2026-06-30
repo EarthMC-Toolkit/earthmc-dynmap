@@ -27,6 +27,16 @@ function millerProjection(z) {
 }
 
 /**
+ * @param {MarkerPoints} linePoints
+ * @param {string} weight 
+ * @param {string} colour 
+ */
+const makePolyline = (linePoints, weight = 1, colour = '#ffffff') => ({
+	'type': 'polyline', 'points': linePoints,
+	'weight': weight, 'color': colour,
+})
+
+/**
  * @param {MarkersResponse} data - The markers response JSON data.
  * @param {Borders} borders - The borders JSON data.
  */

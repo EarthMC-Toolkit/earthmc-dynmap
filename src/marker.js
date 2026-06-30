@@ -192,3 +192,127 @@ function chunksToSquaremap(blocks) {
 
 	return out
 }
+
+const DEFAULT_BLUE = '#3fb4ff'
+const DEFAULT_GREEN = '#89c500'
+
+/** 
+ * Sets the colours of a marker with optional weight and returns it back.
+ * @param {Marker} marker
+ * @param {string} fill
+ * @param {string} outline
+ * @param {number} weight
+ */
+const colorMarker = (marker, fill, outline, weight = null) => {
+	marker.fillColor = fill
+	marker.color = outline
+	if (weight) marker.weight = weight
+}
+
+/**
+ * @param {Marker} marker
+ * @param {string} nationName
+ * @param {MapMode} mapMode - The currently selected map mode.
+ */
+function applyAllianceColours(marker, nationName, mapMode) {
+	const nationAlliances = getNationAlliances(nationName, mapMode)
+	if (nationAlliances.length === 0) return
+
+	const { colours } = nationAlliances[0]
+	const weight = nationAlliances.length > 1 ? 1.5 : 0.75
+	colorMarker(marker, colours.fill, colours.outline, weight)
+}
+
+/**
+ * @param {Marker} marker
+ * @param {ParsedMarker} parsed
+ */
+function colorMarkerAlliances(marker, parsed) {
+	colorMarker(marker, '#000000', '#000000', 1)
+	applyAllianceColours(marker, parsed.nationName, MapMode.ALLIANCES)
+}
+
+/**
+ * @param {Marker} marker
+ * @param {ParsedMarker} parsed
+ */
+function colorMarkerMeganations(marker, parsed) {
+	const isDefaultCol = marker.color == DEFAULT_BLUE && marker.fillColor == DEFAULT_BLUE
+	marker.color = isDefaultCol ? '#363636' : DEFAULT_GREEN
+	marker.fillColor = isDefaultCol ? hashCode(parsed.nationName) : marker.fillColor
+
+	applyAllianceColours(marker, parsed.nationName, MapMode.MEGANATIONS)
+}
+
+/**
+ * @param {Marker} marker
+ * @param {ParsedMarker} parsed
+ */
+function colorMarkerOverclaim(marker, parsed) {
+	const nation = parsed.nationName ? cachedApiNations.get(parsed.nationName.toLowerCase()) : null
+	const info = !nation
+		? checkOverclaimedNationless(parsed.area, parsed.residentNum)
+		: checkOverclaimed(parsed.area, parsed.residentNum, nation.stats.numResidents)
+
+	const colour = info.isOverclaimed ? '#ff0000' : '#00ff00'
+	colorMarker(marker, colour, colour, info.isOverclaimed ? 2 : 0.5)
+}
+
+/**
+ * @param {Marker} marker
+ * @param {string} nationName
+ * @param {Map<string|null, string|null>} claimsCustomizerInfo
+ * @param {boolean} useOpaque
+ * @param {boolean} showExcluded
+ */
+function colorMarkerNationClaims(marker, nationName, claimsCustomizerInfo, useOpaque, showExcluded) {
+	//const strippedName = nationName?.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase()
+	const nationColorInput = claimsCustomizerInfo.get(nationName?.toLowerCase())
+	if (!nationColorInput) {
+		if (useOpaque) marker.fillOpacity = marker.opacity = 0.5
+		if (!showExcluded) marker.fillOpacity = marker.opacity = 0 // Make town invisible if not part of a nation in claims customizer.
+
+		return colorMarker(marker, '#000000', '#000000', 1)
+	}
+
+	if (useOpaque) marker.fillOpacity = marker.opacity = 1 // 100% opacity similar to manual player drawn claim maps
+	return colorMarker(marker, nationColorInput, nationColorInput, 1.5)
+}
+
+/**
+ * @param {Marker} marker
+ * @param {ParsedMarker} parsedMarker
+ */
+function colorMarkerNewDay(marker, parsedMarker) {
+	const fallingTown = cachedFallingTowns.find(v => v.name.toLowerCase() == parsedMarker.townName.toLowerCase())
+	if (fallingTown) {
+		parsedMarker.isCapital = fallingTown.status.isCapital
+		parsedMarker.x = fallingTown.coordinates.spawn.x
+		parsedMarker.z = fallingTown.coordinates.spawn.z
+
+		marker.popup = buildFallingPopup(fallingTown)
+
+		return fallingTown.status.isOpen 
+			? colorMarker(marker, DEFAULT_GREEN, DEFAULT_GREEN, 2)
+			: colorMarker(marker, '#ffa200', '#ffa200', 2)
+	}
+
+	const ruinedTown = cachedRuinedTowns.find(v => v.name.toLowerCase() == parsedMarker.townName.toLowerCase())
+	if (!ruinedTown) {
+		marker.fillOpacity = 0.2
+		marker.opacity = 0.8
+		if (marker.type == 'icon') {
+			marker.opacity = marker.fillOpacity = 0
+		}
+
+		colorMarker(marker, '#000000', '#000000', 0.5)
+	} else {
+		parsedMarker.isCapital = ruinedTown.status.isCapital
+		parsedMarker.x = ruinedTown.coordinates.spawn.x
+		parsedMarker.z = ruinedTown.coordinates.spawn.z
+
+		marker.weight = 3 // make ruined town markers stand out
+	}
+	
+	return marker
+}
