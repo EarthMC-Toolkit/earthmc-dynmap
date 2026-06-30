@@ -94,41 +94,42 @@ async function modifyMarkers(data) {
 	for (const marker of data[0].markers) {
 		if (marker.type != 'polygon' && marker.type != 'icon') continue
 
-		// Set universal properties. These may be altered l8r depending on map mode.
-		marker.opacity = 1
-		marker.fillOpacity = 0.33
-		marker.weight = 1.5
+		// Set default transparency. May be altered l8r depending on map mode.
+		setMarkerTransparency(marker, 0.33, 1, 1.5)
 
-		const parsed = isSquaremap ? modifyDescription(marker, mapMode) : modifyDynmapDescription(marker, date)
+		const parsed = isSquaremap 
+			? modifySquaremapDescription(marker, mapMode)
+			: modifyDynmapDescription(marker, date)
+
 		switch (mapMode) {
 			case MapMode.DEFAULT: 
 			case MapMode.ARCHIVE: break
 			case MapMode.ALLIANCES:
-				colorMarkerAlliances(marker, parsed)
+				colourMarkerAlliances(marker, parsed)
 				break
 			case MapMode.MEGANATIONS:
-				colorMarkerMeganations(marker, parsed)
+				colourMarkerMeganations(marker, parsed)
 				break
 			case MapMode.OVERCLAIM:
-				colorMarkerOverclaim(marker, parsed)
+				colourMarkerOverclaim(marker, parsed)
 				break
 			case MapMode.NATIONCLAIMS: 
-				colorMarkerNationClaims(marker, parsed.nationName, claimsCustomizerInfo, useOpaque, showExcluded)
+				colourMarkerNationClaims(marker, parsed.nationName, claimsCustomizerInfo, useOpaque, showExcluded)
 				break
 			case MapMode.NEWDAY:
-				colorMarkerNewDay(marker, parsed)
+				colourMarkerNewDay(marker, parsed)
 				break
 			default: 
 				const mayor = marker.popup.match(/Mayor: <b>(.*)<\/b>/)?.[1]
 				const isRuin = !!mayor?.match(/NPC[0-1000]+/)
-				if (isRuin) colorMarker(marker, '#000000', '#000000')
+				if (isRuin) setMarkerColour(marker, '#000000', '#000000')
 		}
 
 		parsedMarkers.push(parsed) // needs to be at very end in case any map mode funcs modify parsed
 	}
 	
-	const elapsed = performance.now() - start
-	console.log(`emcdynmapplus: modified description and colour of all markers. took ${elapsed.toFixed(2)}ms`)
+	//const elapsed = performance.now() - start
+	//console.log(`emcdynmapplus: modified description and colour of all markers. took ${elapsed.toFixed(2)}ms`)
 
 	return data
 }
@@ -139,7 +140,7 @@ async function modifyMarkers(data) {
  * @param {MapMode} mapMode - The currently selected map mode.
  * @returns {ParsedMarker}
  */
-function modifyDescription(marker, mapMode) {
+function modifySquaremapDescription(marker, mapMode) {
 	if (mapMode == MapMode.NEWDAY && marker.tooltip.endsWith("(Ruined)")) {
 		const name = marker.tooltip.substring(marker.tooltip.indexOf(">") + 1, marker.tooltip.lastIndexOf("</"))	
 		return { townName: name }

@@ -10,14 +10,12 @@ function addRuinMarkers(data, ruined, colour) {
 			tooltip: `<b>${t.name}</b> (Ruined)`,
 			popup: buildRuinedPopup(t),
 			type: 'polygon',
-			weight: 1.5,
-			opacity: 1,
-			fillOpacity: 0.33,
 			color: colour,
 			fillColor: colour,
 			points: chunksToSquaremap(t.coordinates.townBlocks.map(([x, z]) => [x*16, z*16]))
 		}
 
+		setMarkerTransparency(marker, 0.33, 1, 1.5)
 		data[0].markers.push(marker)
 	})
 }
@@ -197,15 +195,29 @@ const DEFAULT_BLUE = '#3fb4ff'
 const DEFAULT_GREEN = '#89c500'
 
 /** 
- * Sets the colours of a marker with optional weight and returns it back.
+ * Sets the colour values of a marker with optional weight and returns it back.
  * @param {Marker} marker
- * @param {string} fill
- * @param {string} outline
- * @param {number} weight
+ * @param {string} fill - Usually HEX.
+ * @param {string} outline - Usually HEX.
+ * @param {number} weight - How "fat" or apparent the marker appears at different zoom levels
  */
-const colorMarker = (marker, fill, outline, weight = null) => {
+const setMarkerColour = (marker, fill, outline, weight = null) => {
 	marker.fillColor = fill
 	marker.color = outline
+	if (weight) marker.weight = weight
+	return marker
+}
+
+/** 
+ * Sets the opacity values of a marker with optional weight and returns it back.
+ * @param {Marker} marker
+ * @param {number} fillOpacity - The inner fill opacity 0-1.
+ * @param {number} outlineOpacity - The outline transparency 0-1. If null, uses fillOpacity
+ * @param {number} weight - How "fat" or apparent the marker appears at different zoom levels
+ */
+const setMarkerTransparency = (marker, fillOpacity, outlineOpacity = undefined, weight = null) => {
+	marker.fillOpacity = fillOpacity
+	if (outlineOpacity !== null) marker.opacity = outlineOpacity || fillOpacity
 	if (weight) marker.weight = weight
 	return marker
 }
@@ -222,7 +234,7 @@ function applyAllianceColours(marker, nationName, mapMode) {
 
 	const { colours } = nationAlliances[0]
 	const weight = nationAlliances.length > 1 ? 1.5 : 0.75
-	return colorMarker(marker, colours.fill, colours.outline, weight)
+	return setMarkerColour(marker, colours.fill, colours.outline, weight)
 }
 
 /**
@@ -230,8 +242,8 @@ function applyAllianceColours(marker, nationName, mapMode) {
  * @param {ParsedMarker} parsed
  * @returns {Marker}
  */
-function colorMarkerAlliances(marker, parsed) {
-	colorMarker(marker, '#000000', '#000000', 1)
+function colourMarkerAlliances(marker, parsed) {
+	setMarkerColour(marker, '#000000', '#000000', 1)
 	applyAllianceColours(marker, parsed.nationName, MapMode.ALLIANCES)
 	return marker
 }
@@ -239,13 +251,14 @@ function colorMarkerAlliances(marker, parsed) {
 /**
  * @param {Marker} marker
  * @param {ParsedMarker} parsed
+ * @returns {Marker}
  */
-function colorMarkerMeganations(marker, parsed) {
+function colourMarkerMeganations(marker, parsed) {
 	const isDefaultCol = marker.color == DEFAULT_BLUE && marker.fillColor == DEFAULT_BLUE
 	marker.color = isDefaultCol ? '#363636' : DEFAULT_GREEN
 	marker.fillColor = isDefaultCol ? hashCode(parsed.nationName) : marker.fillColor
 
-	applyAllianceColours(marker, parsed.nationName, MapMode.MEGANATIONS)
+	return applyAllianceColours(marker, parsed.nationName, MapMode.MEGANATIONS)
 }
 
 /**
@@ -253,14 +266,14 @@ function colorMarkerMeganations(marker, parsed) {
  * @param {ParsedMarker} parsed
  * @returns {Marker}
  */
-function colorMarkerOverclaim(marker, parsed) {
+function colourMarkerOverclaim(marker, parsed) {
 	const nation = parsed.nationName ? cachedApiNations.get(parsed.nationName.toLowerCase()) : null
 	const info = !nation
 		? checkOverclaimedNationless(parsed.area, parsed.residentNum)
 		: checkOverclaimed(parsed.area, parsed.residentNum, nation.stats.numResidents)
 
 	const colour = info.isOverclaimed ? '#ff0000' : '#00ff00'
-	return colorMarker(marker, colour, colour, info.isOverclaimed ? 2 : 0.5)
+	return setMarkerColour(marker, colour, colour, info.isOverclaimed ? 2 : 0.5)
 }
 
 /**
@@ -271,18 +284,18 @@ function colorMarkerOverclaim(marker, parsed) {
  * @param {boolean} showExcluded
  * @returns {Marker}
  */
-function colorMarkerNationClaims(marker, nationName, claimsCustomizerInfo, useOpaque, showExcluded) {
+function colourMarkerNationClaims(marker, nationName, claimsCustomizerInfo, useOpaque, showExcluded) {
 	//const strippedName = nationName?.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase()
 	const nationColorInput = claimsCustomizerInfo.get(nationName?.toLowerCase())
 	if (!nationColorInput) {
-		if (useOpaque) marker.fillOpacity = marker.opacity = 0.5
-		if (!showExcluded) marker.fillOpacity = marker.opacity = 0 // Make town invisible if not part of a nation in claims customizer.
+		if (useOpaque) setMarkerTransparency(marker, 0.5)
+		if (!showExcluded) setMarkerTransparency(marker, 0) // Make town invisible if not part of a nation in claims customizer.
 
-		return colorMarker(marker, '#000000', '#000000', 1)
+		return setMarkerColour(marker, '#000000', '#000000', 1)
 	}
 
-	if (useOpaque) marker.fillOpacity = marker.opacity = 1 // 100% opacity similar to manual player drawn claim maps
-	return colorMarker(marker, nationColorInput, nationColorInput, 1.5)
+	if (useOpaque) setMarkerTransparency(marker, 1) // 100% opacity similar to manual player drawn claim maps
+	return setMarkerColour(marker, nationColorInput, nationColorInput, 1.5)
 }
 
 /**
@@ -290,7 +303,9 @@ function colorMarkerNationClaims(marker, nationName, claimsCustomizerInfo, useOp
  * @param {ParsedMarker} parsedMarker
  * @returns {Marker}
  */
-function colorMarkerNewDay(marker, parsedMarker) {
+function colourMarkerNewDay(marker, parsedMarker) {
+	marker.weight = 3.5 // all new day markers should stand out
+	
 	const fallingTown = cachedFallingTowns.find(v => v.name.toLowerCase() == parsedMarker.townName.toLowerCase())
 	if (fallingTown) {
 		parsedMarker.isCapital = fallingTown.status.isCapital
@@ -300,26 +315,23 @@ function colorMarkerNewDay(marker, parsedMarker) {
 		marker.popup = buildFallingPopup(fallingTown)
 
 		return fallingTown.status.isOpen 
-			? colorMarker(marker, DEFAULT_GREEN, DEFAULT_GREEN, 2)
-			: colorMarker(marker, '#ffa200', '#ffa200', 2)
+			? setMarkerColour(marker, DEFAULT_GREEN, DEFAULT_GREEN)
+			: setMarkerColour(marker, '#ffa200', '#ffa200')
 	}
 
 	const ruinedTown = cachedRuinedTowns.find(v => v.name.toLowerCase() == parsedMarker.townName.toLowerCase())
-	if (!ruinedTown) {
-		if (marker.type == 'icon') {
-			marker.opacity = marker.fillOpacity = 0
-			return marker // don't show icons like capital stars
-		}
-
-		marker.fillOpacity = 0.35
-		marker.opacity = 0.8
-		return colorMarker(marker, '#151515', '#151515', 0.85)
+	if (ruinedTown) {
+		parsedMarker.isCapital = ruinedTown.status.isCapital
+		parsedMarker.x = ruinedTown.coordinates.spawn.x
+		parsedMarker.z = ruinedTown.coordinates.spawn.z
+		return marker // we already set the marker colour in addRuinMarkers()
 	}
 
-	marker.weight = 3 // make ruined town markers stand out
-	parsedMarker.isCapital = ruinedTown.status.isCapital
-	parsedMarker.x = ruinedTown.coordinates.spawn.x
-	parsedMarker.z = ruinedTown.coordinates.spawn.z
+	if (marker.type == 'icon') {
+		setMarkerTransparency(marker, 0)
+		return marker // don't show icons like capital stars
+	}
 
-	return marker
+	setMarkerTransparency(marker, 0.33, 0.8, 0.85)
+	return setMarkerColour(marker, '#151515', '#151515')
 }
