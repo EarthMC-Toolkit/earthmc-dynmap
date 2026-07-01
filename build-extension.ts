@@ -4,7 +4,7 @@ import { statSync, readdirSync, createWriteStream } from 'fs'
 import { ZipArchive, type Archiver } from 'archiver'
 
 /**
- * Adds a directory to the archive, recursively, skipping ignored files.
+ * Adds a directory to the archive recursively, skipping files specified by `ignore`.
  * @param archive Archiver instance
  * @param srcDir Source directory
  * @param destDir Destination path in the zip
@@ -13,15 +13,12 @@ import { ZipArchive, type Archiver } from 'archiver'
 function addDirIgnore(archive: Archiver, srcDir: string, destDir: string, ignore: string[] = []) {
 	const dirContents = readdirSync(srcDir)
     for (const file of dirContents) {
-		const fullPath = path.join(srcDir, file)
-		const destPath = path.join(destDir, file)
+		const src = path.join(srcDir, file)
+		const dst = path.join(destDir, file)
 		
-        const stat = statSync(fullPath)
-		if (stat.isDirectory()) {
-			addDirIgnore(archive, fullPath, destPath, ignore)
-		} else if (!ignore.includes(file)) {
-			archive.file(fullPath, { name: destPath })
-		}
+		statSync(src).isDirectory()
+			? addDirIgnore(archive, src, dst, ignore)
+			: !ignore.includes(file) && archive.file(src, { name: dst })
 	}
 }
 
