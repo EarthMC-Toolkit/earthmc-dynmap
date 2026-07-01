@@ -1,10 +1,14 @@
 /// <reference types="node" />
-import { readFileSync, writeFileSync } from 'fs'
+import { readdirSync, readFileSync, writeFileSync } from 'fs'
 import { build, type BuildOptions } from 'esbuild'
 import * as path from 'path'
 import './src/types.d.ts' // they are global anyway but vscode shits itself sometimes
 
-const STYLE_CSS = readFileSync('resources/style.css', 'utf8')
+const STYLE_CSS = readdirSync('resources/css')
+  .filter(f => f.endsWith('.css'))
+  .map(f => readFileSync(path.join('resources/css', f), 'utf8'))
+  .join('\n')
+
 const BORDERS: Borders = JSON.parse(readFileSync('resources/borders.json', 'utf8'))
 const MANIFEST: Manifest = JSON.parse(readFileSync('manifest.json', 'utf8'))
 

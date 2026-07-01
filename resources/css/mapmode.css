@@ -1,0 +1,192 @@
+/* #region Map mode selector */
+#map-mode-selector {
+	display: flex;
+	position: fixed;
+    align-items: center;
+    flex-direction: column;
+	margin: 0px;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+	min-width: var(--max-menu-width);
+    padding: 10px 14px 15px 14px;
+	gap: 9px;
+}
+
+#current-map-mode-label {
+    font-family: 'Inter';
+    font-size: 16.5px;
+    font-weight: 550;
+	line-height: normal;
+	text-align: center;
+	white-space: nowrap;
+	user-select: none;
+	pointer-events: none;
+}
+
+#map-mode-option-container {
+    display: flex;
+    gap: 10px;
+    flex-direction: row;
+}
+
+.map-mode-btn-option {
+	padding: 0;
+	background: white;
+	border: 2px dashed black;
+	box-sizing: border-box;
+	width: 33px;
+	height: 33px;
+	overflow: visible;
+	transition: transform 0.1s ease, background 0.1s ease;
+	transform-origin: center;
+	position: relative;
+	z-index: 1;
+}
+
+.map-mode-btn-option:hover {
+	transform: scale(1.3);
+	background: var(--yellow-colour);
+	border: 3px dashed black;
+	cursor: pointer;
+	z-index: 10;
+}
+
+.map-mode-btn-option > img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	image-rendering: auto !important;
+}
+/* #endregion */
+
+/* #region Nation claims panel */
+#nation-claims {
+	min-width: min-content;
+    width: 45vw;
+	max-width: max-content;
+	padding: 10px 20px 10px 20px;
+	/* Position in the center of the screen, 10px from the top */
+    position: fixed;
+	text-align: center;
+    top: 130px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+#nation-claims.no-selector {
+	top: 10px;
+}
+
+#nation-claims.no-selector * #nation-claims-entry-container {
+	max-height: calc(100vh - 200px);
+}
+
+#nation-claims-titlebar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+	justify-content: center;
+	gap: 10px;
+	line-height: 5px;
+	font-family: "Inter", 'Open Sans', sans-serif;
+	font-size: large;
+    font-weight: 700;
+}
+
+/* Button to show/hide the nation claims panel */
+#nation-claims-titlebar > a {
+	font-size: small;
+    /* background: rgb(174, 14, 14); */
+	padding: 4px 8px 4px 8px;
+	border-radius: 3px;
+}
+
+#nation-claims-titlebar img {
+	width: 30px;
+	background-image: var(--show-icon);
+	background-repeat: no-repeat;
+    background-position: 50% 50%;
+	background-color: transparent;
+}
+
+#nation-claims-titlebar img.active {
+    background-image: var(--hide-icon);
+}
+
+/* Container that holds the input/colour entries */
+#nation-claims-entry-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+	min-height: 40vh;
+    max-height: calc(100vh - 320px);
+    overflow-y: auto;
+	margin-bottom: 5px;
+	margin-top: 10px;
+	row-gap: 10px;
+	column-gap: 20px;
+}
+
+/* Container of the buttons at the bottom of the nation claims panel */
+#nation-claims-btn-container {
+	display: flex;
+    justify-content: center;
+	margin-top: 5px;
+}
+
+/* Buttons at the bottom of the nation claims panel */
+#nation-claims-apply, #nation-claims-reset-all {
+	height: 30px;
+	max-width: 200px;
+	margin: 5px;
+}
+
+#nation-claims-apply {
+	background-color: rgb(31, 137, 52) !important;
+	flex-grow: 1;
+}
+
+#nation-claims-reset-all {
+	background-color: rgb(218, 69, 69) !important;
+	flex-grow: 1;
+}
+
+.nation-claims-entry {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    width: 100%; /* ensure it doesn’t overflow horizontally */
+}
+
+.nation-claims-checkbox-option {
+	display: inline-block;
+	align-items: center;
+	margin: 5px;
+	font-family: "Inter", 'Open Sans', sans-serif;
+	font-size: 12.5px;
+}
+
+.nation-claims-checkbox-option > input[type="checkbox"] {
+	min-height: 15px;
+}
+
+input[type="color"] {
+	position: relative;
+    padding: 0;
+	/* Make a pill shape */
+	height: 19px;
+    width: 34px;
+	border: 2px solid white;
+	border-radius: 8px;
+}
+input[type="color"]::-moz-color-swatch {
+  	border: none;
+}
+input[type="color"]::-webkit-color-swatch-wrapper {
+	padding: 0;
+	border-radius: 0;
+}
+input[type="color"]::-webkit-color-swatch {
+  	border: none;
+}
+/* #endregion */

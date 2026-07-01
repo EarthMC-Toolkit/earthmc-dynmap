@@ -1227,12 +1227,12 @@ var GITHUB_REPO = "https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dyn
 var MAP_MODES = (
   /** @type {const} */
   {
-    DEFAULT: { name: "default", img: "resources/gui/map-mode-default.png", order: 0 },
-    MEGANATIONS: { name: "meganations", img: "resources/gui/map-mode-meganations.png", order: 1 },
-    ALLIANCES: { name: "alliances", img: "resources/gui/map-mode-alliances.png", order: 2 },
-    NATIONCLAIMS: { name: "nationclaims", img: "resources/gui/map-mode-nationclaims.png", order: 3 },
-    OVERCLAIM: { name: "overclaim", img: "resources/gui/map-mode-overclaim.png", order: 4, skipIf: () => isAurora },
-    NEWDAY: { name: "newday", img: "resources/gui/map-mode-newday.png", order: 5, skipIf: () => isAurora },
+    DEFAULT: { name: "default", img: "resources/img/map-mode-default.png", order: 0 },
+    MEGANATIONS: { name: "meganations", img: "resources/img/map-mode-meganations.png", order: 1 },
+    ALLIANCES: { name: "alliances", img: "resources/img/map-mode-alliances.png", order: 2 },
+    NATIONCLAIMS: { name: "nationclaims", img: "resources/img/map-mode-nationclaims.png", order: 3 },
+    OVERCLAIM: { name: "overclaim", img: "resources/img/map-mode-overclaim.png", order: 4, skipIf: () => isAurora },
+    NEWDAY: { name: "newday", img: "resources/img/map-mode-newday.png", order: 5, skipIf: () => isAurora },
     ARCHIVE: { name: "archive", img: null, order: 6 }
     // null img to avoid showing up in the selector
   }
@@ -1393,8 +1393,7 @@ function toggleDarkened(boxTicked) {
 function toggleServerInfo(boxTicked) {
   localStorage["emcdynmapplus-serverinfo"] = boxTicked;
   const serverInfoPanel = document.querySelector("#server-info");
-  serverInfoPanel.style.visibility = boxTicked ? "visible" : "hidden";
-  serverInfoPanel.style.float = boxTicked ? "none !important" : "right !important";
+  serverInfoPanel.style.display = boxTicked ? "block" : "none";
   if (!boxTicked) {
     if (serverInfoScheduler != null) clearTimeout(serverInfoScheduler);
     serverInfoScheduler = null;
@@ -1772,7 +1771,7 @@ function checkOverclaimed(claimedChunks, numResidents, numNationResidents) {
 var auroraNationBonus = (numNationResidents) => numNationResidents >= 200 ? 100 : numNationResidents >= 120 ? 80 : numNationResidents >= 80 ? 60 : numNationResidents >= 60 ? 50 : numNationResidents >= 40 ? 30 : numNationResidents >= 20 ? 10 : 0;
 
 // <define:MANIFEST>
-var define_MANIFEST_default = { manifest_version: 3, name: "EarthMC Dynmap+ (Owen3H Fork)", version: "2.3.2", author: "3meraldK", description: "Extension to enrich the EarthMC map experience", icons: { "48": "resources/icon48.png", "128": "resources/icon128.png" }, background: { service_worker: "worker.js" }, permissions: ["scripting", "storage"], host_permissions: ["https://*.earthmc.net/*", "https://web.archive.org/web/*", "https://raw.githubusercontent.com/EarthMC-Toolkit/*"], web_accessible_resources: [{ run_at: "document_idle", matches: ["https://map.earthmc.net/*", "https://aurora.earthmc.net/*"], resources: ["resources/gui/map-mode-default.png", "resources/gui/map-mode-alliances.png", "resources/gui/map-mode-meganations.png", "resources/gui/map-mode-overclaim.png", "resources/gui/map-mode-nationclaims.png", "resources/gui/map-mode-newday.png", "resources/interceptor.js", "resources/borders.json"] }], content_scripts: [{ matches: ["https://map.earthmc.net/*", "https://aurora.earthmc.net/*"], css: ["resources/style.css"], js: ["src/util.js", "src/httputil.js", "src/dom.js", "src/layer.js", "src/marker.js", "src/locator.js", "src/screenshot.js", "src/modeselector.js", "src/gui.js", "src/main.js", "src/entrypoint.js"] }] };
+var define_MANIFEST_default = { manifest_version: 3, name: "EarthMC Dynmap+ (Owen3H Fork)", version: "2.3.2", author: "3meraldK", description: "Extension to enrich the EarthMC map experience", icons: { "48": "resources/icon48.png", "128": "resources/icon128.png" }, background: { service_worker: "worker.js" }, permissions: ["scripting", "storage"], host_permissions: ["https://*.earthmc.net/*", "https://web.archive.org/web/*", "https://raw.githubusercontent.com/EarthMC-Toolkit/*"], web_accessible_resources: [{ run_at: "document_idle", matches: ["https://map.earthmc.net/*", "https://aurora.earthmc.net/*"], resources: ["resources/interceptor.js", "resources/borders.json", "resources/img/map-mode-default.png", "resources/img/map-mode-alliances.png", "resources/img/map-mode-meganations.png", "resources/img/map-mode-overclaim.png", "resources/img/map-mode-nationclaims.png", "resources/img/map-mode-newday.png"] }], content_scripts: [{ matches: ["https://map.earthmc.net/*", "https://aurora.earthmc.net/*"], css: ["resources/css/global.css", "resources/css/leaflet.css", "resources/css/layout.css", "resources/css/mapmode.css", "resources/css/menu.css", "resources/css/popup.css"], js: ["src/util.js", "src/httputil.js", "src/dom.js", "src/layer.js", "src/marker.js", "src/locator.js", "src/screenshot.js", "src/modeselector.js", "src/gui.js", "src/main.js", "src/entrypoint.js"] }] };
 
 // src/entrypoint.js
 function isUserscript() {
@@ -1823,130 +1822,148 @@ async function init(manifest) {
 	--player-lookup-width: 190px;\r
 	--yellow-colour: #b58a3f;\r
 	/** TODO: Make these more robust. Probably not my best idea */\r
-	--screenshot-bg-image: url("https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/refs/heads/main/resources/gui/icon-screenshot.png");\r
-	--show-icon: url("https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/refs/heads/main/resources/gui/icon-show.png");\r
-	--hide-icon: url("https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/refs/heads/main/resources/gui/icon-hide.png");\r
+	--screenshot-bg-image: url("https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/refs/heads/main/resources/img/icon-screenshot.png");\r
+	--show-icon: url("https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/refs/heads/main/resources/img/icon-show.png");\r
+	--hide-icon: url("https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/refs/heads/main/resources/img/icon-hide.png");\r
 }\r
 \r
-/* Onscreen extension menu */\r
-#menu {\r
-	width: auto;\r
-	max-width: var(--max-menu-width);\r
-    min-height: 32px;\r
-	max-height: max-content;\r
-	padding: 3px;\r
-	float: left !important;\r
+.crisp-edges {\r
+	image-rendering: optimizeQuality;           /* Legal fallback	*/\r
+	image-rendering: -moz-crisp-edges;          /* Firefox        	*/\r
+	image-rendering: -o-crisp-edges;            /* Opera			*/\r
+	image-rendering: -webkit-optimize-contrast; /* Chrome + Safari	*/\r
+	image-rendering: optimize-contrast;         /* CSS3 Proposed	*/\r
+	image-rendering: crisp-edges;               /* CSS4 Proposed  	*/\r
+}
+/* Server info */\r
+#server-info {\r
+	width: var(--max-server-info-width);\r
+	padding: 10px;\r
+	text-align: right;\r
+	font-family: "Inter", 'Open Sans', sans-serif;\r
 }\r
 \r
-/* collapsible part */\r
-#menu-body {\r
-	overflow: hidden;\r
-	max-height: 1000px;\r
-	opacity: 1;\r
-	transition: max-height 0.25s ease, opacity 0.2s ease;\r
+#server-info-title {\r
+	font-weight: 700;\r
+	font-size: large;\r
+	text-align: center;\r
 }\r
 \r
-#menu-body.collapsed {\r
-	max-height: 0;\r
-	opacity: 0;\r
+/* A single div with a var like Online Players: 98 */\r
+.server-info-entry {\r
+	font-weight: 400;\r
+	font-size: medium;\r
+	text-align: center;\r
 }\r
 \r
-/* header always visible */\r
-.menu-header {\r
-	display: flex;\r
-	justify-content: space-between;\r
+/* Player list */\r
+fieldset#players {\r
+	display: none;\r
+	z-index: 500;\r
+	height: stretch;\r
+	max-height: calc(100vh - 300px);\r
+    overflow-y: scroll;\r
+	min-width: var(--max-server-info-width);\r
+	margin: 10px;\r
+	background-color: rgba(0, 0, 0, .5);\r
+	backdrop-filter: blur(3px) opacity(0.7);\r
+	scrollbar-width: thin;\r
+	scrollbar-color: #aaa rgba(0, 0, 0, 0.1);\r
+}\r
+\r
+fieldset#players > legend {\r
+	color: white;\r
+	font-weight: bold;\r
+	font-size: 23px;\r
+	font-family: "Inter", 'Open Sans', sans-serif;\r
+	text-shadow: rgba(0, 0, 0, 1) -2px -2px 10px;\r
+}\r
+\r
+fieldset#players > a {\r
+	color: white;\r
+	display: inline-flex;\r
 	align-items: center;\r
-	padding: 5px;\r
-	font-family: "Inter", 'Open Sans', sans-serif;\r
-	font-size: 14px;\r
-	font-weight: 600;\r
+	padding-top: 5px;\r
+	gap: 5px;\r
+}\r
+\r
+fieldset#players > a:hover {\r
+	background-color: rgba(127, 127, 125, 0.5);\r
 	cursor: pointer;\r
-	user-select: none;\r
-	border-bottom: 1px solid rgba(255, 255, 255, 0.15);\r
-	background: none;\r
 }\r
 \r
-.menu-header:hover {\r
-	background: rgba(255, 255, 255, 0.05);\r
-}\r
-\r
-#menu-arrow {\r
-	transition: transform 0.12s ease;\r
-}\r
-\r
-/* Existing styles */\r
-.option {\r
+#coords-container {\r
 	display: flex;\r
-	justify-content: space-between;\r
-	padding-top: 2px;\r
-	padding-left: 5px;\r
-	padding-right: 5px;\r
-	font-size: 10.5px;\r
+	flex-direction: row;\r
+	align-self: end;\r
+}
+/* Clickable nameplates */\r
+.leaflet-tooltip {\r
+	pointer-events: unset !important;\r
 }\r
 \r
-.menu-option {\r
-	width: inherit;\r
-	height: fit-content;\r
+.leaflet-tooltip:hover {\r
+	background-color: rgba(127, 127, 127, 0.5);\r
+	cursor: pointer;\r
+}\r
+\r
+.leaflet-control {\r
+	float: inline-end !important; /* menu and player lookup are float: left !important */\r
+	clear: none !important;\r
+	backdrop-filter: blur(5px);\r
+}\r
+\r
+.leaflet-control-layers {\r
+	border: none !important;\r
+	border-radius: 3px !important;\r
+	background: #ffffffa6 !important; /* INSERTABLE_HTML.darkMode will override this if enabled */\r
+}\r
+\r
+/* Reduces the size of the layer selector icon and associated image */ \r
+.leaflet-control-layers-toggle {\r
+	height: 38px !important;\r
+    width: 38px !important;\r
+	background-size: 22px 22px !important;\r
+}\r
+\r
+.leaflet-bottom.leaflet-left {\r
 	display: flex;\r
-	align-items: stretch;\r
+	flex-direction: row;\r
 }\r
 \r
-.menu-input-option {\r
-	width: 100%;\r
-	border: 1px solid rgba(255, 255, 255, 0.5) !important;\r
-	border-radius: 0px 2px 2px 0px;\r
+.leaflet-top.leaflet-right {\r
+    display: flex;\r
+    flex-direction: column;\r
+	align-items: end;\r
 }\r
 \r
-.menu-button-option {\r
-	width: 100%;\r
-	height: 30px;\r
-	font-kerning: none;\r
-	font-weight: 500;\r
-	font-size: 12px;\r
+.leaflet-popup {\r
+	backdrop-filter: blur(2px);\r
+}\r
+\r
+/* Make coords easier to read and nicer to look at */\r
+.leaflet-control-layers.coordinates {\r
 	font-family: "Inter", 'Open Sans', sans-serif;\r
-	border: 2px dashed var(--yellow-colour);\r
-	border-radius: 2px;\r
-	padding: 3px;\r
+	font-weight: 500 !important;\r
 }\r
 \r
-#locate-menu {\r
-	display: grid;\r
-	margin-bottom: 10px;\r
+.leaflet-control-zoom {\r
+	border: none !important;\r
 }\r
 \r
-#locate-select {\r
-	text-align: center;\r
-	height: 30px;\r
-	font-kerning: none;\r
-	font-weight: 500;\r
-	font-size: 12px;\r
-	font-family: "Inter", 'Open Sans', sans-serif;\r
-	border-radius: 0px 0px 0px 2px;\r
+/* Fix blurry link icon */\r
+div.leaflet-control-layers.link img {\r
+	width: 35px !important;\r
+	height: 35px !important;\r
+	background-size: 23px, 22.5px !important;\r
 }\r
 \r
-#archive-menu {\r
-	display: grid;\r
-	margin-bottom: 10px;\r
-}\r
-\r
-#archive-button {\r
-	flex-grow: 1;\r
-}\r
-\r
-#archive-input {\r
-	width: auto;\r
-	height: 25px;\r
-	text-align: center;\r
-}\r
-\r
-#options-menu {\r
-	font-family: "Inter", 'Open Sans', sans-serif;\r
-	width: inherit;\r
-	margin-top: 5px;\r
-	gap: 1px;\r
-}\r
-\r
-/* Map mode selector */\r
+div.leaflet-control-layers.screenshot img {\r
+	width: 35px !important;\r
+	height: 35px !important;\r
+	background-image: var(--screenshot-bg-image) !important;\r
+}
+/* #region Map mode selector */\r
 #map-mode-selector {\r
 	display: flex;\r
 	position: fixed;\r
@@ -2006,117 +2023,9 @@ async function init(manifest) {
 	height: 100%;\r
 	image-rendering: auto !important;\r
 }\r
+/* #endregion */\r
 \r
-/* Server info */\r
-#server-info {\r
-	width: var(--max-server-info-width);\r
-	padding: 10px;\r
-	text-align: right;\r
-	font-family: "Inter", 'Open Sans', sans-serif;\r
-}\r
-\r
-#server-info-title {\r
-	font-weight: 700;\r
-	font-size: large;\r
-	text-align: center;\r
-}\r
-\r
-/* A single div with a var like Online Players: 98 */\r
-.server-info-entry {\r
-	font-weight: 400;\r
-	font-size: medium;\r
-	text-align: center;\r
-}\r
-\r
-/* Player popup */\r
-#player-lookup-loading {\r
-	width: auto;\r
-	font-size: larger;\r
-	font-weight: 500;\r
-	font-family: "Inter", 'Open Sans', sans-serif;\r
-	padding: 5px;\r
-	/* ensure it stays on the left below the menu */\r
-	display: block !important;\r
-	float: left !important;\r
-	clear: both !important;\r
-}\r
-\r
-#player-lookup {\r
-	box-sizing: unset;\r
-	width: var(--player-lookup-width);\r
-	max-width: var(--player-lookup-width);\r
-	padding: 10px;\r
-	font-size: larger;\r
-	font-family: "Inter", 'Open Sans', sans-serif;\r
-	/* ensure it stays on the left below the menu */\r
-	clear: both !important;\r
-	display: block !important;\r
-	float: left !important;\r
-}\r
-\r
-#player-lookup > .close-container {\r
-	position: relative;\r
-	cursor: pointer;\r
-	font-size: medium;\r
-	bottom: 9px;\r
-	left: calc(var(--player-lookup-width) - 19px);\r
-	padding-top: 1.5px;\r
-	padding-bottom: 2px;\r
-	padding-left: 9px;\r
-	padding-right: 8px;\r
-	background: rgb(174, 14, 14);\r
-	border: white 1px solid;\r
-	border-radius: 0px 3px 0px 0px;\r
-}\r
-\r
-#player-lookup > .close-container:hover {\r
-	background-color: rgba(127, 127, 125, 0.5);\r
-}\r
-\r
-#player-lookup-online {\r
-	position: absolute;\r
-	top: 5px;\r
-	left: 5px;\r
-}\r
-\r
-#player-lookup-avatar {\r
-	display: block;\r
-	width: 36px;\r
-	box-shadow: 0 0 10px 1px #131313;\r
-	margin: auto auto 0.5em auto; /** make bottom margin match the divider below */\r
-}\r
-\r
-#player-lookup-name {\r
-	font-size: 18px;\r
-}\r
-\r
-/* Town popup */\r
-\r
-#scrollable-list {\r
-	overflow: auto;\r
-	max-height: 200px;\r
-}\r
-\r
-#clamped-board {\r
-	max-width: 400px;\r
-	text-overflow: ellipsis;\r
-	overflow: hidden;\r
-	display: inline-block;\r
-}\r
-\r
-.resident-list {\r
-	white-space: pre-wrap;\r
-}\r
-\r
-#part-of-label {\r
-	font-size: 85%;\r
-}\r
-\r
-.resident-clickable:hover {\r
-	background-color: rgba(127, 127, 125, 0.5);\r
-	cursor: pointer;\r
-}\r
-\r
+/* #region Nation claims panel */\r
 #nation-claims {\r
 	min-width: min-content;\r
     width: 45vw;\r
@@ -2245,62 +2154,216 @@ input[type="color"]::-webkit-color-swatch-wrapper {\r
 input[type="color"]::-webkit-color-swatch {\r
   	border: none;\r
 }\r
-\r
-/* Player list */\r
-fieldset#players {\r
-	position: fixed;\r
-	display: none;\r
-	z-index: 500;\r
-	overflow-y: scroll;\r
-	height: stretch;\r
-	min-width: var(--max-server-info-width);\r
-	margin: 10px 0 10px 0;\r
-	right: 10px;\r
-	background-color: rgba(0, 0, 0, .5);\r
-	backdrop-filter: blur(3px) opacity(0.7);\r
-	scrollbar-width: thin;\r
-	scrollbar-color: #aaa rgba(0, 0, 0, 0.1);\r
+/* #endregion */
+/* #region Onscreen extension menu */\r
+#menu {\r
+	width: auto;\r
+	max-width: var(--max-menu-width);\r
+    min-height: 32px;\r
+	max-height: max-content;\r
+	padding: 3px;\r
+	float: left !important;\r
 }\r
 \r
-fieldset#players > legend {\r
-	color: white;\r
-	font-weight: bold;\r
-	font-size: 23px;\r
-	font-family: "Inter", 'Open Sans', sans-serif;\r
-	text-shadow: rgba(0, 0, 0, 1) -2px -2px 10px;\r
+/* collapsible part */\r
+#menu-body {\r
+	overflow: hidden;\r
+	max-height: 1000px;\r
+	opacity: 1;\r
+	transition: max-height 0.25s ease, opacity 0.2s ease;\r
 }\r
 \r
-fieldset#players > a {\r
-	color: white;\r
-	display: inline-flex;\r
+#menu-body.collapsed {\r
+	max-height: 0;\r
+	opacity: 0;\r
+}\r
+\r
+/* header always visible */\r
+.menu-header {\r
+	display: flex;\r
+	justify-content: space-between;\r
 	align-items: center;\r
-	padding-top: 5px;\r
-	gap: 5px;\r
+	padding: 5px;\r
+	font-family: "Inter", 'Open Sans', sans-serif;\r
+	font-size: 14px;\r
+	font-weight: 600;\r
+	cursor: pointer;\r
+	user-select: none;\r
+	border-bottom: 1px solid rgba(255, 255, 255, 0.15);\r
+	background: none;\r
 }\r
 \r
-fieldset#players > a:hover {\r
+.menu-header:hover {\r
+	background: rgba(255, 255, 255, 0.05);\r
+}\r
+\r
+#menu-arrow {\r
+	transition: transform 0.12s ease;\r
+}\r
+\r
+/* Existing styles */\r
+.option {\r
+	display: flex;\r
+	justify-content: space-between;\r
+	padding-top: 2px;\r
+	padding-left: 5px;\r
+	padding-right: 5px;\r
+	font-size: 10.5px;\r
+}\r
+\r
+.menu-option {\r
+	width: inherit;\r
+	height: fit-content;\r
+	display: flex;\r
+	align-items: stretch;\r
+}\r
+\r
+.menu-input-option {\r
+	width: 100%;\r
+	border: 1px solid rgba(255, 255, 255, 0.5) !important;\r
+	border-radius: 0px 2px 2px 0px;\r
+}\r
+\r
+.menu-button-option {\r
+	width: 100%;\r
+	height: 30px;\r
+	font-kerning: none;\r
+	font-weight: 500;\r
+	font-size: 12px;\r
+	font-family: "Inter", 'Open Sans', sans-serif;\r
+	border: 2px dashed var(--yellow-colour);\r
+	border-radius: 2px;\r
+	padding: 3px;\r
+}\r
+\r
+#locate-menu {\r
+	display: grid;\r
+	margin-bottom: 10px;\r
+}\r
+\r
+#locate-select {\r
+	text-align: center;\r
+	height: 30px;\r
+	font-kerning: none;\r
+	font-weight: 500;\r
+	font-size: 12px;\r
+	font-family: "Inter", 'Open Sans', sans-serif;\r
+	border-radius: 0px 0px 0px 2px;\r
+}\r
+\r
+#archive-menu {\r
+	display: grid;\r
+	margin-bottom: 10px;\r
+}\r
+\r
+#archive-button {\r
+	flex-grow: 1;\r
+}\r
+\r
+#archive-input {\r
+	width: auto;\r
+	height: 25px;\r
+	text-align: center;\r
+}\r
+\r
+#options-menu {\r
+	font-family: "Inter", 'Open Sans', sans-serif;\r
+	width: inherit;\r
+	margin-top: 5px;\r
+	gap: 1px;\r
+}\r
+/* #endregion */
+/* #region Player popup */\r
+#player-lookup-loading {\r
+	width: auto;\r
+	font-size: larger;\r
+	font-weight: 500;\r
+	font-family: "Inter", 'Open Sans', sans-serif;\r
+	padding: 5px;\r
+	/* ensure it stays on the left below the menu */\r
+	display: block !important;\r
+	float: left !important;\r
+	clear: both !important;\r
+}\r
+\r
+#player-lookup {\r
+	box-sizing: unset;\r
+	width: var(--player-lookup-width);\r
+	max-width: var(--player-lookup-width);\r
+	padding: 10px;\r
+	font-size: larger;\r
+	font-family: "Inter", 'Open Sans', sans-serif;\r
+	/* ensure it stays on the left below the menu */\r
+	clear: both !important;\r
+	display: block !important;\r
+	float: left !important;\r
+}\r
+\r
+#player-lookup > .close-container {\r
+	position: relative;\r
+	cursor: pointer;\r
+	font-size: medium;\r
+	bottom: 9px;\r
+	left: calc(var(--player-lookup-width) - 19px);\r
+	padding-top: 1.5px;\r
+	padding-bottom: 2px;\r
+	padding-left: 9px;\r
+	padding-right: 8px;\r
+	background: rgb(174, 14, 14);\r
+	border: white 1px solid;\r
+	border-radius: 0px 3px 0px 0px;\r
+}\r
+\r
+#player-lookup > .close-container:hover {\r
+	background-color: rgba(127, 127, 125, 0.5);\r
+}\r
+\r
+#player-lookup-online {\r
+	position: absolute;\r
+	top: 5px;\r
+	left: 5px;\r
+}\r
+\r
+#player-lookup-avatar {\r
+	display: block;\r
+	width: 36px;\r
+	box-shadow: 0 0 10px 1px #131313;\r
+	margin: auto auto 0.5em auto; /** make bottom margin match the divider below */\r
+}\r
+\r
+#player-lookup-name {\r
+	font-size: 18px;\r
+}\r
+/* #endregion */\r
+\r
+/* #region Town popup */\r
+#scrollable-list {\r
+	overflow: auto;\r
+	max-height: 200px;\r
+}\r
+\r
+#clamped-board {\r
+	max-width: 400px;\r
+	text-overflow: ellipsis;\r
+	overflow: hidden;\r
+	display: inline-block;\r
+}\r
+\r
+.resident-list {\r
+	white-space: pre-wrap;\r
+}\r
+\r
+#part-of-label {\r
+	font-size: 85%;\r
+}\r
+\r
+.resident-clickable:hover {\r
 	background-color: rgba(127, 127, 125, 0.5);\r
 	cursor: pointer;\r
 }\r
+/* #endregion */\r
 \r
-.following {\r
-	background-color: var(--yellow-colour);\r
-}\r
-\r
-#following-warning {\r
-	position: fixed;\r
-	bottom: 0;\r
-	left: 50%;\r
-	transform: translate(-50%, -50%);\r
-	z-index: 99999;\r
-	color: white;\r
-	font-family: "Inter", 'Open Sans', sans-serif;\r
-    text-shadow: rgb(0, 0, 0, 1) -2px 2px 8px;\r
-	backdrop-filter: blur(5px);\r
-	white-space: nowrap;\r
-}\r
-\r
-/* Alert */\r
+/* #region Alert aka message box */\r
 #alert {\r
 	position: absolute;\r
 	width: 300px;\r
@@ -2332,87 +2395,26 @@ fieldset#players > a:hover {\r
 	margin-bottom: 7.5px;\r
     margin-top: 15px;\r
 }\r
+/* #endregion */\r
 \r
-/* Clickable nameplates */\r
-.leaflet-tooltip {\r
-	pointer-events: unset !important;\r
-}\r
-\r
-.leaflet-tooltip:hover {\r
-	background-color: rgba(127, 127, 127, 0.5);\r
-	cursor: pointer;\r
-}\r
-\r
-.leaflet-control {\r
-	float: inline-end !important; /* menu and player lookup are float: left !important */\r
-	clear: none !important;\r
-	backdrop-filter: blur(5px);\r
-}\r
-\r
-.leaflet-control-layers {\r
-	border: none !important;\r
-	border-radius: 3px !important;\r
-	background: #ffffffa6 !important; /* INSERTABLE_HTML.darkMode will override this if enabled */\r
-}\r
-\r
-/* Reduces the size of the layer selector icon and associated image */ \r
-.leaflet-control-layers-toggle {\r
-	height: 38px !important;\r
-    width: 38px !important;\r
-	background-size: 22px 22px !important;\r
-}\r
-\r
-.leaflet-bottom.leaflet-left {\r
-	display: flex;\r
-	flex-direction: row;\r
-}\r
-\r
-.leaflet-top.leaflet-right {\r
-    display: flex;\r
-    flex-direction: column;\r
-}\r
-\r
-.leaflet-popup {\r
-	backdrop-filter: blur(2px);\r
-}\r
-\r
-/* Make coords easier to read and nicer to look at */\r
-.leaflet-control-layers.coordinates {\r
+/* #region Player list follow text */\r
+#following-warning {\r
+	position: fixed;\r
+	bottom: 0;\r
+	left: 50%;\r
+	transform: translate(-50%, -50%);\r
+	z-index: 99999;\r
+	color: white;\r
 	font-family: "Inter", 'Open Sans', sans-serif;\r
-	font-weight: 500 !important;\r
+    text-shadow: rgb(0, 0, 0, 1) -2px 2px 8px;\r
+	backdrop-filter: blur(5px);\r
+	white-space: nowrap;\r
 }\r
 \r
-.leaflet-control-zoom {\r
-	border: none !important;\r
+.following {\r
+	background-color: var(--yellow-colour);\r
 }\r
-\r
-/* Fix blurry link icon */\r
-div.leaflet-control-layers.link img {\r
-	width: 35px !important;\r
-	height: 35px !important;\r
-	background-size: 23px, 22.5px !important;\r
-}\r
-\r
-div.leaflet-control-layers.screenshot img {\r
-	width: 35px !important;\r
-	height: 35px !important;\r
-	background-image: var(--screenshot-bg-image) !important;\r
-}\r
-\r
-#coords-container {\r
-	display: flex;\r
-	flex-direction: row;\r
-	align-self: end;\r
-}\r
-\r
-.crisp-edges {\r
-	image-rendering: optimizeQuality;           /* Legal fallback	*/\r
-	image-rendering: -moz-crisp-edges;          /* Firefox        	*/\r
-	image-rendering: -o-crisp-edges;            /* Opera			*/\r
-	image-rendering: -webkit-optimize-contrast; /* Chrome + Safari	*/\r
-	image-rendering: optimize-contrast;         /* CSS3 Proposed	*/\r
-	image-rendering: crisp-edges;               /* CSS4 Proposed  	*/\r
-}`);
+/* #endregion */`);
   localStorage["emcdynmapplus-mapmode"] ?? (localStorage["emcdynmapplus-mapmode"] = MapMode.MEGANATIONS.name);
   localStorage["emcdynmapplus-normalize-scroll"] ?? (localStorage["emcdynmapplus-normalize-scroll"] = "true");
   localStorage["emcdynmapplus-darkened"] ?? (localStorage["emcdynmapplus-darkened"] = "true");

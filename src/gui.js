@@ -148,8 +148,7 @@ function toggleServerInfo(boxTicked) {
 
 	/** @type {HTMLElement} */
 	const serverInfoPanel = document.querySelector('#server-info')
-	serverInfoPanel.style.visibility = boxTicked ? 'visible' : 'hidden'
-	serverInfoPanel.style.float = boxTicked ? 'none !important' : 'right !important'
+	serverInfoPanel.style.display = boxTicked ? 'block' : 'none'
 
 	if (!boxTicked) {
 		if (serverInfoScheduler != null) clearTimeout(serverInfoScheduler) // stop future runs

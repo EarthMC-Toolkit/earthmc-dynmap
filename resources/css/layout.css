@@ -1,0 +1,62 @@
+/* Server info */
+#server-info {
+	width: var(--max-server-info-width);
+	padding: 10px;
+	text-align: right;
+	font-family: "Inter", 'Open Sans', sans-serif;
+}
+
+#server-info-title {
+	font-weight: 700;
+	font-size: large;
+	text-align: center;
+}
+
+/* A single div with a var like Online Players: 98 */
+.server-info-entry {
+	font-weight: 400;
+	font-size: medium;
+	text-align: center;
+}
+
+/* Player list */
+fieldset#players {
+	display: none;
+	z-index: 500;
+	height: stretch;
+	max-height: calc(100vh - 300px);
+    overflow-y: scroll;
+	min-width: var(--max-server-info-width);
+	margin: 10px;
+	background-color: rgba(0, 0, 0, .5);
+	backdrop-filter: blur(3px) opacity(0.7);
+	scrollbar-width: thin;
+	scrollbar-color: #aaa rgba(0, 0, 0, 0.1);
+}
+
+fieldset#players > legend {
+	color: white;
+	font-weight: bold;
+	font-size: 23px;
+	font-family: "Inter", 'Open Sans', sans-serif;
+	text-shadow: rgba(0, 0, 0, 1) -2px -2px 10px;
+}
+
+fieldset#players > a {
+	color: white;
+	display: inline-flex;
+	align-items: center;
+	padding-top: 5px;
+	gap: 5px;
+}
+
+fieldset#players > a:hover {
+	background-color: rgba(127, 127, 125, 0.5);
+	cursor: pointer;
+}
+
+#coords-container {
+	display: flex;
+	flex-direction: row;
+	align-self: end;
+}

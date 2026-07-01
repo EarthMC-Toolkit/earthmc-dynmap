@@ -1,0 +1,66 @@
+/* Clickable nameplates */
+.leaflet-tooltip {
+	pointer-events: unset !important;
+}
+
+.leaflet-tooltip:hover {
+	background-color: rgba(127, 127, 127, 0.5);
+	cursor: pointer;
+}
+
+.leaflet-control {
+	float: inline-end !important; /* menu and player lookup are float: left !important */
+	clear: none !important;
+	backdrop-filter: blur(5px);
+}
+
+.leaflet-control-layers {
+	border: none !important;
+	border-radius: 3px !important;
+	background: #ffffffa6 !important; /* INSERTABLE_HTML.darkMode will override this if enabled */
+}
+
+/* Reduces the size of the layer selector icon and associated image */ 
+.leaflet-control-layers-toggle {
+	height: 38px !important;
+    width: 38px !important;
+	background-size: 22px 22px !important;
+}
+
+.leaflet-bottom.leaflet-left {
+	display: flex;
+	flex-direction: row;
+}
+
+.leaflet-top.leaflet-right {
+    display: flex;
+    flex-direction: column;
+	align-items: end;
+}
+
+.leaflet-popup {
+	backdrop-filter: blur(2px);
+}
+
+/* Make coords easier to read and nicer to look at */
+.leaflet-control-layers.coordinates {
+	font-family: "Inter", 'Open Sans', sans-serif;
+	font-weight: 500 !important;
+}
+
+.leaflet-control-zoom {
+	border: none !important;
+}
+
+/* Fix blurry link icon */
+div.leaflet-control-layers.link img {
+	width: 35px !important;
+	height: 35px !important;
+	background-size: 23px, 22.5px !important;
+}
+
+div.leaflet-control-layers.screenshot img {
+	width: 35px !important;
+	height: 35px !important;
+	background-image: var(--screenshot-bg-image) !important;
+}

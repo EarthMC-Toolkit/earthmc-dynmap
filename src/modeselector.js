@@ -4,12 +4,12 @@
 const GITHUB_REPO = "https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/refs/heads/main/"
 
 const MAP_MODES = /** @type {const} */ ({
-    DEFAULT:        { name: "default",      img: "resources/gui/map-mode-default.png", order: 0 },
-    MEGANATIONS:    { name: "meganations",  img: "resources/gui/map-mode-meganations.png", order: 1 },
-    ALLIANCES:      { name: "alliances",    img: "resources/gui/map-mode-alliances.png", order: 2 },
-    NATIONCLAIMS:   { name: "nationclaims", img: "resources/gui/map-mode-nationclaims.png", order: 3 },
-    OVERCLAIM:      { name: "overclaim",    img: "resources/gui/map-mode-overclaim.png", order: 4, skipIf: () => isAurora },
-    NEWDAY:         { name: "newday",       img: "resources/gui/map-mode-newday.png", order: 5, skipIf: () => isAurora },
+    DEFAULT:        { name: "default",      img: "resources/img/map-mode-default.png", order: 0 },
+    MEGANATIONS:    { name: "meganations",  img: "resources/img/map-mode-meganations.png", order: 1 },
+    ALLIANCES:      { name: "alliances",    img: "resources/img/map-mode-alliances.png", order: 2 },
+    NATIONCLAIMS:   { name: "nationclaims", img: "resources/img/map-mode-nationclaims.png", order: 3 },
+    OVERCLAIM:      { name: "overclaim",    img: "resources/img/map-mode-overclaim.png", order: 4, skipIf: () => isAurora },
+    NEWDAY:         { name: "newday",       img: "resources/img/map-mode-newday.png", order: 5, skipIf: () => isAurora },
     ARCHIVE:        { name: "archive",      img: null, order: 6 }, // null img to avoid showing up in the selector
 })
 Object.freeze(MAP_MODES)

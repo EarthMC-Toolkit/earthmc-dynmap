@@ -41,7 +41,7 @@ archive.file('manifest.json', { name: EXT_NAME+'/manifest.json' })
 archive.file('README.md', { name: EXT_NAME+'/README.md' })
 
 archive.directory('resources', EXT_NAME+'/resources')
-archive.directory('resources/gui', EXT_NAME+'/resources/gui', entry => {
+archive.directory('resources/img', EXT_NAME+'/resources/img', entry => {
     return entry.name.startsWith('map-mode') && entry.name.endsWith('.png') ? false : entry
 })
 

@@ -1,0 +1,19 @@
+:root {
+	--max-menu-width: 200px;
+	--max-server-info-width: 200px;
+	--player-lookup-width: 190px;
+	--yellow-colour: #b58a3f;
+	/** TODO: Make these more robust. Probably not my best idea */
+	--screenshot-bg-image: url("https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/refs/heads/main/resources/img/icon-screenshot.png");
+	--show-icon: url("https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/refs/heads/main/resources/img/icon-show.png");
+	--hide-icon: url("https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/refs/heads/main/resources/img/icon-hide.png");
+}
+
+.crisp-edges {
+	image-rendering: optimizeQuality;           /* Legal fallback	*/
+	image-rendering: -moz-crisp-edges;          /* Firefox        	*/
+	image-rendering: -o-crisp-edges;            /* Opera			*/
+	image-rendering: -webkit-optimize-contrast; /* Chrome + Safari	*/
+	image-rendering: optimize-contrast;         /* CSS3 Proposed	*/
+	image-rendering: crisp-edges;               /* CSS4 Proposed  	*/
+}

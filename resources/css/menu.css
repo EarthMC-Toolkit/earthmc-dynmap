@@ -1,0 +1,118 @@
+/* #region Onscreen extension menu */
+#menu {
+	width: auto;
+	max-width: var(--max-menu-width);
+    min-height: 32px;
+	max-height: max-content;
+	padding: 3px;
+	float: left !important;
+}
+
+/* collapsible part */
+#menu-body {
+	overflow: hidden;
+	max-height: 1000px;
+	opacity: 1;
+	transition: max-height 0.25s ease, opacity 0.2s ease;
+}
+
+#menu-body.collapsed {
+	max-height: 0;
+	opacity: 0;
+}
+
+/* header always visible */
+.menu-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 5px;
+	font-family: "Inter", 'Open Sans', sans-serif;
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+	user-select: none;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+	background: none;
+}
+
+.menu-header:hover {
+	background: rgba(255, 255, 255, 0.05);
+}
+
+#menu-arrow {
+	transition: transform 0.12s ease;
+}
+
+/* Existing styles */
+.option {
+	display: flex;
+	justify-content: space-between;
+	padding-top: 2px;
+	padding-left: 5px;
+	padding-right: 5px;
+	font-size: 10.5px;
+}
+
+.menu-option {
+	width: inherit;
+	height: fit-content;
+	display: flex;
+	align-items: stretch;
+}
+
+.menu-input-option {
+	width: 100%;
+	border: 1px solid rgba(255, 255, 255, 0.5) !important;
+	border-radius: 0px 2px 2px 0px;
+}
+
+.menu-button-option {
+	width: 100%;
+	height: 30px;
+	font-kerning: none;
+	font-weight: 500;
+	font-size: 12px;
+	font-family: "Inter", 'Open Sans', sans-serif;
+	border: 2px dashed var(--yellow-colour);
+	border-radius: 2px;
+	padding: 3px;
+}
+
+#locate-menu {
+	display: grid;
+	margin-bottom: 10px;
+}
+
+#locate-select {
+	text-align: center;
+	height: 30px;
+	font-kerning: none;
+	font-weight: 500;
+	font-size: 12px;
+	font-family: "Inter", 'Open Sans', sans-serif;
+	border-radius: 0px 0px 0px 2px;
+}
+
+#archive-menu {
+	display: grid;
+	margin-bottom: 10px;
+}
+
+#archive-button {
+	flex-grow: 1;
+}
+
+#archive-input {
+	width: auto;
+	height: 25px;
+	text-align: center;
+}
+
+#options-menu {
+	font-family: "Inter", 'Open Sans', sans-serif;
+	width: inherit;
+	margin-top: 5px;
+	gap: 1px;
+}
+/* #endregion */

@@ -1,0 +1,142 @@
+/* #region Player popup */
+#player-lookup-loading {
+	width: auto;
+	font-size: larger;
+	font-weight: 500;
+	font-family: "Inter", 'Open Sans', sans-serif;
+	padding: 5px;
+	/* ensure it stays on the left below the menu */
+	display: block !important;
+	float: left !important;
+	clear: both !important;
+}
+
+#player-lookup {
+	box-sizing: unset;
+	width: var(--player-lookup-width);
+	max-width: var(--player-lookup-width);
+	padding: 10px;
+	font-size: larger;
+	font-family: "Inter", 'Open Sans', sans-serif;
+	/* ensure it stays on the left below the menu */
+	clear: both !important;
+	display: block !important;
+	float: left !important;
+}
+
+#player-lookup > .close-container {
+	position: relative;
+	cursor: pointer;
+	font-size: medium;
+	bottom: 9px;
+	left: calc(var(--player-lookup-width) - 19px);
+	padding-top: 1.5px;
+	padding-bottom: 2px;
+	padding-left: 9px;
+	padding-right: 8px;
+	background: rgb(174, 14, 14);
+	border: white 1px solid;
+	border-radius: 0px 3px 0px 0px;
+}
+
+#player-lookup > .close-container:hover {
+	background-color: rgba(127, 127, 125, 0.5);
+}
+
+#player-lookup-online {
+	position: absolute;
+	top: 5px;
+	left: 5px;
+}
+
+#player-lookup-avatar {
+	display: block;
+	width: 36px;
+	box-shadow: 0 0 10px 1px #131313;
+	margin: auto auto 0.5em auto; /** make bottom margin match the divider below */
+}
+
+#player-lookup-name {
+	font-size: 18px;
+}
+/* #endregion */
+
+/* #region Town popup */
+#scrollable-list {
+	overflow: auto;
+	max-height: 200px;
+}
+
+#clamped-board {
+	max-width: 400px;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	display: inline-block;
+}
+
+.resident-list {
+	white-space: pre-wrap;
+}
+
+#part-of-label {
+	font-size: 85%;
+}
+
+.resident-clickable:hover {
+	background-color: rgba(127, 127, 125, 0.5);
+	cursor: pointer;
+}
+/* #endregion */
+
+/* #region Alert aka message box */
+#alert {
+	position: absolute;
+	width: 300px;
+	font-family: "Inter", 'Open Sans', sans-serif;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	z-index: 1000;
+	background-color: white;
+	color: #131313d4;
+	backdrop-filter: blur(5px);
+	font-size: large;
+	box-sizing: border-box;
+	padding: 8px;
+	text-align: center;
+}
+
+#alert-message {
+	margin-block: 0;
+}
+
+#alert-close {
+	font-size: 14px;
+	font-family: "Inter", 'Open Sans', sans-serif;
+    background: #e12a2a52;
+	border-radius: 2px;
+    border: 1px solid;
+	padding: 4px 8px 4px 8px;
+	margin-bottom: 7.5px;
+    margin-top: 15px;
+}
+/* #endregion */
+
+/* #region Player list follow text */
+#following-warning {
+	position: fixed;
+	bottom: 0;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	z-index: 99999;
+	color: white;
+	font-family: "Inter", 'Open Sans', sans-serif;
+    text-shadow: rgb(0, 0, 0, 1) -2px 2px 8px;
+	backdrop-filter: blur(5px);
+	white-space: nowrap;
+}
+
+.following {
+	background-color: var(--yellow-colour);
+}
+/* #endregion */
