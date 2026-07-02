@@ -1,3 +1,5 @@
+/// <reference types="./types.d.ts" />
+
 /** 
  * @param {MarkersResponse} data 
  * @param {Array<CAPIRuinedTown>} ruined
@@ -44,9 +46,14 @@ const formatStrDateTime = (str, opts = null) => timestampToDateTimeStr(new Date(
 const buildRuinedPopup = t => `
 <div class="infowindow">
     <span style="font-size:120%;">${t.name} (Ruined)</span>
-    <br>
+	<br>
     ${t.board && t.board !== '/town set board [msg]' ? `<i>${t.board}</i><br><br>`: '<br>' }
-    Founded: <b>${timestampToDateTimeStr(t.timestamps.registered, dateOpts)}</b>
+	Ruin Date: <b>${timestampToDateStr(t.timestamps.ruinedAt, dateTimeOptsUTC)}AM UTC</b>
+	<br>
+	Deletion Date: <b>${formatStrDate(t.deletionAt, dateTimeOptsUTC)}AM UTC</b>
+	<br>
+	<br>
+	Founded: <b>${timestampToDateTimeStr(t.timestamps.registered, dateOpts)}</b>
     <br>
 	Founder: <b>${t.founder}</b>
 	<br>

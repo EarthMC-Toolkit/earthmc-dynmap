@@ -91,6 +91,7 @@ declare global {
 
     export interface CAPIRuinedTown extends CAPITown {
         nation: { name: null, uuid: null }
+        deletionAt: Date
     }
 
     export type CAPITown = Entity & {
@@ -107,7 +108,7 @@ declare global {
         timestamps: {
             registered: number
             joinedNationAt: number // when ruined: null
-            ruinedAt: number
+            ruinedAt?: number
         }
         coordinates: {
             homeBlock: [number, number]
