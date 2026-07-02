@@ -21,12 +21,14 @@
 
 /* Player list */
 fieldset#players {
+	flex: 1;
 	display: none;
 	z-index: 500;
 	height: stretch;
-	max-height: calc(100vh - 300px);
-	overflow-y: scroll;
+	min-height: 0;
+	max-height: none;
 	min-width: var(--max-server-info-width);
+	overflow-y: scroll;
 	margin: 10px;
 	background-color: rgba(0, 0, 0, .5);
 	backdrop-filter: blur(3px) opacity(0.7);
