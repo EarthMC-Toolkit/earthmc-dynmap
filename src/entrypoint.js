@@ -1,6 +1,6 @@
 /** @returns {boolean} */
 function isUserscript() {
-	return typeof IS_USERSCRIPT !== 'undefined' && IS_USERSCRIPT === 'true'
+	return typeof IS_USERSCRIPT !== 'undefined' && IS_USERSCRIPT
 }
 
 /** THIS FILE IS RUN FIRST, ANY SETUP/INIT REQUIRED BELONGS HERE */
