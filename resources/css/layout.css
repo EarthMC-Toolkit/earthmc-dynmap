@@ -25,7 +25,7 @@ fieldset#players {
 	z-index: 500;
 	height: stretch;
 	max-height: calc(100vh - 300px);
-    overflow-y: scroll;
+	overflow-y: scroll;
 	min-width: var(--max-server-info-width);
 	margin: 10px;
 	background-color: rgba(0, 0, 0, .5);

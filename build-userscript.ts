@@ -1,13 +1,15 @@
 /// <reference types="node" />
+/// <reference types="./src/types.d.ts" />
 import { readdirSync, readFileSync, writeFileSync } from 'fs'
 import { build, type BuildOptions } from 'esbuild'
 import * as path from 'path'
-import './src/types.d.ts' // they are global anyway but vscode shits itself sometimes
 
-const STYLE_CSS = readdirSync('resources/css')
-  .filter(f => f.endsWith('.css'))
-  .map(f => readFileSync(path.join('resources/css', f), 'utf8'))
-  .join('\n')
+const ftob64 = (file: string) => `data:image/png;base64,${readFileSync(file).toString('base64')}`
+const STYLE_CSS = readdirSync('resources/css').filter(f => f.endsWith('.css'))
+  .map(f => readFileSync(path.join('resources/css', f), 'utf8')).join('\n')
+  .replaceAll('--show-icon: none;', `--show-icon: url(${ftob64('resources/img/icon-show.png')});`)
+  .replaceAll('--hide-icon: none;', `--hide-icon: url(${ftob64('resources/img/icon-hide.png')});`)
+  .replaceAll('--screenshot-bg-image: none;', `--screenshot-bg-image: url(${ftob64('resources/img/icon-screenshot.png')});`)
 
 const BORDERS: Borders = JSON.parse(readFileSync('resources/borders.json', 'utf8'))
 const MANIFEST: Manifest = JSON.parse(readFileSync('manifest.json', 'utf8'))

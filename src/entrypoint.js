@@ -1,6 +1,6 @@
 /** @returns {boolean} */
 function isUserscript() {
-	return typeof IS_USERSCRIPT !== 'undefined' && IS_USERSCRIPT
+	return typeof IS_USERSCRIPT !== 'undefined' && IS_USERSCRIPT === 'true'
 }
 
 /** THIS FILE IS RUN FIRST, ANY SETUP/INIT REQUIRED BELONGS HERE */
@@ -58,7 +58,14 @@ function insertCustomStylesheets() {
 
 /** @param {Manifest} manifest */
 async function init(manifest) {
-	if (isUserscript()) GM_addStyle(STYLE_CSS)
+	if (isUserscript()) {
+		GM_addStyle(STYLE_CSS)
+
+		const root = document.documentElement.style
+		root.setProperty('--screenshot-bg-image', `url("${chrome.runtime.getURL('resources/img/icon-screenshot.png')}")`)
+		root.setProperty('--show-icon', `url("${chrome.runtime.getURL('resources/img/icon-show.png')}")`)
+		root.setProperty('--hide-icon', `url("${chrome.runtime.getURL('resources/img/icon-hide.png')}")`)
+	}
 
     localStorage['emcdynmapplus-mapmode'] ??= MapMode.MEGANATIONS.name
 	localStorage['emcdynmapplus-normalize-scroll'] ??= 'true'

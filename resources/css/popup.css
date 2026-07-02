@@ -113,12 +113,12 @@
 #alert-close {
 	font-size: 14px;
 	font-family: "Inter", 'Open Sans', sans-serif;
-    background: #e12a2a52;
+	background: #e12a2a52;
 	border-radius: 2px;
-    border: 1px solid;
+	border: 1px solid;
 	padding: 4px 8px 4px 8px;
 	margin-bottom: 7.5px;
-    margin-top: 15px;
+	margin-top: 15px;
 }
 /* #endregion */
 
@@ -131,7 +131,7 @@
 	z-index: 99999;
 	color: white;
 	font-family: "Inter", 'Open Sans', sans-serif;
-    text-shadow: rgb(0, 0, 0, 1) -2px 2px 8px;
+	text-shadow: rgb(0, 0, 0, 1) -2px 2px 8px;
 	backdrop-filter: blur(5px);
 	white-space: nowrap;
 }

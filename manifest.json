@@ -23,12 +23,7 @@
 		"resources": [
 			"resources/interceptor.js",
 			"resources/borders.json",
-			"resources/img/map-mode-default.png",
-			"resources/img/map-mode-alliances.png",
-			"resources/img/map-mode-meganations.png",
-			"resources/img/map-mode-overclaim.png",
-			"resources/img/map-mode-nationclaims.png",
-			"resources/img/map-mode-newday.png"
+			"resources/img/*"
 		]
 	}],
 	"content_scripts": [{

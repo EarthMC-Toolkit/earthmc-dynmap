@@ -2,7 +2,7 @@
 #menu {
 	width: auto;
 	max-width: var(--max-menu-width);
-    min-height: 32px;
+	min-height: 32px;
 	max-height: max-content;
 	padding: 3px;
 	float: left !important;

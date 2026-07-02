@@ -23,7 +23,7 @@
 /* Reduces the size of the layer selector icon and associated image */ 
 .leaflet-control-layers-toggle {
 	height: 38px !important;
-    width: 38px !important;
+	width: 38px !important;
 	background-size: 22px 22px !important;
 }
 
@@ -33,8 +33,8 @@
 }
 
 .leaflet-top.leaflet-right {
-    display: flex;
-    flex-direction: column;
+	display: flex;
+	flex-direction: column;
 	align-items: end;
 }
 

@@ -18,6 +18,7 @@ Object.freeze(MAP_MODES)
  * @typedef {typeof MAP_MODES[keyof typeof MAP_MODES]} MapMode
  * @typedef {MapMode["name"]} MapModeName
  */
+
 const MapMode = MAP_MODES // this exists at runtime to replace the typedef
 const sortedMapModes = () => Object.values(MAP_MODES).sort((a, b) => a.order - b.order)
 

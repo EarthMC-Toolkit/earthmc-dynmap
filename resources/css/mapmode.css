@@ -2,21 +2,21 @@
 #map-mode-selector {
 	display: flex;
 	position: fixed;
-    align-items: center;
-    flex-direction: column;
+	align-items: center;
+	flex-direction: column;
 	margin: 0px;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
+	top: 10px;
+	left: 50%;
+	transform: translateX(-50%);
 	min-width: var(--max-menu-width);
-    padding: 10px 14px 15px 14px;
+	padding: 10px 14px 15px 14px;
 	gap: 9px;
 }
 
 #current-map-mode-label {
-    font-family: 'Inter';
-    font-size: 16.5px;
-    font-weight: 550;
+	font-family: 'Inter';
+	font-size: 16.5px;
+	font-weight: 550;
 	line-height: normal;
 	text-align: center;
 	white-space: nowrap;
@@ -25,9 +25,9 @@
 }
 
 #map-mode-option-container {
-    display: flex;
-    gap: 10px;
-    flex-direction: row;
+	display: flex;
+	gap: 10px;
+	flex-direction: row;
 }
 
 .map-mode-btn-option {
@@ -83,21 +83,21 @@
 }
 
 #nation-claims-titlebar {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
 	justify-content: center;
 	gap: 10px;
 	line-height: 5px;
 	font-family: "Inter", 'Open Sans', sans-serif;
 	font-size: large;
-    font-weight: 700;
+	font-weight: 700;
 }
 
 /* Button to show/hide the nation claims panel */
 #nation-claims-titlebar > a {
 	font-size: small;
-    /* background: rgb(174, 14, 14); */
+	/* background: rgb(174, 14, 14); */
 	padding: 4px 8px 4px 8px;
 	border-radius: 3px;
 }
@@ -106,21 +106,21 @@
 	width: 30px;
 	background-image: var(--show-icon);
 	background-repeat: no-repeat;
-    background-position: 50% 50%;
+	background-position: 50% 50%;
 	background-color: transparent;
 }
 
 #nation-claims-titlebar img.active {
-    background-image: var(--hide-icon);
+	background-image: var(--hide-icon);
 }
 
 /* Container that holds the input/colour entries */
 #nation-claims-entry-container {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
 	min-height: 40vh;
-    max-height: calc(100vh - 320px);
-    overflow-y: auto;
+	max-height: calc(100vh - 320px);
+	overflow-y: auto;
 	margin-bottom: 5px;
 	margin-top: 10px;
 	row-gap: 10px;
@@ -130,7 +130,7 @@
 /* Container of the buttons at the bottom of the nation claims panel */
 #nation-claims-btn-container {
 	display: flex;
-    justify-content: center;
+	justify-content: center;
 	margin-top: 5px;
 }
 
@@ -152,10 +152,10 @@
 }
 
 .nation-claims-entry {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    width: 100%; /* ensure it doesn’t overflow horizontally */
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	width: 100%; /* ensure it doesn’t overflow horizontally */
 }
 
 .nation-claims-checkbox-option {
@@ -172,21 +172,21 @@
 
 input[type="color"] {
 	position: relative;
-    padding: 0;
+	padding: 0;
 	/* Make a pill shape */
 	height: 19px;
-    width: 34px;
+	width: 34px;
 	border: 2px solid white;
 	border-radius: 8px;
 }
 input[type="color"]::-moz-color-swatch {
-  	border: none;
+	border: none;
 }
 input[type="color"]::-webkit-color-swatch-wrapper {
 	padding: 0;
 	border-radius: 0;
 }
 input[type="color"]::-webkit-color-swatch {
-  	border: none;
+	border: none;
 }
 /* #endregion */

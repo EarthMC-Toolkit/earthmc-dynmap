@@ -3,10 +3,13 @@
 	--max-server-info-width: 200px;
 	--player-lookup-width: 190px;
 	--yellow-colour: #b58a3f;
-	/** TODO: Make these more robust. Probably not my best idea */
-	--screenshot-bg-image: url("https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/refs/heads/main/resources/img/icon-screenshot.png");
-	--show-icon: url("https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/refs/heads/main/resources/img/icon-show.png");
-	--hide-icon: url("https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/refs/heads/main/resources/img/icon-hide.png");
+/**
+	Extension: these are resolved as relative paths at runtime.
+	Userscript: these are replaced at build time with base64 data URLs.
+*/
+	--show-icon: none;
+	--hide-icon: none;
+	--screenshot-bg-image: none;
 }
 
 .crisp-edges {
