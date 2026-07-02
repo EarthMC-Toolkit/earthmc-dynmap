@@ -7,8 +7,8 @@ function isUserscript() {
 (async function entrypoint() {
 	const manifest = isUserscript() ? MANIFEST : chrome.runtime.getManifest()
 	if (!isUserscript()) {
-		// Any scripts that need to be injected into the page context should be specified in manifest.json 
-		// under web_accessible_resources in order of least-dependent first.
+		// Any scripts that need to be injected into the page context should be specified in 
+		// manifest.json under 'web_accessible_resources' in order of least-dependent first.
 		const resources = manifest.web_accessible_resources[0].resources
 		const jsFiles = resources.filter(s => s.endsWith('.js'))
 		for (const file of jsFiles) {
@@ -36,7 +36,7 @@ function isUserscript() {
 })()
 
 /** 
- * Injects a file into the page context given the path to it. 
+ * Injects a file into the page context given the path to it.
  * This is similar to adding \<script src="main.js"></script> to an HTML file.
  * @param {string} resource - The path/filename to/of the file to inject.
  * @param {string} local - Whether the file should be injected locally (text) or external (src).
@@ -49,11 +49,6 @@ function injectScript(resource) {
 		script.onload = () => { script.remove(); resolve() }
 		(document.head || document.documentElement).appendChild(script)
 	})
-}
-
-function insertCustomStylesheets() {
-	document.head.insertAdjacentHTML('beforeend', INSERTABLE_HTML.interFont)
-	// other stylesheet html links ... 
 }
 
 /** @param {Manifest} manifest */
