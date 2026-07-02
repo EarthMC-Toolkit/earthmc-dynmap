@@ -58,9 +58,8 @@ function insertCustomStylesheets() {
 
 /** @param {Manifest} manifest */
 async function init(manifest) {
-	if (isUserscript()) {
-		GM_addStyle(STYLE_CSS)
-
+	if (isUserscript()) GM_addStyle(STYLE_CSS)
+	else {
 		const root = document.documentElement.style
 		root.setProperty('--screenshot-bg-image', `url("${chrome.runtime.getURL('resources/img/icon-screenshot.png')}")`)
 		root.setProperty('--show-icon', `url("${chrome.runtime.getURL('resources/img/icon-show.png')}")`)

@@ -7,9 +7,9 @@
 	Extension: these are resolved as relative paths at runtime.
 	Userscript: these are replaced at build time with base64 data URLs.
 */
-	--show-icon: none;
-	--hide-icon: none;
-	--screenshot-bg-image: none;
+	--show-icon: url("__SHOW_ICON__");
+	--hide-icon: url("__HIDE_ICON__");
+	--screenshot-bg-image: url("__SCREENSHOT_ICON__");
 }
 
 .crisp-edges {
