@@ -555,8 +555,7 @@ function disablePanAndZoom(element) {
 	// stopping the mouse event from propogating to Leaflet.
 	element.addEventListener('mousedown', e => e.stopPropagation())
 
-	// blocks the map (Leaflet) from zooming when 
-	// double clicking in the extension menu.
+	// blocks the map (Leaflet) from zooming when double clicking in the extension menu.
 	element.addEventListener('dblclick', e => {
 		e.stopPropagation()
 		e.preventDefault()
@@ -612,7 +611,7 @@ function addNationClaimsPanel(parent) {
 	const optDiv1 = addElement(contentContainer, '<div class="nation-claims-checkbox-option"></div>')
 	const optDiv2 = addElement(contentContainer, '<div class="nation-claims-checkbox-option"></div>')
 
-	/** @type {HTMLElement} */
+	/** @type {HTMLInputElement} */
 	const showExcludedCheckbox = appendHTML(optDiv1, 
 		INSERTABLE_HTML.options.checkbox.replace('{option}', 'show-excluded') + 
 		INSERTABLE_HTML.options.label.replace('{option}', 'show-excluded').replace('{optionText}', 'Show irrelevant towns')
@@ -622,7 +621,7 @@ function addNationClaimsPanel(parent) {
 		localStorage['emcdynmapplus-nation-claims-show-excluded'] = e.target.checked
 	)
 
-	/** @type {HTMLElement} */
+	/** @type {HTMLInputElement} */
 	const useOpaqueCheckbox = appendHTML(optDiv2,
 		INSERTABLE_HTML.options.checkbox.replace('{option}', 'use-opaque-colors') + 
 		INSERTABLE_HTML.options.label.replace('{option}', 'use-opaque-colors').replace('{optionText}', 'Use opaque colors')
@@ -632,7 +631,7 @@ function addNationClaimsPanel(parent) {
 		localStorage['emcdynmapplus-nation-claims-opaque-colors'] = e.target.checked
 	)
 
-	/** @type {HTMLElement} */
+	/** @type {HTMLDivElement} */
 	const div = appendHTML(contentContainer, '<div id="nation-claims-btn-container"></div>')
 
 	/** @type {HTMLElement} */
@@ -649,7 +648,7 @@ function addNationClaimsPanel(parent) {
 		location.reload()
 	})
 
-	/** @type {HTMLElement} */
+	/** @type {HTMLButtonElement} */
 	const resetAllBtn = appendHTML(div, '<button class="menu-button-option" id="nation-claims-reset-all">Reset All</button>')
 	resetAllBtn.addEventListener('click', () => {
 		const entries = Array.from({ length: MAX_NATION_CLAIM_ENTRIES }, () => ({ color: null, input: null }))
