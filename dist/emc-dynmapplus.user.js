@@ -445,6 +445,18 @@ function showAlert(message, timeout = null) {
   if (timeout) alertTimeout = setTimeout(() => alert.remove(), timeout * 1e3);
   return alert;
 }
+var waitForElement = (selector) => new Promise((resolve) => {
+  const selected = document.querySelector(selector);
+  if (selected) return resolve(selected);
+  const observer = new MutationObserver(() => {
+    const selected2 = document.querySelector(selector);
+    if (selected2) {
+      resolve(selected2);
+      observer.disconnect();
+    }
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+});
 function addElement(parent, elementHTML, selector = null, all = false) {
   parent.insertAdjacentHTML("beforeend", elementHTML);
   if (!selector) return parent.lastElementChild;
@@ -466,33 +478,117 @@ function appendHTML(parent, html, options = { selector: null, all: false, wrap: 
   const found = wrap ? nodes[0].querySelectorAll(selector) : nodes.flatMap((n) => Array.from(n.querySelectorAll(selector)));
   return all ? found : found[0] || null;
 }
-var waitForElement = (selector) => new Promise((resolve) => {
-  const selected = document.querySelector(selector);
-  if (selected) return resolve(selected);
-  const observer = new MutationObserver(() => {
-    const selected2 = document.querySelector(selector);
-    if (selected2) {
-      resolve(selected2);
-      observer.disconnect();
+function insertCustomStylesheets() {
+  document.head.insertAdjacentHTML("beforeend", INSERTABLE_HTML.interFont);
+}
+function addExtensionMenu(parent) {
+  const menu = addElement(parent, INSERTABLE_HTML.menu);
+  const header = addElement(menu, INSERTABLE_HTML.menuHeader);
+  const body = addElement(menu, `<div id="menu-body"></div>`);
+  addMenuLocateSection(body);
+  addMenuArchiveSection(body);
+  addMenuOptionsList(body, currentMapMode());
+  let collapsed = localStorage["emcdynmapplus-menu-collapsed"] == "true";
+  const arrow = header.querySelector("#menu-arrow");
+  const apply = () => {
+    body.classList.toggle("collapsed", collapsed);
+    if (arrow) arrow.style.transform = collapsed ? "rotate(-90deg)" : "rotate(0deg)";
+  };
+  apply();
+  header.addEventListener("click", () => {
+    collapsed = !collapsed;
+    localStorage["emcdynmapplus-menu-collapsed"] = String(collapsed);
+    apply();
+  });
+  return menu;
+}
+function addMenuLocateSection(menu) {
+  const locateMenu = addElement(menu, INSERTABLE_HTML.locateMenu);
+  const locateButton = addElement(locateMenu, INSERTABLE_HTML.buttons.locate);
+  const locateSubmenu = addElement(locateMenu, INSERTABLE_HTML.menuOption, ".menu-option");
+  const locateSelect = addElement(locateSubmenu, INSERTABLE_HTML.locateSelect);
+  const locateInput = addElement(locateSubmenu, INSERTABLE_HTML.locateInput);
+  locateSelect.addEventListener("change", () => {
+    switch (locateSelect.value) {
+      case "Town":
+        locateInput.placeholder = "London";
+        break;
+      case "Nation":
+        locateInput.placeholder = "Nubia";
+        break;
+      case "Resident":
+        locateInput.placeholder = "Fix";
+        break;
     }
   });
-  observer.observe(document.body, { childList: true, subtree: true });
-});
-function onAnchorUpdate(anchorParent, getAnchor, callback) {
-  let lastHref = null;
-  const check = () => {
-    const anchor = getAnchor();
-    if (!anchor) return;
-    const href = anchor.href;
-    if (href !== lastHref) {
-      callback(href, lastHref);
-      lastHref = href;
-    }
-  };
-  const observer = new MutationObserver(check);
-  observer.observe(anchorParent, { childList: true, subtree: true, attributes: true });
-  check();
-  return observer;
+  const isArchiveMode = currentMapMode() == MapMode.ARCHIVE;
+  locateInput.addEventListener("keyup", (event) => {
+    if (event.key != "Enter") return;
+    locate(locateSelect.value, locateInput.value, isArchiveMode);
+  });
+  locateButton.addEventListener("click", () => {
+    locate(locateSelect.value, locateInput.value, isArchiveMode);
+  });
+}
+function addMenuArchiveSection(menu) {
+  const archiveMenu = addElement(menu, INSERTABLE_HTML.archiveMenu);
+  const archiveButton = addElement(archiveMenu, INSERTABLE_HTML.buttons.searchArchive);
+  const archiveInput = addElement(archiveMenu, INSERTABLE_HTML.archiveInput);
+  archiveButton.addEventListener("click", (_) => searchArchive(archiveInput.value));
+  archiveInput.addEventListener("keyup", (e) => {
+    if (e.key == "Enter") searchArchive(archiveInput.value);
+  });
+  archiveInput.addEventListener("change", (_) => {
+    const URLDate = archiveInput.value.replaceAll("-", "");
+    localStorage["emcdynmapplus-archive-date"] = URLDate;
+  });
+}
+function addMenuOptionsList(menu, curMapMode) {
+  const optionsButton = addElement(menu, INSERTABLE_HTML.buttons.options);
+  const optionsMenu = addElement(menu, INSERTABLE_HTML.options.menu);
+  optionsMenu.style.display = "none";
+  optionsButton.addEventListener("click", (_) => {
+    optionsMenu.style.display = optionsMenu.style.display == "none" ? "grid" : "none";
+    optionsButton.textContent = optionsMenu.style.display == "none" ? "Show Options" : "Close Options";
+  });
+  let i = 0;
+  addMenuCheckboxOption(
+    optionsMenu,
+    i++,
+    "toggle-normalize-scroll",
+    "Normalize scroll inputs",
+    "normalize-scroll",
+    (e) => toggleScrollNormalize(e.target.checked)
+  );
+  addMenuCheckboxOption(optionsMenu, i++, "toggle-darkened", "Decrease brightness", "darkened", (e) => toggleDarkened(e.target.checked));
+  addMenuCheckboxOption(optionsMenu, i++, "toggle-darkmode", "Toggle dark mode", "darkmode", (e) => toggleDarkMode(e.target.checked));
+  addMenuCheckboxOption(optionsMenu, i++, "toggle-serverinfo", "Display server info", "serverinfo", (e) => toggleServerInfo(e.target.checked));
+  if (curMapMode != "archive") {
+    addMenuCheckboxOption(
+      optionsMenu,
+      i++,
+      "toggle-playerlist",
+      "Display player list",
+      "playerlist",
+      (e) => togglePlayerList(e.target.checked)
+    );
+    addMenuCheckboxOption(
+      optionsMenu,
+      i++,
+      "toggle-capital-stars",
+      "Show capital stars",
+      "capital-stars",
+      (e) => toggleShowCapitalStars(e.target.checked)
+    );
+  }
+}
+function addMenuCheckboxOption(menu, index, optionId, optionText, variable, listener) {
+  const option = addElement(menu, INSERTABLE_HTML.options.option, ".option", true)[index];
+  option.insertAdjacentHTML("beforeend", INSERTABLE_HTML.options.label.replace("{option}", optionId).replace("{optionText}", optionText));
+  const checkbox = addElement(option, INSERTABLE_HTML.options.checkbox.replace("{option}", optionId), "#" + optionId);
+  checkbox.checked = localStorage["emcdynmapplus-" + variable] == "true";
+  if (listener) checkbox.addEventListener("change", listener);
+  return checkbox;
 }
 function initToggleOptions() {
   const darkened = localStorage["emcdynmapplus-darkened"] == "true" ? true : false;
@@ -554,13 +650,11 @@ var withInteractionBlocked = async (fn) => {
 };
 var waitForStableViewport = () => new Promise((resolve) => {
   const pane = document.querySelector(".leaflet-map-pane");
-  if (!pane) return resolve();
-  if (!pane.classList.contains("leaflet-pan-anim")) return resolve();
+  if (!pane?.classList.contains("leaflet-pan-anim")) return resolve();
   const observer = new MutationObserver(() => {
-    if (!pane.classList.contains("leaflet-pan-anim")) {
-      observer.disconnect();
-      resolve();
-    }
+    if (pane.classList.contains("leaflet-pan-anim")) return;
+    observer.disconnect();
+    resolve();
   });
   observer.observe(pane, { attributes: true, attributeFilter: ["class"] });
 });
@@ -583,6 +677,22 @@ var waitForTransform = (el) => new Promise((resolve) => {
     resolve();
   }, 100);
 });
+function onAnchorUpdate(anchorParent, getAnchor, callback) {
+  let lastHref = null;
+  const check = () => {
+    const anchor = getAnchor();
+    if (!anchor) return;
+    const href = anchor.href;
+    if (href !== lastHref) {
+      callback(href, lastHref);
+      lastHref = href;
+    }
+  };
+  const observer = new MutationObserver(check);
+  observer.observe(anchorParent, { childList: true, subtree: true, attributes: true });
+  check();
+  return observer;
+}
 async function editUILayout() {
   const coordinates = await waitForElement(".leaflet-control-layers.coordinates");
   const link = await waitForElement(".leaflet-control-layers.link");
@@ -788,6 +898,75 @@ function followWarningTick() {
   const following = document.querySelector(".following")?.isConnected;
   document.querySelector("#following-warning").style.display = following ? "unset" : "none";
   requestAnimationFrame(followWarningTick);
+}
+
+// src/heatmap.js
+var cachedApiTowns = null;
+async function insertPopulationHeatmap() {
+  if (cachedApiTowns == null) {
+    const url = `${currentMapApiUrl()}/towns`;
+    const tlist = await fetchJSON(url);
+    const apiTowns = await queryConcurrent(url, tlist);
+    cachedApiTowns = new Map(apiTowns.map((t) => [t.name.toLowerCase(), t]));
+  }
+  const mapPane = document.querySelector(".leaflet-map-pane");
+  const container = document.querySelector(".leaflet-container");
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  canvas.style.position = "absolute";
+  canvas.style.top = "0";
+  canvas.style.left = "0";
+  canvas.style.width = "100%";
+  canvas.style.height = "100%";
+  canvas.style.pointerEvents = "none";
+  canvas.style.zIndex = "999999";
+  container.style.position = "relative";
+  container.appendChild(canvas);
+  function resize() {
+    const r = container.getBoundingClientRect();
+    canvas.width = r.width;
+    canvas.height = r.height;
+  }
+  function getTransform() {
+    const t = getComputedStyle(mapPane).transform;
+    if (!t || t === "none") return { x: 0, y: 0, scale: 1 };
+    const m = new DOMMatrix(t);
+    return {
+      x: m.m41,
+      y: m.m42,
+      scale: m.a
+    };
+  }
+  function worldToScreen(x, z, transform) {
+    return {
+      x: canvas.width / 2 + (x * transform.scale + transform.x),
+      y: canvas.height / 2 + (z * transform.scale + transform.y)
+    };
+  }
+  function draw() {
+    const tr = getTransform();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const t of cachedApiTowns.values()) {
+      const intensity = Math.min((t.stats.numResidents || 1) / 1e4, 1);
+      const p = worldToScreen(t.x, t.z, tr);
+      const r = 60;
+      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
+      g.addColorStop(0, `rgba(0,150,255,${0.5 * intensity})`);
+      g.addColorStop(1, `rgba(0,150,255,0)`);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  function update() {
+    resize();
+    draw();
+  }
+  new ResizeObserver(update).observe(container);
+  new MutationObserver(update).observe(mapPane, { attributes: true, attributeFilter: ["style"] });
+  unsafeWindow.addEventListener("resize", update);
+  update();
 }
 
 // src/layer.js
@@ -1238,7 +1417,8 @@ var MAP_MODES = (
     NATIONCLAIMS: { name: "nationclaims", img: "resources/img/map-mode-nationclaims.png", order: 3 },
     OVERCLAIM: { name: "overclaim", img: "resources/img/map-mode-overclaim.png", order: 4, skipIf: () => isAurora },
     NEWDAY: { name: "newday", img: "resources/img/map-mode-newday.png", order: 5, skipIf: () => isAurora },
-    ARCHIVE: { name: "archive", img: null, order: 6 }
+    POPULATION: { name: "population", img: "resources/img/map-mode-population-heatmap.png", order: 6, skipIf: () => isAurora },
+    ARCHIVE: { name: "archive", img: null, order: 7 }
     // null img to avoid showing up in the selector
   }
 );
@@ -1280,115 +1460,6 @@ function addMapModeBtn(iconContainer, mode, clickHandler = null) {
 }
 
 // src/gui.js
-function addExtensionMenu(parent) {
-  const menu = addElement(parent, INSERTABLE_HTML.menu);
-  const header = addElement(menu, INSERTABLE_HTML.menuHeader);
-  const body = addElement(menu, `<div id="menu-body"></div>`);
-  addMenuLocateSection(body);
-  addMenuArchiveSection(body);
-  addMenuOptionsList(body, currentMapMode());
-  let collapsed = localStorage["emcdynmapplus-menu-collapsed"] == "true";
-  const arrow = header.querySelector("#menu-arrow");
-  const apply = () => {
-    body.classList.toggle("collapsed", collapsed);
-    if (arrow) arrow.style.transform = collapsed ? "rotate(-90deg)" : "rotate(0deg)";
-  };
-  apply();
-  header.addEventListener("click", () => {
-    collapsed = !collapsed;
-    localStorage["emcdynmapplus-menu-collapsed"] = String(collapsed);
-    apply();
-  });
-  return menu;
-}
-function addMenuLocateSection(menu) {
-  const locateMenu = addElement(menu, INSERTABLE_HTML.locateMenu);
-  const locateButton = addElement(locateMenu, INSERTABLE_HTML.buttons.locate);
-  const locateSubmenu = addElement(locateMenu, INSERTABLE_HTML.menuOption, ".menu-option");
-  const locateSelect = addElement(locateSubmenu, INSERTABLE_HTML.locateSelect);
-  const locateInput = addElement(locateSubmenu, INSERTABLE_HTML.locateInput);
-  locateSelect.addEventListener("change", () => {
-    switch (locateSelect.value) {
-      case "Town":
-        locateInput.placeholder = "London";
-        break;
-      case "Nation":
-        locateInput.placeholder = "Nubia";
-        break;
-      case "Resident":
-        locateInput.placeholder = "Fix";
-        break;
-    }
-  });
-  const isArchiveMode = currentMapMode() == MapMode.ARCHIVE;
-  locateInput.addEventListener("keyup", (event) => {
-    if (event.key != "Enter") return;
-    locate(locateSelect.value, locateInput.value, isArchiveMode);
-  });
-  locateButton.addEventListener("click", () => {
-    locate(locateSelect.value, locateInput.value, isArchiveMode);
-  });
-}
-function addMenuArchiveSection(menu) {
-  const archiveMenu = addElement(menu, INSERTABLE_HTML.archiveMenu);
-  const archiveButton = addElement(archiveMenu, INSERTABLE_HTML.buttons.searchArchive);
-  const archiveInput = addElement(archiveMenu, INSERTABLE_HTML.archiveInput);
-  archiveButton.addEventListener("click", (_) => searchArchive(archiveInput.value));
-  archiveInput.addEventListener("keyup", (e) => {
-    if (e.key == "Enter") searchArchive(archiveInput.value);
-  });
-  archiveInput.addEventListener("change", (_) => {
-    const URLDate = archiveInput.value.replaceAll("-", "");
-    localStorage["emcdynmapplus-archive-date"] = URLDate;
-  });
-}
-function addMenuOptionsList(menu, curMapMode) {
-  const optionsButton = addElement(menu, INSERTABLE_HTML.buttons.options);
-  const optionsMenu = addElement(menu, INSERTABLE_HTML.options.menu);
-  optionsMenu.style.display = "none";
-  optionsButton.addEventListener("click", (_) => {
-    optionsMenu.style.display = optionsMenu.style.display == "none" ? "grid" : "none";
-    optionsButton.textContent = optionsMenu.style.display == "none" ? "Show Options" : "Close Options";
-  });
-  let i = 0;
-  addMenuCheckboxOption(
-    optionsMenu,
-    i++,
-    "toggle-normalize-scroll",
-    "Normalize scroll inputs",
-    "normalize-scroll",
-    (e) => toggleScrollNormalize(e.target.checked)
-  );
-  addMenuCheckboxOption(optionsMenu, i++, "toggle-darkened", "Decrease brightness", "darkened", (e) => toggleDarkened(e.target.checked));
-  addMenuCheckboxOption(optionsMenu, i++, "toggle-darkmode", "Toggle dark mode", "darkmode", (e) => toggleDarkMode(e.target.checked));
-  addMenuCheckboxOption(optionsMenu, i++, "toggle-serverinfo", "Display server info", "serverinfo", (e) => toggleServerInfo(e.target.checked));
-  if (curMapMode != "archive") {
-    addMenuCheckboxOption(
-      optionsMenu,
-      i++,
-      "toggle-playerlist",
-      "Display player list",
-      "playerlist",
-      (e) => togglePlayerList(e.target.checked)
-    );
-    addMenuCheckboxOption(
-      optionsMenu,
-      i++,
-      "toggle-capital-stars",
-      "Show capital stars",
-      "capital-stars",
-      (e) => toggleShowCapitalStars(e.target.checked)
-    );
-  }
-}
-function addMenuCheckboxOption(menu, index, optionId, optionText, variable, listener) {
-  const option = addElement(menu, INSERTABLE_HTML.options.option, ".option", true)[index];
-  option.insertAdjacentHTML("beforeend", INSERTABLE_HTML.options.label.replace("{option}", optionId).replace("{optionText}", optionText));
-  const checkbox = addElement(option, INSERTABLE_HTML.options.checkbox.replace("{option}", optionId), "#" + optionId);
-  checkbox.checked = localStorage["emcdynmapplus-" + variable] == "true";
-  if (listener) checkbox.addEventListener("change", listener);
-  return checkbox;
-}
 function toggleDarkened(boxTicked) {
   const element = document.querySelector(".leaflet-tile-pane");
   if (!element) return showAlert("Failed to toggle brightness. Cannot apply filter to non-existent tile pane.", 4);
@@ -1776,7 +1847,7 @@ function checkOverclaimed(claimedChunks, numResidents, numNationResidents) {
 var auroraNationBonus = (numNationResidents) => numNationResidents >= 200 ? 100 : numNationResidents >= 120 ? 80 : numNationResidents >= 80 ? 60 : numNationResidents >= 60 ? 50 : numNationResidents >= 40 ? 30 : numNationResidents >= 20 ? 10 : 0;
 
 // <define:MANIFEST>
-var define_MANIFEST_default = { manifest_version: 3, name: "EarthMC Dynmap+ (Owen3H Fork)", version: "2.3.4", author: "3meraldK", description: "Extension to enrich the EarthMC map experience", icons: { "48": "resources/icon48.png", "128": "resources/icon128.png" }, background: { service_worker: "worker.js" }, permissions: ["scripting", "storage"], host_permissions: ["https://*.earthmc.net/*", "https://web.archive.org/web/*", "https://raw.githubusercontent.com/EarthMC-Toolkit/*"], web_accessible_resources: [{ run_at: "document_idle", matches: ["https://map.earthmc.net/*", "https://aurora.earthmc.net/*"], resources: ["resources/interceptor.js", "resources/borders.json", "resources/img/*"] }], content_scripts: [{ matches: ["https://map.earthmc.net/*", "https://aurora.earthmc.net/*"], css: ["resources/css/global.css", "resources/css/leaflet.css", "resources/css/layout.css", "resources/css/mapmode.css", "resources/css/menu.css", "resources/css/popup.css"], js: ["src/util.js", "src/httputil.js", "src/dom.js", "src/layer.js", "src/marker.js", "src/locator.js", "src/screenshot.js", "src/modeselector.js", "src/gui.js", "src/main.js", "src/entrypoint.js"] }] };
+var define_MANIFEST_default = { manifest_version: 3, name: "EarthMC Dynmap+ (Owen3H Fork)", version: "2.3.4", author: "3meraldK", description: "Extension to enrich the EarthMC map experience", icons: { "48": "resources/icon48.png", "128": "resources/icon128.png" }, background: { service_worker: "worker.js" }, permissions: ["scripting", "storage"], host_permissions: ["https://*.earthmc.net/*", "https://web.archive.org/web/*", "https://raw.githubusercontent.com/EarthMC-Toolkit/*"], web_accessible_resources: [{ run_at: "document_idle", matches: ["https://map.earthmc.net/*", "https://aurora.earthmc.net/*"], resources: ["resources/interceptor.js", "resources/borders.json", "resources/img/*"] }], content_scripts: [{ matches: ["https://map.earthmc.net/*", "https://aurora.earthmc.net/*"], css: ["resources/css/global.css", "resources/css/leaflet.css", "resources/css/layout.css", "resources/css/mapmode.css", "resources/css/menu.css", "resources/css/popup.css"], js: ["src/util.js", "src/httputil.js", "src/dom.js", "src/heatmap.js", "src/layer.js", "src/marker.js", "src/locator.js", "src/screenshot.js", "src/modeselector.js", "src/gui.js", "src/main.js", "src/entrypoint.js"] }] };
 
 // src/entrypoint.js
 function isUserscript() {
@@ -1816,9 +1887,6 @@ function injectScript(resource) {
     };
     (document.head || document.documentElement).appendChild(script);
   });
-}
-function insertCustomStylesheets() {
-  document.head.insertAdjacentHTML("beforeend", INSERTABLE_HTML.interFont);
 }
 async function init(manifest) {
   if (isUserscript()) GM_addStyle(`:root {\r
@@ -2448,6 +2516,9 @@ input[type="color"]::-webkit-color-swatch {\r
   await insertPlayerList();
   await editUILayout();
   await insertScreenshotBtn();
+  if (currentMapMode() == MapMode.POPULATION) {
+    await insertPopulationHeatmap();
+  }
   const insertedPanel = await tryInsertNationClaimsPanel(MapMode.NATIONCLAIMS);
   if (insertedPanel) loadNationClaims(insertedPanel);
   initToggleOptions();

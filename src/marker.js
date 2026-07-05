@@ -200,6 +200,7 @@ function chunksToSquaremap(blocks) {
 
 const DEFAULT_BLUE = '#3fb4ff'
 const DEFAULT_GREEN = '#89c500'
+const toHex = v => Math.round(v).toString(16).padStart(2, '0')
 
 /** 
  * Sets the colour values of a marker with optional weight and returns it back.
@@ -274,13 +275,9 @@ function colourMarkerMeganations(marker, parsed) {
  * @returns {Marker}
  */
 function colourMarkerOverclaim(marker, parsed) {
-	const nation = parsed.nationName ? cachedApiNations.get(parsed.nationName.toLowerCase()) : null
-	const info = !nation
-		? checkOverclaimedNationless(parsed.area, parsed.residentNum)
-		: checkOverclaimed(parsed.area, parsed.residentNum, nation.stats.numResidents)
-
-	const colour = info.isOverclaimed ? '#ff0000' : '#00ff00'
-	return setMarkerColour(marker, colour, colour, info.isOverclaimed ? 2 : 0.5)
+	const overclaimed = cachedApiTowns.get(parsed.townName.toLowerCase())?.status?.isOverClaimed
+	const colour = overclaimed ? '#ff0000' : '#00ff00'
+	return setMarkerColour(marker, colour, colour, overclaimed ? 2 : 0.5)
 }
 
 /**
@@ -341,4 +338,48 @@ function colourMarkerNewDay(marker, parsedMarker) {
 
 	setMarkerTransparency(marker, 0.33, 0.8, 0.85)
 	return setMarkerColour(marker, '#151515', '#151515')
+}
+
+const rgb = (r, g, b) => ({ r: r, g: g, b: b })
+const stops = [
+	rgb(255, 255, 255), // white
+	rgb(0, 255, 0), // green
+	rgb(250, 220, 0), // orange
+	rgb(255, 0, 0)  // red
+]
+
+/**
+ * Colours a marker using a perceptual heatmap curve (EarthMC-style).
+ *
+ * `power` controls contrast:
+ * - `1` = linear-ish
+ * - `>1` = more detail in low values
+ * - `<1` = more aggressive heat
+ *
+ * @param {Marker} marker
+ * @param {number} value The value to map (>= 0).
+ * @param {number} power Curve strength (> 0).
+ * @returns {Marker}
+ */
+function colourMarkerHeatmap(marker, value, power) {
+	const t0 = value / (value + 1)
+	const t = Math.pow(t0, power)
+
+	const scaled = t * (stops.length - 1)
+	const i = Math.floor(scaled)
+	const f = scaled - i
+
+	const a = stops[i]
+	const b = stops[Math.min(i + 1, stops.length - 1)]
+
+	const r = a.r + (b.r - a.r) * f
+	const g = a.g + (b.g - a.g) * f
+	const bl = a.b + (b.b - a.b) * f
+
+	const colour = `#${toHex(r)}${toHex(g)}${toHex(bl)}`
+
+	const weight = 0.9 + t
+	setMarkerTransparency(marker, 0.6, 1, weight)
+
+	return setMarkerColour(marker, colour, colour)
 }

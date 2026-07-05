@@ -10,7 +10,9 @@ const MAP_MODES = /** @type {const} */ ({
     NATIONCLAIMS:   { name: "nationclaims", img: "resources/img/map-mode-nationclaims.png", order: 3 },
     OVERCLAIM:      { name: "overclaim",    img: "resources/img/map-mode-overclaim.png", order: 4, skipIf: () => isAurora },
     NEWDAY:         { name: "newday",       img: "resources/img/map-mode-newday.png", order: 5, skipIf: () => isAurora },
-    ARCHIVE:        { name: "archive",      img: null, order: 6 }, // null img to avoid showing up in the selector
+    POPULATION:     { name: "population",   img: "resources/img/map-mode-heatmap-population.png", order: 6, skipIf: () => isAurora },
+    BALANCE:        { name: "balance",      img: "resources/img/map-mode-heatmap-balance.png", order: 7, skipIf: () => isAurora },
+    ARCHIVE:        { name: "archive",      img: null, order: 8 }, // null img to avoid showing up in the selector
 })
 Object.freeze(MAP_MODES)
 
@@ -71,7 +73,7 @@ function addMapModeSelector(parent) {
  */
 function addMapModeBtn(iconContainer, mode, clickHandler = null) {
     const button = addElement(iconContainer, INSERTABLE_HTML.mapMode.btnOption)
-    addElement(button, `<img title="${mode.name}" alt="${mode.name}" src="${GITHUB_REPO + mode.img}">`)
+    addElement(button, `<img title="${mode.name}" alt="${mode.name}" src="${chrome.runtime.getURL(mode.img)}">`)
 
     if (clickHandler) button.addEventListener('click', clickHandler)
 }

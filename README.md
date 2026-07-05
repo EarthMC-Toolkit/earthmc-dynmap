@@ -21,7 +21,6 @@ When creating the extension, the main idea was to group countries together into 
 * Bug fixes & performance improvements.
 * UI revamp/design tweaks with dedicated mode selector (Toggle with Shift+M).
 * Ability to show server info and list of online players.
-* Updated `alliances` mode to work again with the new API.
 * New modes: `overclaim`, `nationclaims`, `newday` (falling+ruined towns).
 * New screenshot button.
 * Searching now works in archive mode.

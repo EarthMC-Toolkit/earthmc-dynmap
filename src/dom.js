@@ -59,6 +59,7 @@ const INSERTABLE_HTML = /** @type {const} */ ({
 	},
     followingPlayer: '<h1 id="following-warning">Stop following this player by clicking on the map.</h1>',
     alertBox: '<div id="alert"><p id="alert-message">{message}</p><button id="alert-close">Dismiss</button></div>',
+    alertBoxNoDismiss: '<div id="alert"><p id="alert-message">{message}</p></div>',
 	// Used in main.js
     playerLookup: '<div class="leaflet-control-layers leaflet-control" id="player-lookup"></div>',
     playerLookupLoading: '<div class="leaflet-control-layers leaflet-control" id="player-lookup-loading">Loading...</button>',
@@ -111,6 +112,22 @@ function showAlert(message, timeout = null) {
 			alert.remove()
 		})
 	} else alert.querySelector('#alert-message').textContent = message
+
+	clearTimeout(alertTimeout)
+	if (timeout) alertTimeout = setTimeout(() => alert.remove(), timeout*1000)
+
+	return alert
+}
+
+/**
+ * Shows an alert message in a box at the center of the screen.
+ * @param {string} message - The important text to show inside the alert box.
+ * @param {number} timeout - The time (in sec) until the alert box is auto closed. null = manual dismiss
+ */
+function showAlertNoDismiss(message, timeout = null) {
+	let alert = document.querySelector('#alert')
+	if (!alert) alert = addElement(document.body, INSERTABLE_HTML.alertBoxNoDismiss.replace('{message}', message))
+	else alert.querySelector('#alert-message').textContent = message
 
 	clearTimeout(alertTimeout)
 	if (timeout) alertTimeout = setTimeout(() => alert.remove(), timeout*1000)
@@ -412,7 +429,7 @@ const waitForStableViewport = () => new Promise(resolve => {
 })
 
 /** @param {HTMLElement} el */
-const waitForTransform = (el) => new Promise(resolve => {
+const waitForTransform = el => new Promise(resolve => {
 	let timer
 	let last = getComputedStyle(el).transform
 	const observer = new MutationObserver(() => {

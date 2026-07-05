@@ -32,8 +32,17 @@ const archiveDate = () => parseInt(localStorage['emcdynmapplus-archive-date'])
 /** @type {Array<ParsedMarker>} */
 let parsedMarkers = [] // this is essential for the locater to work correctly
 
+/** 
+ * @typedef {Object} OAPITown
+ * @property {string} name
+ * @property {{ spawn: { x: number, z: number } }} coordinates
+ * @property {{ numResidents: number, balance: number }} stats
+ * @property {{ isOverClaimed: boolean, isRuined: boolean }} status
+ */
+
 /** @type {Array<CAPIFallingTown>} */ let cachedFallingTowns = null
 /** @type {Array<CAPITown>} 	   */ let cachedRuinedTowns  = null
+/** @type {Map<string, OAPITown>}  */ let cachedApiTowns 	 = null
 /** @type {Map<string, any>} 	   */ let cachedApiNations 	 = null
 /** @type {Array<Alliance>} 	   */ let cachedAlliances 	 = null
 
@@ -71,7 +80,19 @@ async function modifyMarkers(data) {
 		addRuinMarkers(data, cachedRuinedTowns, '#ff1900')
 	}
 
-	if (mapMode == MapMode.OVERCLAIM && cachedApiNations == null) {
+	if (!cachedApiTowns && (mapMode == MapMode.BALANCE || mapMode == MapMode.OVERCLAIM)) {
+		const alert = showAlertNoDismiss('Querying the EMC API for extra town info...', 20)
+
+		const url = `${currentMapApiUrl()}/towns`
+		const tlist = await fetchJSON(url) // GET
+
+		/** @type {Array<OAPITown>} */
+		const apiTowns = await queryConcurrent(url, tlist) // POST
+		cachedApiTowns = new Map(apiTowns.map(t => [t.name.toLowerCase(), t]))
+	
+		alert.remove()
+	}
+	if (!cachedApiNations && mapMode == MapMode.OVERCLAIM) {
 		const url = `${currentMapApiUrl()}/nations`
 		const nlist = await fetchJSON(url) // GET
 		const apiNations = await queryConcurrent(url, nlist) // POST
@@ -82,47 +103,65 @@ async function modifyMarkers(data) {
 	const date = archiveDate()
 	const isSquaremap = mapMode != MapMode.ARCHIVE || date >= 20240701
 
+	const useOpaque = localStorage['emcdynmapplus-nation-claims-opaque-colors'] == 'true' ? true : false
+	const showExcluded = localStorage['emcdynmapplus-nation-claims-show-excluded'] == 'true' ? true : false
 	const claimsCustomizerInfo = new Map(nationClaimsInfo()
 		.filter(obj => obj.input != null)
 		.map(obj => [obj.input?.toLowerCase(), obj.color])
 	)
 
-	const useOpaque = localStorage['emcdynmapplus-nation-claims-opaque-colors'] == 'true' ? true : false
-	const showExcluded = localStorage['emcdynmapplus-nation-claims-show-excluded'] == 'true' ? true : false
-
-	const start = performance.now()
 	for (const marker of data[0].markers) {
 		if (marker.type != 'polygon' && marker.type != 'icon') continue
 
 		// Set default transparency. May be altered l8r depending on map mode.
-		setMarkerTransparency(marker, 0.33, 1, 1.5)
+		setMarkerTransparency(marker, 0.33, 1, 1.2)
 
 		const parsed = isSquaremap 
 			? modifySquaremapDescription(marker, mapMode)
 			: modifyDynmapDescription(marker, date)
 
+		const match = parsed.mayor?.match(/^NPC(\d+)$/)
+		const isRuin = match ? Number(match[1]) >= 0 && Number(match[1]) <= 1000 : false
+
 		switch (mapMode) {
 			case MapMode.DEFAULT: 
 			case MapMode.ARCHIVE: break
-			case MapMode.ALLIANCES:
+			case MapMode.ALLIANCES: {
 				colourMarkerAlliances(marker, parsed)
 				break
-			case MapMode.MEGANATIONS:
+			}
+			case MapMode.MEGANATIONS: {
 				colourMarkerMeganations(marker, parsed)
 				break
-			case MapMode.OVERCLAIM:
-				colourMarkerOverclaim(marker, parsed)
+			}
+			case MapMode.OVERCLAIM: {
+				if (isRuin) setMarkerColour(marker, '#000000', '#000000')
+				else colourMarkerOverclaim(marker, parsed)
 				break
-			case MapMode.NATIONCLAIMS: 
+			}
+			case MapMode.NATIONCLAIMS: {
 				colourMarkerNationClaims(marker, parsed.nationName, claimsCustomizerInfo, useOpaque, showExcluded)
 				break
-			case MapMode.NEWDAY:
+			}
+			case MapMode.NEWDAY: {
 				colourMarkerNewDay(marker, parsed)
 				break
-			default: 
-				const mayor = marker.popup.match(/Mayor: <b>(.*)<\/b>/)?.[1]
-				const isRuin = !!mayor?.match(/NPC[0-1000]+/)
+			}
+			case MapMode.POPULATION: {
 				if (isRuin) setMarkerColour(marker, '#000000', '#000000')
+				else colourMarkerHeatmap(marker, parsed.residentNum, 7)
+				break
+			}
+			case MapMode.BALANCE: {
+				if (isRuin) setMarkerColour(marker, '#000000', '#000000')
+				else {
+					const bal = cachedApiTowns.get(parsed.townName.toLowerCase())?.stats?.balance
+					colourMarkerHeatmap(marker, bal || 0, 90)
+				}
+
+				break
+			}
+			default: if (isRuin) setMarkerColour(marker, '#000000', '#000000')
 		}
 
 		parsedMarkers.push(parsed) // needs to be at very end in case any map mode funcs modify parsed
@@ -286,6 +325,118 @@ function modifyDynmapDescription(marker, curArchiveDate) {
 }
 
 /**
+ * Gets all alliances the input nation exists within / is related to.
+ * @param {string} nationName - The name of the nation to get related alliances.
+ * @param {MapMode} mapMode - The currently selected map mode.
+ */
+function getNationAlliances(nationName, mapMode) {
+	if (cachedAlliances == null) return []
+
+	/** @type {Array<{name: string, colours: AllianceColours}>} */
+	const nationAlliances = []
+	for (const alliance of cachedAlliances) {
+		if (alliance.modeType != mapMode.name) continue
+		if (!alliance._nationSet.has(nationName)) continue
+
+		nationAlliances.push({ name: alliance.name, colours: alliance.colours })
+	}
+
+	return nationAlliances
+}
+
+/** @param {MarkersResponse} data - The markers response JSON data. */
+async function getArchive(data) {
+	const loadingAlert = showAlertNoDismiss('Loading archive, please wait...', 10)
+	const date = archiveDate()
+
+	try {
+		const archive = await fetchArchive(date)
+
+		let actualArchiveDate // Structure of markers.json changed at some point
+		if (date < 20240701) {
+			data[0].markers = convertOldMarkersStructure(archive.sets['townyPlugin.markerset'])
+			actualArchiveDate = archive.timestamp
+		} else {
+			data = archive
+			actualArchiveDate = archive[0].timestamp
+		}
+
+		// THIS HAS TO BE EN-CA SO REPLACING DASHES WORKS TO MATCH STORED DATE
+		actualArchiveDate = new Date(parseInt(actualArchiveDate)).toLocaleDateString('en-ca')
+		document.querySelector('#current-map-mode-label').textContent += ` (${actualArchiveDate})`
+		
+		loadingAlert.remove()
+		if (actualArchiveDate.replaceAll('-', '') != date) {
+			showAlert(`The closest archive to your prompt comes from ${actualArchiveDate}.`)
+		}
+
+		return data
+	} catch (e) {
+		console.error(e)
+		return showAlert('Archive service is currently unavailable, please try later.', 5)
+	}
+}
+
+/** @param {Object} markerset - The towny markerset of the old markers response JSON data */
+function convertOldMarkersStructure(markerset) {
+	return Object.entries(markerset.areas).filter(([key]) => !key.includes('_Shop')).map(([_, v]) => ({
+		fillColor: v.fillcolor,
+		color: v.color,
+		popup: v.desc ?? `<div><b>${v.label}</b></div>`,
+		weight: v.weight,
+		opacity: v.opacity,
+		type: 'polygon',
+		points: v.x.map((x, i) => ({ x, z: v.z[i] }))
+	}))
+}
+
+/**
+ * Calculate the claim limit for an independent town and report overclaimed status.
+ * @param {number} claimedChunks 
+ * @param {number} numResidents 
+ */
+function checkOverclaimedNationless(claimedChunks, numResidents) {
+    const resLimit = numResidents * CHUNKS_PER_RES
+    const isOverclaimed = claimedChunks > resLimit
+
+    // Calculate how much the town is overclaimed by, if applicable
+    return {
+		isOverclaimed,
+		chunksOverclaimed: isOverclaimed ? claimedChunks - resLimit : 0,
+		resLimit
+	}
+}
+
+/**
+ * Calculate the claim limit for a town with a nation and report overclaimed status.
+ * @param {number} claimedChunks
+ * @param {number} numResidents
+ * @param {number} numNationResidents
+ */
+function checkOverclaimed(claimedChunks, numResidents, numNationResidents) {
+	const bonus = calcNationBonus(numNationResidents)
+
+    const resLimit = numResidents * CHUNKS_PER_RES
+    const totalClaimLimit = resLimit + bonus
+    const isOverclaimed = claimedChunks > totalClaimLimit
+	
+	return { 
+		isOverclaimed,
+		chunksOverclaimed: isOverclaimed ? claimedChunks - totalClaimLimit : 0,
+		nationBonus: bonus,
+		resLimit, totalClaimLimit
+	}
+}
+
+/** @param {number} numNationResidents */
+const calcNationBonus = numNationResidents => numNationResidents >= 200 ? 100
+	: numNationResidents >= 120 ? 80
+	: numNationResidents >= 80 ? 60
+	: numNationResidents >= 60 ? 50
+	: numNationResidents >= 40 ? 30
+	: numNationResidents >= 20 ? 10 : 0
+
+/**
  * @param {string} playerName
  * @param {boolean} showOnlineStatus 
  */
@@ -364,115 +515,3 @@ async function lookupPlayer(playerName, showOnlineStatus = true) {
 
 	lookup.querySelector('.close-container').addEventListener('click', event => { event.target.parentElement.remove() })
 }
-
-/**
- * Gets all alliances the input nation exists within / is related to.
- * @param {string} nationName - The name of the nation to get related alliances.
- * @param {MapMode} mapMode - The currently selected map mode.
- */
-function getNationAlliances(nationName, mapMode) {
-	if (cachedAlliances == null) return []
-
-	/** @type {Array<{name: string, colours: AllianceColours}>} */
-	const nationAlliances = []
-	for (const alliance of cachedAlliances) {
-		if (alliance.modeType != mapMode.name) continue
-		if (!alliance._nationSet.has(nationName)) continue
-
-		nationAlliances.push({ name: alliance.name, colours: alliance.colours })
-	}
-
-	return nationAlliances
-}
-
-/** @param {MarkersResponse} data - The markers response JSON data. */
-async function getArchive(data) {
-	const loadingAlert = showAlert('Loading archive, please wait...', 10)
-	const date = archiveDate()
-
-	try {
-		const archive = await fetchArchive(date)
-
-		let actualArchiveDate // Structure of markers.json changed at some point
-		if (date < 20240701) {
-			data[0].markers = convertOldMarkersStructure(archive.sets['townyPlugin.markerset'])
-			actualArchiveDate = archive.timestamp
-		} else {
-			data = archive
-			actualArchiveDate = archive[0].timestamp
-		}
-
-		// THIS HAS TO BE EN-CA SO REPLACING DASHES WORKS TO MATCH STORED DATE
-		actualArchiveDate = new Date(parseInt(actualArchiveDate)).toLocaleDateString('en-ca')
-		document.querySelector('#current-map-mode-label').textContent += ` (${actualArchiveDate})`
-		
-		loadingAlert.remove()
-		if (actualArchiveDate.replaceAll('-', '') != date) {
-			showAlert(`The closest archive to your prompt comes from ${actualArchiveDate}.`)
-		}
-
-		return data
-	} catch (e) {
-		console.error(e)
-		return showAlert('Archive service is currently unavailable, please try later.', 5)
-	}
-}
-
-/** @param {Object} markerset - The towny markerset of the old markers response JSON data */
-function convertOldMarkersStructure(markerset) {
-	return Object.entries(markerset.areas).filter(([key]) => !key.includes('_Shop')).map(([_, v]) => ({
-		fillColor: v.fillcolor,
-		color: v.color,
-		popup: v.desc ?? `<div><b>${v.label}</b></div>`,
-		weight: v.weight,
-		opacity: v.opacity,
-		type: 'polygon',
-		points: v.x.map((x, i) => ({ x, z: v.z[i] }))
-	}))
-}
-
-/**
- * Calculate the claim limit for an independent town and report overclaimed status.
- * @param {number} claimedChunks 
- * @param {number} numResidents 
- */
-function checkOverclaimedNationless(claimedChunks, numResidents) {
-    const resLimit = numResidents * CHUNKS_PER_RES
-    const isOverclaimed = claimedChunks > resLimit
-
-    // Calculate how much the town is overclaimed by, if applicable
-    return { 
-		isOverclaimed,
-		chunksOverclaimed: isOverclaimed ? claimedChunks - resLimit : 0,
-		resLimit
-	}
-}
-
-/**
- * Calculate the claim limit for a town with a nation and report overclaimed status.
- * @param {number} claimedChunks
- * @param {number} numResidents
- * @param {number} numNationResidents
- */
-function checkOverclaimed(claimedChunks, numResidents, numNationResidents) {
-	const bonus = auroraNationBonus(numNationResidents)
-
-    const resLimit = numResidents * CHUNKS_PER_RES
-    const totalClaimLimit = resLimit + bonus
-    const isOverclaimed = claimedChunks > totalClaimLimit
-	
-	return { 
-		isOverclaimed,
-		chunksOverclaimed: isOverclaimed ? claimedChunks - totalClaimLimit : 0,
-		nationBonus: bonus,
-		resLimit, totalClaimLimit
-	}
-}
-
-/** @param {number} numNationResidents */
-const auroraNationBonus = numNationResidents => numNationResidents >= 200 ? 100
-	: numNationResidents >= 120 ? 80
-	: numNationResidents >= 80 ? 60
-	: numNationResidents >= 60 ? 50
-	: numNationResidents >= 40 ? 30
-	: numNationResidents >= 20 ? 10 : 0
