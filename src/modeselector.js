@@ -1,8 +1,6 @@
 /** ANY CODE RELATING TO THE MAP MODE SELECTOR GOES HERE */
 //console.log('emcdynmapplus: loaded mode selector')
 
-const GITHUB_REPO = "https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/refs/heads/main/"
-
 const MAP_MODES = /** @type {const} */ ({
     DEFAULT:        { name: "default",      img: "resources/img/map-mode-default.png", order: 0 },
     MEGANATIONS:    { name: "meganations",  img: "resources/img/map-mode-meganations.png", order: 1 },
@@ -73,7 +71,8 @@ function addMapModeSelector(parent) {
  */
 function addMapModeBtn(iconContainer, mode, clickHandler = null) {
     const button = addElement(iconContainer, INSERTABLE_HTML.mapMode.btnOption)
-    addElement(button, `<img title="${mode.name}" alt="${mode.name}" src="${chrome.runtime.getURL(mode.img)}">`)
+    const src = isUserscript() ? MAP_MODE_IMGS[mode.name] : chrome.runtime.getURL(mode.img)
+    addElement(button, `<img title="${mode.name}" alt="${mode.name}" src="${src}">`)
 
     if (clickHandler) button.addEventListener('click', clickHandler)
 }

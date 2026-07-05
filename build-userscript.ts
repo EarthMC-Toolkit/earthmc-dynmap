@@ -14,6 +14,18 @@ const STYLE_CSS = readdirSync('resources/css').filter(f => f.endsWith('.css'))
 const BORDERS: Borders = JSON.parse(readFileSync('resources/borders.json', 'utf8'))
 const MANIFEST: Manifest = JSON.parse(readFileSync('manifest.json', 'utf8'))
 
+const MAP_MODE_IMGS = {
+    "default":      `${ftob64('resources/img/map-mode-default.png')}`,
+    "meganations":  `${ftob64('resources/img/map-mode-meganations.png')}`,
+    "alliances":    `${ftob64('resources/img/map-mode-alliances.png')}`,
+    "nationclaims": `${ftob64('resources/img/map-mode-nationclaims.png')}`,
+    "overclaim":    `${ftob64('resources/img/map-mode-overclaim.png')}`,
+    "newday":       `${ftob64('resources/img/map-mode-newday.png')}`,
+    "population":   `${ftob64('resources/img/map-mode-heatmap-population.png')}`,
+    "balance":      `${ftob64('resources/img/map-mode-heatmap-balance.png')}`,
+    "archive":      null,
+}
+
 // TODO: Dynamically insert @include tags depending on matches arr count
 const contentScripts = MANIFEST.content_scripts[0]
 const HEADER = `// ==UserScript==
@@ -24,7 +36,6 @@ const HEADER = `// ==UserScript==
 // @include     ${contentScripts.matches[0]}
 // @include     ${contentScripts.matches[1]}
 // @icon        https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/main/resources/icon48.png
-// @downloadURL https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/main/dist/emc-dynmapplus.user.js
 // @grant       GM_addStyle
 // @grant       GM_getResourceURL
 // @grant       GM_xmlhttpRequest
@@ -42,12 +53,14 @@ const buildOpts: BuildOptions = {
     bundle: true,       // IMPORTANT: must be true otherwise we don't get a single user.js file with inlined dependencies.
     write: false,       // Do not write to a file, we do that ourselves below after appending header etc.
     treeShaking: false, // Don't remove dead code since false positives are common and doing so will cause errors.
+    minifySyntax: true,
     define: {
         // Make some resources and flags available to userscript when in use.
         IS_USERSCRIPT: 'true',
         STYLE_CSS: JSON.stringify(STYLE_CSS),
         BORDERS: JSON.stringify(BORDERS),
         MANIFEST: JSON.stringify(MANIFEST),
+        MAP_MODE_IMGS: JSON.stringify(MAP_MODE_IMGS),
         // Swap out instances of keywords with their userscript compatible counterpart.
         window: 'unsafeWindow',
         'chrome.runtime.getURL': 'GM_getResourceURL',
