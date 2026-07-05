@@ -52,7 +52,7 @@ jobs:
 
                 # 📜 Userscript
                 1. Install a userscript manager (Violentmonkey recommended).
-                1. Click [this link](https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/refs/heads/main/dist/emc-dynmapplus.user.js) and hit **Install** or **Reinstall** to update.
+                1. Click [this link](https://github.com/EarthMC-Toolkit/earthmc-dynmap/releases/download/${{ steps.version.outputs.version }}/emc-dynmapplus.user.js) and hit **Install** or **Reinstall** to update.
                 1. Make sure the script is enabled and refresh the map.
 
                 # 📦 Chromium Extension
