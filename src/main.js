@@ -26,8 +26,8 @@ const CHUNKS_PER_RES = 12
 const DAY_MS = 86_400_000 // 24hr in millisec
 
 /** @type {() => Array<{color: string | null, input: string | null}>} */
-const nationClaimsInfo = () => JSON.parse(localStorage['emcdynmapplus-nation-claims-info'] || '[]')
-const archiveDate = () => parseInt(localStorage['emcdynmapplus-archive-date'])
+const nationClaimsInfo = () => Store.local.get('nation-claims-info', [])
+const archiveDate = () => parseInt(Store.local.get('archive-date'))
 
 /** @type {Array<ParsedMarker>} */
 let parsedMarkers = [] // this is essential for the locater to work correctly
@@ -80,16 +80,17 @@ async function modifyMarkers(data) {
 		addRuinMarkers(data, cachedRuinedTowns, '#ff1900')
 	}
 
-	if (!cachedApiTowns && (mapMode == MapMode.BALANCE || mapMode == MapMode.OVERCLAIM)) {
-		const alert = showAlertNoDismiss('Querying the EMC API for extra town info...', 20)
-
-		const url = `${currentMapApiUrl()}/towns`
-		const tlist = await fetchJSON(url) // GET
-
+	if (mapMode == MapMode.BALANCE || mapMode == MapMode.OVERCLAIM) {
+		const alert = showAlertNoDismiss('Querying the EMC API for extra town info...', 30)
+		
 		/** @type {Array<OAPITown>} */
-		const apiTowns = await queryConcurrent(url, tlist) // POST
-		cachedApiTowns = new Map(apiTowns.map(t => [t.name.toLowerCase(), t]))
-	
+		const cached = await Store.opfs.cache("api-towns", 2*60*1000, async () => {
+			const url = `${currentMapApiUrl()}/towns`
+			const tlist = await fetchJSON(url)
+			return queryConcurrent(url, tlist)
+		})
+
+		cachedApiTowns = new Map(cached.map(t => [t.name.toLowerCase(), t]))
 		alert.remove()
 	}
 	if (!cachedApiNations && mapMode == MapMode.OVERCLAIM) {
@@ -103,8 +104,8 @@ async function modifyMarkers(data) {
 	const date = archiveDate()
 	const isSquaremap = mapMode != MapMode.ARCHIVE || date >= 20240701
 
-	const useOpaque = localStorage['emcdynmapplus-nation-claims-opaque-colors'] == 'true' ? true : false
-	const showExcluded = localStorage['emcdynmapplus-nation-claims-show-excluded'] == 'true' ? true : false
+	const useOpaque = Store.local.get('nation-claims-opaque-colors') == 'true'
+	const showExcluded = Store.local.get('nation-claims-show-excluded') == 'true'
 	const claimsCustomizerInfo = new Map(nationClaimsInfo()
 		.filter(obj => obj.input != null)
 		.map(obj => [obj.input?.toLowerCase(), obj.color])
@@ -135,8 +136,11 @@ async function modifyMarkers(data) {
 				break
 			}
 			case MapMode.OVERCLAIM: {
+				const t = cachedApiTowns.get(parsed.townName.toLowerCase())
+				if (t) marker.popup = buildMarkerPopup(t)
+
 				if (isRuin) setMarkerColour(marker, '#000000', '#000000')
-				else colourMarkerOverclaim(marker, parsed)
+				else colourMarkerOverclaim(marker, t)
 				break
 			}
 			case MapMode.NATIONCLAIMS: {
@@ -155,8 +159,10 @@ async function modifyMarkers(data) {
 			case MapMode.BALANCE: {
 				if (isRuin) setMarkerColour(marker, '#000000', '#000000')
 				else {
-					const bal = cachedApiTowns.get(parsed.townName.toLowerCase())?.stats?.balance
-					colourMarkerHeatmap(marker, bal || 0, 90)
+					const t = cachedApiTowns.get(parsed.townName.toLowerCase())
+					if (t) marker.popup = buildMarkerPopup(t)
+
+					colourMarkerHeatmap(marker, t?.stats?.balance || 0, 90)
 				}
 
 				break
@@ -348,9 +354,19 @@ function getNationAlliances(nationName, mapMode) {
 async function getArchive(data) {
 	const loadingAlert = showAlertNoDismiss('Loading archive, please wait...', 10)
 	const date = archiveDate()
+	const path = `db/archives/${date}.json`
 
 	try {
-		const archive = await fetchArchive(date)
+		let archive = null
+		try {
+			archive = await Store.opfs.readJSON(path)
+		} catch (e) {
+			console.warn("Failed to read cached archive:", e)
+		}
+		if (archive == null) {
+			archive = await fetchArchive(date)
+			await Store.opfs.writeJSON(path, archive)
+		}
 
 		let actualArchiveDate // Structure of markers.json changed at some point
 		if (date < 20240701) {

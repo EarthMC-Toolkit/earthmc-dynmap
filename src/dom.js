@@ -1,5 +1,5 @@
 /** ANY DOM MANIPULATION OR ELEMENT INSERTION CODE BELONGS HERE */
-//console.log('emcdynmapplus: loaded dom')
+//console.log('emcdynmapplus: loaded dom') 
 
 const ARCHIVE_DATE = {
 	MIN: "2022-05-01",
@@ -13,7 +13,7 @@ const SCROLL_LINE_DELTA = 30  // 1 scroll line = ~30 deltaY in windows
 const SCROLL_THRESHOLD 	= 5	  // increase zoom by this many scroll lines
 
 // TODO: Add sliders under a "Tile Filters" section and bind these variables to their respective values.
-const BRIGHTNESS_PERCENTAGE = localStorage['emcdynmapplus-mapmode'] != 'newday' ? 65 : 40
+const BRIGHTNESS_PERCENTAGE = Store.local.get('mapmode') != 'newday' ? 65 : 40
 const CONTRAST_PERCENTAGE = 102
 const SATURATE_PERCENTAGE = 97
 const getTilePaneFilter = () => /** @type {const} */ (
@@ -216,7 +216,7 @@ function addExtensionMenu(parent) {
 	addMenuArchiveSection(body)
 	addMenuOptionsList(body, currentMapMode()) // Options button and checkboxes
 
-	let collapsed = localStorage['emcdynmapplus-menu-collapsed'] == 'true'
+	let collapsed = Store.local.get('menu-collapsed') == 'true'
 
 	const arrow = header.querySelector('#menu-arrow')
 	const apply = () => {
@@ -227,7 +227,7 @@ function addExtensionMenu(parent) {
 	apply()
 	header.addEventListener('click', () => {
 		collapsed = !collapsed
-		localStorage['emcdynmapplus-menu-collapsed'] = String(collapsed)
+		Store.local.set('menu-collapsed', collapsed)
 		apply()
 	})
 
@@ -266,16 +266,18 @@ function addMenuLocateSection(menu) {
 function addMenuArchiveSection(menu) {
 	const archiveMenu = addElement(menu, INSERTABLE_HTML.archiveMenu)
 	const archiveButton = addElement(archiveMenu, INSERTABLE_HTML.buttons.searchArchive)
+	
+	/** @type {HTMLInputElement} */
 	const archiveInput = addElement(archiveMenu, INSERTABLE_HTML.archiveInput)
 	
-	archiveButton.addEventListener('click', _ => searchArchive(archiveInput.value))
-
 	// TODO: Typing in a bogus date will cause infinite "Loading archive..."
 	archiveInput.addEventListener('keyup', e => { if (e.key == 'Enter') searchArchive(archiveInput.value) })
 	archiveInput.addEventListener('change', _ => {
 		const URLDate = archiveInput.value.replaceAll('-', '')
-		localStorage['emcdynmapplus-archive-date'] = URLDate
+		Store.local.set('archive-date', URLDate)
 	})
+
+	archiveButton.addEventListener('click', _ => searchArchive(archiveInput.value))
 }
 
 /** 
@@ -330,40 +332,41 @@ function addMenuCheckboxOption(menu, index, optionId, optionText, variable, list
 	// Initialize checkbox state
 	/** @type {HTMLInputElement} */
 	const checkbox = addElement(option, INSERTABLE_HTML.options.checkbox.replace('{option}', optionId), '#' + optionId)
-	checkbox.checked = (localStorage['emcdynmapplus-' + variable] == 'true')
+	checkbox.checked = Store.local.get(variable) == 'true'
 	
 	if (listener) checkbox.addEventListener('change', listener)
 	return checkbox
 }
 
 function initToggleOptions() {
-	const darkened = localStorage['emcdynmapplus-darkened'] == 'true' ? true : false
+	const darkened = Store.local.get('darkened') == 'true'
 	waitForElement('.leaflet-tile-pane').then(_ => toggleDarkened(darkened))
 
-    const darkPref = localStorage['emcdynmapplus-darkmode']
+    const darkPref = Store.local.get('darkmode')
     const systemDark = window.matchMedia?.('(prefers-color-scheme: dark)')?.matches
-    if (darkPref === 'true' || (!darkPref && systemDark)) {
-        localStorage['emcdynmapplus-darkmode'] = 'true'
+    if ((!darkPref && systemDark) || darkPref === 'true') {
+        Store.local.set('darkmode', 'true')
         loadDarkMode()
     }
 
-	const displayServerInfo = localStorage['emcdynmapplus-serverinfo'] == 'true' ? true : false
+	const displayServerInfo = Store.local.get('serverinfo') == 'true'
 	waitForElement('#server-info').then(_ => toggleServerInfo(displayServerInfo))
 
-	const displayPlayerList = localStorage['emcdynmapplus-playerlist'] == 'true' ? true : false
+	const displayPlayerList = Store.local.get('playerlist') == 'true'
 	waitForElement('#players').then(_ => togglePlayerList(displayPlayerList))
 
 	// Initialize date input from stored date. 20260801 -> 2026-08-01
-	const archiveDate = localStorage['emcdynmapplus-archive-date']
+	/** @type {string} */
+	const archiveDate = Store.local.get('archive-date')
 	if (archiveDate) {
 		const formattedDate = archiveDate.slice(0, 4) + '-' + archiveDate.slice(4, 6) + '-' + archiveDate.slice(6, 8)
 		waitForElement('#archive-input').then(dateInputEl => dateInputEl.value = formattedDate)
 	}
 
-	const showCapitalStars = localStorage['emcdynmapplus-capital-stars'] == 'true' ? true : false
+	const showCapitalStars = Store.local.get('capital-stars') == 'true'
 	waitForElement('.leaflet-pane.leaflet-marker-pane').then(_ => toggleShowCapitalStars(showCapitalStars))
 	
-	const normalizeScroll = localStorage['emcdynmapplus-normalize-scroll'] == 'true' ? true : false
+	const normalizeScroll = Store.local.get('normalize-scroll') == 'true'
 	toggleScrollNormalize(normalizeScroll)
 }
 
@@ -582,7 +585,7 @@ function disablePanAndZoom(element) {
 /** @param {HTMLElement} panel - The "#nation-claims" element. */
 function loadNationClaims(panel) {
 	/** @type {Array<{color: string|null, input: string|null>}} */
-	const entries = JSON.parse(localStorage['emcdynmapplus-nation-claims-info'] || '[]')
+	const entries = Store.local.get('nation-claims-info', [])
 	entries.forEach((entry, i) => {
 		const color = panel.querySelector(`#nation-color-entry${i+1}`)
 		const text = panel.querySelector(`#nation-text-entry${i+1}`)
@@ -633,20 +636,16 @@ function addNationClaimsPanel(parent) {
 		INSERTABLE_HTML.options.checkbox.replace('{option}', 'show-excluded') + 
 		INSERTABLE_HTML.options.label.replace('{option}', 'show-excluded').replace('{optionText}', 'Show irrelevant towns')
 	)
-	showExcludedCheckbox.checked = localStorage['emcdynmapplus-nation-claims-show-excluded'] == 'true' ? true : false
-	showExcludedCheckbox.addEventListener('change', e =>
-		localStorage['emcdynmapplus-nation-claims-show-excluded'] = e.target.checked
-	)
+	showExcludedCheckbox.checked = Store.local.get('nation-claims-show-excluded') == 'true'
+	showExcludedCheckbox.addEventListener('change', e => Store.local.set('nation-claims-show-excluded', e.target.checked))
 
 	/** @type {HTMLInputElement} */
 	const useOpaqueCheckbox = appendHTML(optDiv2,
 		INSERTABLE_HTML.options.checkbox.replace('{option}', 'use-opaque-colors') + 
 		INSERTABLE_HTML.options.label.replace('{option}', 'use-opaque-colors').replace('{optionText}', 'Use opaque colors')
 	)
-	useOpaqueCheckbox.checked = localStorage['emcdynmapplus-nation-claims-opaque-colors'] == 'true' ? true : false
-	useOpaqueCheckbox.addEventListener('change', e =>
-		localStorage['emcdynmapplus-nation-claims-opaque-colors'] = e.target.checked
-	)
+	useOpaqueCheckbox.checked = Store.local.get('nation-claims-opaque-colors') == 'true'
+	useOpaqueCheckbox.addEventListener('change', e => Store.local.set('nation-claims-opaque-colors', e.target.checked))
 
 	/** @type {HTMLDivElement} */
 	const div = appendHTML(contentContainer, '<div id="nation-claims-btn-container"></div>')
@@ -661,7 +660,7 @@ function addNationClaimsPanel(parent) {
 			input: textInputs[i]?.value ?? null,
 		}))
 
-		localStorage['emcdynmapplus-nation-claims-info'] = JSON.stringify(entries)
+		Store.local.set('nation-claims-info', entries)
 		location.reload()
 	})
 
@@ -669,7 +668,7 @@ function addNationClaimsPanel(parent) {
 	const resetAllBtn = appendHTML(div, '<button class="menu-button-option" id="nation-claims-reset-all">Reset All</button>')
 	resetAllBtn.addEventListener('click', () => {
 		const entries = Array.from({ length: MAX_NATION_CLAIM_ENTRIES }, () => ({ color: null, input: null }))
-		localStorage['emcdynmapplus-nation-claims-info'] = JSON.stringify(entries)
+		Store.local.set('nation-claims-info', entries)
 		loadNationClaims(panel)
 		showAlert("Set all nation claim inputs to default.", 2)
 	})
@@ -755,7 +754,7 @@ async function updateServerInfo(element) {
 	if (info) renderServerInfo(element, info)
 
 	// schedule next only if still enabled
-	const enabled = localStorage['emcdynmapplus-serverinfo'] === 'true' ? true : false
+	const enabled = Store.local.get('serverinfo') === true
 	if (!enabled) serverInfoScheduler = null
 	else serverInfoScheduler = setTimeout(() => updateServerInfo(element), SERVERINFO_INTERVAL)
 }

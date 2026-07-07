@@ -42,6 +42,45 @@ const timestampToDateTimeStr = (ts, opts = null) => {
 const formatStrDate = (str, opts = null) => timestampToDateStr(new Date(Date.parse(str)), opts)
 const formatStrDateTime = (str, opts = null) => timestampToDateTimeStr(new Date(Date.parse(str)), opts)
 
+/** @param {OAPITown} t */
+const buildMarkerPopup = t => `
+<div class="infowindow">
+    <span style="font-size:120%;">${t.status.isCapital ? '⭐ ' : ''}${t.name} (${t.nation.name || 'No Nation'})${t.status.isRuined ? " (Ruined)" : ""}</span>
+	<br>
+    ${t.board && t.board !== '/town set board [msg]' ? `<i>${t.board}</i><br><br>`: '<br>' }
+	Founded: <b>${timestampToDateTimeStr(t.timestamps.registered, dateOpts)}</b>
+    <br>
+	Founder: <b>${t.founder}</b>
+	<br>
+    Mayor: <b>${t.mayor.name ?? 'Unknown'}</b>
+    <br>
+	<br>
+	Balance: <b>${t.stats.balance ?? 0}G</b>
+    <br>
+    PVP: <b>${t.perms.flags.pvp ? '<span style="color: green">Yes</span>' : '<span style="color: red">No</span>'}</b>
+    <br>
+    Public: <b>${t.status.isPublic ? '<span style="color: green">Yes</span>' : '<span style="color: red">No</span>'}</b>
+    <br>
+	Open: <b>${t.status.isOpen ? '<span style="color: green">Yes</span>' : '<span style="color: red">No</span>'}</b>
+    <br>
+	Overclaimed: <b>${t.status.isOverClaimed ? '<span style="color: green">Yes</span>' : '<span style="color: red">No</span>'}</b>
+    <br>
+	<br>
+	<details style="min-width: 250px">
+        <summary style="cursor: pointer;">
+            Councillors: <b>${(t.ranks?.['Councillor'] || []).length}</b>
+        </summary>
+        ${(t.ranks?.['Councillor'] || []).map(r => r.name).join(', ') ?? ''}
+    </details>
+    <details style="min-width: 250px">
+        <summary style="cursor: pointer;">
+            Residents: <b>${t.residents?.length ?? 0}</b>
+        </summary>
+        ${t.residents?.map(r => r.name).join(', ') ?? ''}
+    </details>
+</div>
+`
+
 /** @param {CAPIRuinedTown} t */
 const buildRuinedPopup = t => `
 <div class="infowindow">
@@ -62,9 +101,9 @@ const buildRuinedPopup = t => `
 	<br>
 	Balance: <b>${t.stats.balance ?? 0}G</b>
     <br>
-    PVP: <b>${t.perms.flags.pvp ? 'true' : 'false'}</b>
+    PVP: <b>${t.perms.flags.pvp ? '<span style="color: green">Yes</span>' : '<span style="color: red">No</span>'}</b>
     <br>
-    Public: <b>${t.status.isPublic ? 'true' : 'false'}</b>
+    Public: <b>${t.status.isPublic ? '<span style="color: green">Yes</span>' : '<span style="color: red">No</span>'}</b>
     <br>
 	<br>
     <details style="min-width: 250px">
@@ -96,11 +135,13 @@ const buildFallingPopup = t => `
 	<br>
 	Balance: <b>${t.stats.balance ?? 0}G</b>
 	<br>
-    PVP: <b>${t.perms.flags.pvp ? 'true' : 'false'}</b>
+    PVP: <b>${t.perms.flags.pvp ? '<span style="color: green">Yes</span>' : '<span style="color: red">No</span>'}</b>
     <br>
-    Public: <b>${t.status.isPublic ? 'true' : 'false'}</b>
+    Public: <b>${t.status.isPublic ? '<span style="color: green">Yes</span>' : '<span style="color: red">No</span>'}</b>
     <br>
-	Open: <b>${t.status.isOpen ? 'true' : 'false'}</b>
+	Open: <b>${t.status.isOpen ? '<span style="color: green">Yes</span>' : '<span style="color: red">No</span>'}</b>
+    <br>
+	Overclaimed: <b>${t.status.isOverClaimed ? '<span style="color: green">Yes</span>' : '<span style="color: red">No</span>'}</b>
     <br>
 	<br>
 	<details style="min-width: 250px">
@@ -271,11 +312,11 @@ function colourMarkerMeganations(marker, parsed) {
 
 /**
  * @param {Marker} marker
- * @param {ParsedMarker} parsed
+ * @param {OAPITown} town
  * @returns {Marker}
  */
-function colourMarkerOverclaim(marker, parsed) {
-	const overclaimed = cachedApiTowns.get(parsed.townName.toLowerCase())?.status?.isOverClaimed
+function colourMarkerOverclaim(marker, town) {
+	const overclaimed = town?.status?.isOverClaimed
 	const colour = overclaimed ? '#ff0000' : '#00ff00'
 	return setMarkerColour(marker, colour, colour, overclaimed ? 2 : 0.5)
 }

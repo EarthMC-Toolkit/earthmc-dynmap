@@ -37,6 +37,7 @@
 			"resources/css/popup.css"
 		],
 		"js": [
+			"src/store.js",
 			"src/util.js",
 			"src/httputil.js",
 			"src/dom.js",

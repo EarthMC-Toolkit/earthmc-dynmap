@@ -25,13 +25,12 @@ class TokenBucket {
 		this.storageKey = opts.storageKey	// localStorage key
 
 		// load previous bucket state if available
-		const cachedBucket = localStorage[this.storageKey]
+		/** @type {TokenBucketStored} */
+		const cachedBucket = Store.local.get(this.storageKey, null)
 		if (cachedBucket) {
-			/** @type {TokenBucketStored} */
-			const bucketData = JSON.parse(cachedBucket)
-			const elapsed = (Date.now() - bucketData.lastRefill) / 1000
+			const elapsed = (Date.now() - cachedBucket.lastRefill) / 1000
 			const added = elapsed * opts.refillRate
-			this.tokens = Math.min(opts.capacity, bucketData.tokens + added)
+			this.tokens = Math.min(opts.capacity, cachedBucket.tokens + added)
 		} else {
 			this.tokens = opts.capacity
 		}
@@ -41,7 +40,7 @@ class TokenBucket {
 
 	#save() {
 		const bucketInfo = { tokens: this.tokens, lastRefill: this.lastRefill }
-		localStorage[this.storageKey] = JSON.stringify(bucketInfo)
+		Store.local.set(this.storageKey, bucketInfo)
 	}
 
 	refill() {
@@ -76,7 +75,7 @@ class TokenBucket {
 const oapiBucket = new TokenBucket({
 	capacity: OAPI_REQ_PER_MIN,
 	refillRate: OAPI_REQ_PER_MIN / 60,
-	storageKey: 'emcdynmapplus-oapi-bucket'
+	storageKey: 'oapi-bucket'
 })
 
 /**
@@ -118,11 +117,8 @@ const fetchArchive = async date => {
 		date < 20240701 ? `https://earthmc.net/map/aurora/standalone/MySQL_markers.php?marker=_markers_/marker_earth.json` :
 		`https://map.earthmc.net/tiles/minecraft_overworld/markers.json` // latest
 
-	const archiveURL = `https://web.archive.org/web/${date}id_/${markersURL}`
-
 	const fetcher = createCorsFetcher()
-
-	const res = await fetcher(archiveURL)
+	const res = await fetcher(`https://web.archive.org/web/${date}id_/${markersURL}`)
 	if (!res.ok) throw new Error('error fetching archive: ' + res.status)
 	
 	return await res.json()
@@ -132,7 +128,7 @@ async function fetchAlliances() {
 	const alliances = await fetchJSON(`${CAPI_BASE}/${CURRENT_MAP}/alliances`)
 	if (!alliances) {
 		try {
-			const cache = JSON.parse(localStorage['emcdynmapplus-alliances'])
+			const cache = Store.local.get('alliances')
 			if (!cache) throw new Error('No alliance data in cache')
 
 			for (const alliance of cache) {
@@ -178,7 +174,7 @@ async function fetchAlliances() {
 		})
 	}
 
-	localStorage['emcdynmapplus-alliances'] = JSON.stringify(allianceData)
+	Store.local.set('alliances', allianceData)
 	return allianceData
 }
 

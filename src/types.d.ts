@@ -104,6 +104,7 @@ declare global {
             isPublic: boolean
             isOpen: boolean
             isCapital: boolean
+            isOverClaimed: boolean
         }
         timestamps: {
             registered: number

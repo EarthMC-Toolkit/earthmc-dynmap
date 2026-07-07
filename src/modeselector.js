@@ -24,7 +24,7 @@ const sortedMapModes = () => Object.values(MAP_MODES).sort((a, b) => a.order - b
 
 /** @type {() => MapMode} */
 const currentMapMode = () => {
-    const name = localStorage['emcdynmapplus-mapmode']
+    const name = Store.local.get('mapmode')
 	if (!name) return MapMode.DEFAULT
 
     return sortedMapModes().find(m => m.name == name) ?? MapMode.DEFAULT
@@ -32,7 +32,7 @@ const currentMapMode = () => {
 
 /** @param {MapMode} currentMode */
 function selectMapMode(mode) {
-    localStorage['emcdynmapplus-mapmode'] = mode.name
+    Store.local.set('mapmode', mode.name)
     location.reload()
 }
 

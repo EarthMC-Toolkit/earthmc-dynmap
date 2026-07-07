@@ -6,13 +6,13 @@ function toggleDarkened(boxTicked) {
 	const element = document.querySelector('.leaflet-tile-pane')
 	if (!element) return showAlert('Failed to toggle brightness. Cannot apply filter to non-existent tile pane.', 4)
 
-	localStorage['emcdynmapplus-darkened'] = boxTicked
+	Store.local.set('darkened', boxTicked)
 	element.style.filter = boxTicked ? getTilePaneFilter() : ''
 }
 
 /** @param {boolean} boxTicked */
 function toggleServerInfo(boxTicked) {
-	localStorage['emcdynmapplus-serverinfo'] = boxTicked
+	Store.local.set('serverinfo', boxTicked)
 
 	/** @type {HTMLElement} */
 	const serverInfoPanel = document.querySelector('#server-info')
@@ -29,7 +29,7 @@ function toggleServerInfo(boxTicked) {
 
 /** @param {boolean} boxTicked */
 function togglePlayerList(boxTicked) {
-	localStorage['emcdynmapplus-playerlist'] = boxTicked
+	Store.local.set('playerlist', boxTicked)
 	const playerList = document.getElementById('players')
 
 	const isVisible = boxTicked ? 'grid' : 'none'
@@ -40,7 +40,7 @@ function togglePlayerList(boxTicked) {
 
 /** @param {boolean} boxTicked */
 function toggleShowCapitalStars(boxTicked) {
-	localStorage['emcdynmapplus-capital-stars'] = boxTicked
+	Store.local.set('capital-stars', boxTicked)
 
 	const pane = document.querySelector('.leaflet-pane.leaflet-marker-pane')
 	if (!pane) return
@@ -57,7 +57,7 @@ function toggleShowCapitalStars(boxTicked) {
 //#region Dark Mode
 /** @param {boolean} boxTicked */
 function toggleDarkMode(boxTicked) {
-	localStorage['emcdynmapplus-darkmode'] = boxTicked
+	Store.local.set('darkmode', boxTicked)
 	return boxTicked ? loadDarkMode() : unloadDarkMode()
 }
 
@@ -100,7 +100,7 @@ function removeScrollNormalizer(mapEl) {
 
 /** @param {boolean} boxTicked */
 function toggleScrollNormalize(boxTicked) {
-	localStorage['emcdynmapplus-normalize-scroll'] = boxTicked
+	Store.local.set('normalize-scroll', boxTicked)
 
 	const el = window.document.querySelector('#map')
 	return boxTicked ? addScrollNormalizer(el) : removeScrollNormalizer(el)
@@ -112,8 +112,8 @@ function searchArchive(date) {
 	if (date == '') return
 
     // In case 'change' event doesn't already update it
-	localStorage['emcdynmapplus-archive-date'] = date.replaceAll('-', '') 
-	localStorage['emcdynmapplus-mapmode'] = MapMode.ARCHIVE.name
+	Store.local.set('archive-date', date.replaceAll('-', ''))
+	Store.local.set('mapmode', MapMode.ARCHIVE.name)
 
 	location.reload()
 }
