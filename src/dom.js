@@ -64,8 +64,8 @@ const INSERTABLE_HTML = /** @type {const} */ ({
     playerLookup: '<div class="leaflet-control-layers leaflet-control" id="player-lookup"></div>',
     playerLookupLoading: '<div class="leaflet-control-layers leaflet-control" id="player-lookup-loading">Loading...</button>',
     residentClickable: '<span class="resident-clickable">{player}</span>',
-    residentList: '<span class="resident-list">\t{list}</span>',
-    scrollableResidentList: '<div class="resident-list" id="scrollable-list">\t{list}</div>',
+    residentList: '<span class="resident-list">{list}</span>',
+    scrollableResidentList: '<div class="resident-list" id="scrollable-list">{list}</div>',
     partOfLabel: '<span id="part-of-label">Part of <b>{allianceList}</b></span>',
     alertMsg: '<div class="message" id="alert"><p id="alert-message">{message}</p></div>',
 	// Inserted into document <head>
