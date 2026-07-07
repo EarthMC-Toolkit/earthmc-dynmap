@@ -32,6 +32,7 @@ const dateTimeOptsUTC = {
 	timeZone: 'UTC'
 }
 
+/** @param {number} ts */
 const timestampToDateStr = (ts, opts = null) => new Date(ts).toLocaleDateString(navigator.language, opts)
 const timestampToDateTimeStr = (ts, opts = null) => {
 	const d = new Date(ts)
@@ -39,8 +40,12 @@ const timestampToDateTimeStr = (ts, opts = null) => {
 	return dateStr + d.toLocaleTimeString("en-US", { hour: 'numeric', minute: 'numeric' })
 }
 
-const formatStrDate = (str, opts = null) => timestampToDateStr(new Date(Date.parse(str)), opts)
-const formatStrDateTime = (str, opts = null) => timestampToDateTimeStr(new Date(Date.parse(str)), opts)
+/** @param {string} str */
+const formatStrDate = (str, opts = null) => timestampToDateStr(Date.parse(str), opts)
+const formatStrDateTime = (str, opts = null) => timestampToDateTimeStr(Date.parse(str), opts)
+
+/** @param {string} name */
+const residentClickable = name => `<span class="resident-clickable">${name}</span>`
 
 /** @param {OAPITown} t */
 const buildMarkerPopup = t => `
@@ -50,9 +55,9 @@ const buildMarkerPopup = t => `
     ${t.board && t.board !== '/town set board [msg]' ? `<i>${t.board}</i><br><br>`: '<br>' }
 	Founded: <b>${timestampToDateTimeStr(t.timestamps.registered, dateOpts)}</b>
     <br>
-	Founder: <b>${t.founder}</b>
+	Founder: <b>${residentClickable(t.founder)}</b>
 	<br>
-    Mayor: <b>${t.mayor.name ?? 'Unknown'}</b>
+    Mayor: <b>${t.mayor.name ? residentClickable(t.mayor.name) : 'Unknown'}</b>
     <br>
 	<br>
 	Balance: <b>${t.stats.balance ?? 0}G</b>
@@ -67,16 +72,12 @@ const buildMarkerPopup = t => `
     <br>
 	<br>
 	<details style="min-width: 250px">
-        <summary style="cursor: pointer;">
-            Councillors: <b>${(t.ranks?.['Councillor'] || []).length}</b>
-        </summary>
-        ${(t.ranks?.['Councillor'] || []).map(r => r.name).join(', ') ?? ''}
+        <summary style="cursor: pointer;">Councillors: <b>${(t.ranks?.['Councillor'] || []).length}</b></summary>
+        <span class="resident-list">${(t.ranks?.['Councillor'] || []).map(r => residentClickable(r.name)).join(', ') ?? ''}</span>
     </details>
     <details style="min-width: 250px">
-        <summary style="cursor: pointer;">
-            Residents: <b>${t.residents?.length ?? 0}</b>
-        </summary>
-        ${t.residents?.map(r => r.name).join(', ') ?? ''}
+        <summary style="cursor: pointer;">Residents: <b>${t.residents?.length ?? 0}</b></summary>
+        <span class="resident-list">${t.residents?.map(r => residentClickable(r.name)).join(', ') ?? ''}</span>
     </details>
 </div>
 `
@@ -94,9 +95,9 @@ const buildRuinedPopup = t => `
 	<br>
 	Founded: <b>${timestampToDateTimeStr(t.timestamps.registered, dateOpts)}</b>
     <br>
-	Founder: <b>${t.founder}</b>
+	Founder: <b>${residentClickable(t.founder)}</b>
 	<br>
-    Mayor: <b>${t.mayor.name ?? 'Unknown'}</b>
+    Mayor: <b>${t.mayor.name ? residentClickable(t.mayor.name) : 'Unknown'}</b>
     <br>
 	<br>
 	Balance: <b>${t.stats.balance ?? 0}G</b>
@@ -107,10 +108,8 @@ const buildRuinedPopup = t => `
     <br>
 	<br>
     <details style="min-width: 250px">
-        <summary style="cursor: pointer;">
-            Residents: <b>${t.residents?.length ?? 0}</b>
-        </summary>
-        ${t.residents?.map(r => r.name).join(', ') ?? ''}
+        <summary style="cursor: pointer;">Residents: <b>${t.residents?.length ?? 0}</b></summary>
+        <span class="resident-list">${t.residents?.map(r => residentClickable(r.name)).join(', ') ?? ''}</span>
     </details>
 </div>
 `
@@ -128,9 +127,9 @@ const buildFallingPopup = t => `
 	<br>
     Founded: <b>${timestampToDateTimeStr(t.timestamps.registered, dateOpts)}</b>
     <br>
-	Founder: <b>${t.founder}</b>
+	Founder: <b>${residentClickable(t.founder)}</b>
 	<br>
-	Mayor: <b>${t.mayor.name ?? 'Unknown'} (Last Online: ${formatStrDateTime(t.mayorLastOnline, dateOpts)})</b>
+	Mayor: <b>${t.mayor.name ? residentClickable(t.mayor.name) + ` (Last Online: ${formatStrDateTime(t.mayorLastOnline, dateOpts)})`: 'Unknown'}</b>
     <br>
 	<br>
 	Balance: <b>${t.stats.balance ?? 0}G</b>
@@ -145,16 +144,12 @@ const buildFallingPopup = t => `
     <br>
 	<br>
 	<details style="min-width: 250px">
-        <summary style="cursor: pointer;">
-            Councillors: <b>${(t.ranks?.['Councillor'] || []).length}</b>
-        </summary>
-        ${(t.ranks?.['Councillor'] || []).map(r => r.name).join(', ') ?? ''}
+        <summary style="cursor: pointer;">Councillors: <b>${(t.ranks?.['Councillor'] || []).length}</b></summary>
+        <span class="resident-list">${(t.ranks?.['Councillor'] || []).map(r => residentClickable(r.name)).join(', ') ?? ''}</span>
     </details>
     <details style="min-width: 250px">
-        <summary style="cursor: pointer;">
-            Residents: <b>${t.residents?.length ?? 0}</b>
-        </summary>
-        ${t.residents?.map(r => r.name).join(', ') ?? ''}
+        <summary style="cursor: pointer;">Residents: <b>${t.residents?.length ?? 0}</b></summary>
+        <span class="resident-list">${t.residents?.map(r => residentClickable(r.name)).join(', ') ?? ''}</span>
     </details>
 </div>
 `

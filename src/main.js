@@ -213,10 +213,8 @@ function modifySquaremapDescription(marker, mapMode) {
 
 	// Create clickable resident lists
 	const isArchiveMode = mapMode == MapMode.ARCHIVE
-	const residentList = isArchiveMode ? residents :
-		residents.split(', ').map(resident => INSERTABLE_HTML.residentClickable.replaceAll('{player}', resident)).join(', ')
-	const councillorList = isArchiveMode ? councillors :
-		councillors.map(councillor => INSERTABLE_HTML.residentClickable.replaceAll('{player}', councillor)).join(', ')
+	const residentList = isArchiveMode ? residents : residents.split(', ').map(r => INSERTABLE_HTML.residentClickable.replaceAll('{player}', r)).join(', ')
+	const councillorList = isArchiveMode ? councillors : councillors.map(c => INSERTABLE_HTML.residentClickable.replaceAll('{player}', c)).join(', ')
 
 	// Modify description
 	if (residentNum > 50) {
