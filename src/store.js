@@ -139,22 +139,26 @@ class Store {
 		}
 
 		static async readJSON(path) {
-			return JSON.parse(await this.read(path))
+			try {
+				return JSON.parse(await this.read(path))
+			} catch (e) {
+				if (e.name === "NotFoundError") return null
+				throw e
+			}
 		}
 
 		static async cache(key, ttlMs, callback) {
 			const metaPath = `.cache/${key}.json`
 			try {
 				const meta = await this.readJSON(metaPath)
-				if (meta.expires > Date.now()) {
-					return meta.value
-				}
+				if (meta.expires > Date.now()) return meta.value
 
 				await this.delete(metaPath)
 			} catch {}
 
 			const value = await callback()
 			await this.writeJSON(metaPath, { value, expires: Date.now() + ttlMs })
+			
 			return value
 		}
 

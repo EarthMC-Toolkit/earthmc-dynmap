@@ -40,11 +40,11 @@ let parsedMarkers = [] // this is essential for the locater to work correctly
  * @property {{ isOverClaimed: boolean, isRuined: boolean }} status
  */
 
+/** @type {Array<Alliance>} 	   */ let cachedAlliances 	 = null
 /** @type {Array<CAPIFallingTown>} */ let cachedFallingTowns = null
 /** @type {Array<CAPITown>} 	   */ let cachedRuinedTowns  = null
 /** @type {Map<string, OAPITown>}  */ let cachedApiTowns 	 = null
-/** @type {Map<string, any>} 	   */ let cachedApiNations 	 = null
-/** @type {Array<Alliance>} 	   */ let cachedAlliances 	 = null
+///** @type {Map<string, any>} 	   */ let cachedApiNations 	 = null
 
 /** @param {MarkersResponse} data - The markers response JSON data. */
 async function modifyMarkers(data) {
@@ -81,24 +81,26 @@ async function modifyMarkers(data) {
 	}
 
 	if (mapMode == MapMode.BALANCE || mapMode == MapMode.OVERCLAIM) {
-		const alert = showAlertNoDismiss('Querying the EMC API for extra town info...', 30)
-		
 		/** @type {Array<OAPITown>} */
-		const cached = await Store.opfs.cache("api-towns", 2*60*1000, async () => {
+		const cached = await Store.opfs.cache("api-towns", 3*60*1000, async () => {
+			const alert = showAlertNoDismiss('Querying the EMC API for extra town info...', 30)
+
 			const url = `${currentMapApiUrl()}/towns`
 			const tlist = await fetchJSON(url)
-			return queryConcurrent(url, tlist)
+			const towns = await queryConcurrent(url, tlist)
+			
+			alert.remove()
+			return towns
 		})
 
 		cachedApiTowns = new Map(cached.map(t => [t.name.toLowerCase(), t]))
-		alert.remove()
 	}
-	if (!cachedApiNations && mapMode == MapMode.OVERCLAIM) {
-		const url = `${currentMapApiUrl()}/nations`
-		const nlist = await fetchJSON(url) // GET
-		const apiNations = await queryConcurrent(url, nlist) // POST
-		cachedApiNations = new Map(apiNations.map(n => [n.name.toLowerCase(), n]))
-	}
+	// if (!cachedApiNations && mapMode == MapMode.OVERCLAIM) {
+	// 	const url = `${currentMapApiUrl()}/nations`
+	// 	const nlist = await fetchJSON(url) // GET
+	// 	const apiNations = await queryConcurrent(url, nlist) // POST
+	// 	cachedApiNations = new Map(apiNations.map(n => [n.name.toLowerCase(), n]))
+	// }
 
 	// Get current local storage values
 	const date = archiveDate()
@@ -361,7 +363,7 @@ async function getArchive(data) {
 		try {
 			archive = await Store.opfs.readJSON(path)
 		} catch (e) {
-			console.warn("Failed to read cached archive:", e)
+			console.warn("Failed to read cached archive:", e.name, e.message, e)
 		}
 		if (archive == null) {
 			archive = await fetchArchive(date)
@@ -411,17 +413,17 @@ function convertOldMarkersStructure(markerset) {
  * @param {number} claimedChunks 
  * @param {number} numResidents 
  */
-function checkOverclaimedNationless(claimedChunks, numResidents) {
-    const resLimit = numResidents * CHUNKS_PER_RES
-    const isOverclaimed = claimedChunks > resLimit
+// function checkOverclaimedNationless(claimedChunks, numResidents) {
+//     const resLimit = numResidents * CHUNKS_PER_RES
+//     const isOverclaimed = claimedChunks > resLimit
 
-    // Calculate how much the town is overclaimed by, if applicable
-    return {
-		isOverclaimed,
-		chunksOverclaimed: isOverclaimed ? claimedChunks - resLimit : 0,
-		resLimit
-	}
-}
+//     // Calculate how much the town is overclaimed by, if applicable
+//     return {
+// 		isOverclaimed,
+// 		chunksOverclaimed: isOverclaimed ? claimedChunks - resLimit : 0,
+// 		resLimit
+// 	}
+// }
 
 /**
  * Calculate the claim limit for a town with a nation and report overclaimed status.
@@ -429,20 +431,20 @@ function checkOverclaimedNationless(claimedChunks, numResidents) {
  * @param {number} numResidents
  * @param {number} numNationResidents
  */
-function checkOverclaimed(claimedChunks, numResidents, numNationResidents) {
-	const bonus = calcNationBonus(numNationResidents)
+// function checkOverclaimed(claimedChunks, numResidents, numNationResidents) {
+// 	const bonus = calcNationBonus(numNationResidents)
 
-    const resLimit = numResidents * CHUNKS_PER_RES
-    const totalClaimLimit = resLimit + bonus
-    const isOverclaimed = claimedChunks > totalClaimLimit
+//     const resLimit = numResidents * CHUNKS_PER_RES
+//     const totalClaimLimit = resLimit + bonus
+//     const isOverclaimed = claimedChunks > totalClaimLimit
 	
-	return { 
-		isOverclaimed,
-		chunksOverclaimed: isOverclaimed ? claimedChunks - totalClaimLimit : 0,
-		nationBonus: bonus,
-		resLimit, totalClaimLimit
-	}
-}
+// 	return { 
+// 		isOverclaimed,
+// 		chunksOverclaimed: isOverclaimed ? claimedChunks - totalClaimLimit : 0,
+// 		nationBonus: bonus,
+// 		resLimit, totalClaimLimit
+// 	}
+// }
 
 /** @param {number} numNationResidents */
 const calcNationBonus = numNationResidents => numNationResidents >= 200 ? 100
