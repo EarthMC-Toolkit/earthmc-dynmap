@@ -23,7 +23,7 @@ const EXTRA_BORDER_OPTS = {
 // Black
 const DEFAULT_ALLIANCE_COLOURS = { fill: '#000000', outline: '#000000' }
 const CHUNKS_PER_RES = 12
-const DAY_MS = 86_400_000 // 24hr in millisec
+const DAY_MS = 86_400_000 // 24hrs in millis
 
 /** @type {() => Array<{color: string | null, input: string | null}>} */
 const nationClaimsInfo = () => Store.local.get('nation-claims-info', [])
@@ -44,7 +44,6 @@ let parsedMarkers = [] // this is essential for the locater to work correctly
 /** @type {Array<CAPIFallingTown>} */ let cachedFallingTowns = null
 /** @type {Array<CAPITown>} 	   */ let cachedRuinedTowns  = null
 /** @type {Map<string, OAPITown>}  */ let cachedApiTowns 	 = null
-///** @type {Map<string, any>} 	   */ let cachedApiNations 	 = null
 
 /** @param {MarkersResponse} data - The markers response JSON data. */
 async function modifyMarkers(data) {
@@ -95,12 +94,6 @@ async function modifyMarkers(data) {
 
 		cachedApiTowns = new Map(cached.map(t => [t.name.toLowerCase(), t]))
 	}
-	// if (!cachedApiNations && mapMode == MapMode.OVERCLAIM) {
-	// 	const url = `${currentMapApiUrl()}/nations`
-	// 	const nlist = await fetchJSON(url) // GET
-	// 	const apiNations = await queryConcurrent(url, nlist) // POST
-	// 	cachedApiNations = new Map(apiNations.map(n => [n.name.toLowerCase(), n]))
-	// }
 
 	// Get current local storage values
 	const date = archiveDate()

@@ -10,7 +10,7 @@ function addRuinMarkers(data, ruined, colour) {
 		/** @type {SquaremapMarker} */
 		const marker = {
 			tooltip: `<b>${t.name}</b> (Ruined)`,
-			popup: buildRuinedPopup(t),
+			popup: buildMarkerPopup(t, 'ruined'),
 			type: 'polygon',
 			color: colour,
 			fillColor: colour,
@@ -47,112 +47,73 @@ const formatStrDateTime = (str, opts = null) => timestampToDateTimeStr(Date.pars
 /** @param {string} name */
 const residentClickable = name => `<span class="resident-clickable">${name}</span>`
 
-/** @param {OAPITown} t */
-const buildMarkerPopup = t => `
+/**
+ * @param {OAPITown | CAPIRuinedTown | CAPIFallingTown} t
+ * @param {'normal' | 'ruined' | 'falling'} type
+ */
+const buildMarkerPopup = (t, type = 'normal') => {
+	const isRuined = type === 'ruined'
+	const isFalling = type === 'falling'
+
+	const title = isRuined
+		? `${t.name} (Ruined)`
+		: `${t.status.isCapital ? '⭐ ' : ''}${t.name} (${t.nation.name || 'No Nation'})${isFalling ? ' (Falling)' : ''}`
+
+	const extraDates = isRuined ? `
+		Ruin Date: <b>${timestampToDateStr(t.timestamps.ruinedAt, dateTimeOptsUTC)}AM UTC</b>
+		<br>
+		Deletion Date: <b>${formatStrDate(t.deletionAt, dateTimeOptsUTC)}AM UTC</b>
+		<br>
+		<br>`
+		: isFalling ? `
+		Fall Date: <b>${formatStrDate(t.ruinAt, dateTimeOptsUTC)}AM UTC</b>
+		<br>
+		Deletion Date: <b>${formatStrDate(t.deletionAt, dateTimeOptsUTC)}AM UTC</b>
+		<br>
+		<br>`
+		: ''
+
+	const mayor = t.mayor.name
+		? residentClickable(t.mayor.name) + (isFalling ? ` (Last Online: ${formatStrDateTime(t.mayorLastOnline, dateOpts)})` : '')
+		: 'Unknown'
+
+	const flags = [
+		['PVP', t.perms.flags.pvp],
+		['Public', t.status.isPublic],
+		...(!isRuined ? [['Open', t.status.isOpen]] : []),
+		...(!isRuined ? [['Overclaimed', t.status.isOverClaimed]] : [])
+	]
+
+	const councillors = t.ranks?.['Councillor'] || []
+
+	return `
 <div class="infowindow">
-    <span style="font-size:120%;">${t.status.isCapital ? '⭐ ' : ''}${t.name} (${t.nation.name || 'No Nation'})${t.status.isRuined ? " (Ruined)" : ""}</span>
+	<span style="font-size:120%;">${title}</span>
 	<br>
-    ${t.board && t.board !== '/town set board [msg]' ? `<i>${t.board}</i><br><br>`: '<br>' }
+	${t.board && t.board !== '/town set board [msg]' ? `<i>${t.board}</i><br><br>` : '<br>'}
+	${extraDates}
 	Founded: <b>${timestampToDateTimeStr(t.timestamps.registered, dateOpts)}</b>
-    <br>
+	<br>
 	Founder: <b>${residentClickable(t.founder)}</b>
 	<br>
-    Mayor: <b>${t.mayor.name ? residentClickable(t.mayor.name) : 'Unknown'}</b>
-    <br>
+	Mayor: <b>${mayor}</b>
+	<br>
 	<br>
 	Balance: <b>${t.stats.balance ?? 0}G</b>
-    <br>
-    PVP: <b>${t.perms.flags.pvp ? '<span style="color: green">Yes</span>' : '<span style="color: red">No</span>'}</b>
-    <br>
-    Public: <b>${t.status.isPublic ? '<span style="color: green">Yes</span>' : '<span style="color: red">No</span>'}</b>
-    <br>
-	Open: <b>${t.status.isOpen ? '<span style="color: green">Yes</span>' : '<span style="color: red">No</span>'}</b>
-    <br>
-	Overclaimed: <b>${t.status.isOverClaimed ? '<span style="color: green">Yes</span>' : '<span style="color: red">No</span>'}</b>
-    <br>
+	<br>
+	${flags.map(([name, value]) => `${name}: <b>${value ? '<span style="color: green">Yes</span>' : '<span style="color: red">No</span>'}</b><br>`).join('')}
 	<br>
 	<details style="min-width: 250px">
-        <summary style="cursor: pointer;">Councillors: <b>${(t.ranks?.['Councillor'] || []).length}</b></summary>
-        <span class="resident-list">${(t.ranks?.['Councillor'] || []).map(r => residentClickable(r.name)).join(', ') ?? ''}</span>
-    </details>
-    <details style="min-width: 250px">
-        <summary style="cursor: pointer;">Residents: <b>${t.residents?.length ?? 0}</b></summary>
-        <span class="resident-list">${t.residents?.map(r => residentClickable(r.name)).join(', ') ?? ''}</span>
-    </details>
-</div>
-`
-
-/** @param {CAPIRuinedTown} t */
-const buildRuinedPopup = t => `
-<div class="infowindow">
-    <span style="font-size:120%;">${t.name} (Ruined)</span>
-	<br>
-    ${t.board && t.board !== '/town set board [msg]' ? `<i>${t.board}</i><br><br>`: '<br>' }
-	Ruin Date: <b>${timestampToDateStr(t.timestamps.ruinedAt, dateTimeOptsUTC)}AM UTC</b>
-	<br>
-	Deletion Date: <b>${formatStrDate(t.deletionAt, dateTimeOptsUTC)}AM UTC</b>
-	<br>
-	<br>
-	Founded: <b>${timestampToDateTimeStr(t.timestamps.registered, dateOpts)}</b>
-    <br>
-	Founder: <b>${residentClickable(t.founder)}</b>
-	<br>
-    Mayor: <b>${t.mayor.name ? residentClickable(t.mayor.name) : 'Unknown'}</b>
-    <br>
-	<br>
-	Balance: <b>${t.stats.balance ?? 0}G</b>
-    <br>
-    PVP: <b>${t.perms.flags.pvp ? '<span style="color: green">Yes</span>' : '<span style="color: red">No</span>'}</b>
-    <br>
-    Public: <b>${t.status.isPublic ? '<span style="color: green">Yes</span>' : '<span style="color: red">No</span>'}</b>
-    <br>
-	<br>
-    <details style="min-width: 250px">
-        <summary style="cursor: pointer;">Residents: <b>${t.residents?.length ?? 0}</b></summary>
-        <span class="resident-list">${t.residents?.map(r => residentClickable(r.name)).join(', ') ?? ''}</span>
-    </details>
-</div>
-`
-
-/** @param {CAPIFallingTown} t */
-const buildFallingPopup = t => `
-<div class="infowindow">
-    <span style="font-size:120%;">${t.status.isCapital ? '⭐ ' : ''}${t.name} (${t.nation.name || 'No Nation'}) (Falling)</span>
-    <br>
-	${t.board && t.board !== '/town set board [msg]' ? `<i>${t.board}</i><br><br>`: '<br>' }
-	Fall Date: <b>${formatStrDate(t.ruinAt, dateTimeOptsUTC)}AM UTC</b>
-    <br>
-	Deletion Date: <b>${formatStrDate(t.deletionAt, dateTimeOptsUTC)}AM UTC</b>
-    <br>
-	<br>
-    Founded: <b>${timestampToDateTimeStr(t.timestamps.registered, dateOpts)}</b>
-    <br>
-	Founder: <b>${residentClickable(t.founder)}</b>
-	<br>
-	Mayor: <b>${t.mayor.name ? residentClickable(t.mayor.name) + ` (Last Online: ${formatStrDateTime(t.mayorLastOnline, dateOpts)})`: 'Unknown'}</b>
-    <br>
-	<br>
-	Balance: <b>${t.stats.balance ?? 0}G</b>
-	<br>
-    PVP: <b>${t.perms.flags.pvp ? '<span style="color: green">Yes</span>' : '<span style="color: red">No</span>'}</b>
-    <br>
-    Public: <b>${t.status.isPublic ? '<span style="color: green">Yes</span>' : '<span style="color: red">No</span>'}</b>
-    <br>
-	Open: <b>${t.status.isOpen ? '<span style="color: green">Yes</span>' : '<span style="color: red">No</span>'}</b>
-    <br>
-	Overclaimed: <b>${t.status.isOverClaimed ? '<span style="color: green">Yes</span>' : '<span style="color: red">No</span>'}</b>
-    <br>
-	<br>
+		<summary style="cursor: pointer;">Councillors: <b>${councillors.length}</b></summary>
+		<span class="resident-list">${councillors.map(r => residentClickable(r.name)).join(', ')}</span>
+	</details>
 	<details style="min-width: 250px">
-        <summary style="cursor: pointer;">Councillors: <b>${(t.ranks?.['Councillor'] || []).length}</b></summary>
-        <span class="resident-list">${(t.ranks?.['Councillor'] || []).map(r => residentClickable(r.name)).join(', ') ?? ''}</span>
-    </details>
-    <details style="min-width: 250px">
-        <summary style="cursor: pointer;">Residents: <b>${t.residents?.length ?? 0}</b></summary>
-        <span class="resident-list">${t.residents?.map(r => residentClickable(r.name)).join(', ') ?? ''}</span>
-    </details>
+		<summary style="cursor: pointer;">Residents: <b>${t.residents?.length ?? 0}</b></summary>
+		<span class="resident-list">${t.residents?.map(r => residentClickable(r.name)).join(', ') ?? ''}</span>
+	</details>
 </div>
 `
+}
 
 /**
  * Convert Towny chunk blocks into Squaremap multipolygon rings.
@@ -352,7 +313,7 @@ function colourMarkerNewDay(marker, parsedMarker) {
 		parsedMarker.x = fallingTown.coordinates.spawn.x
 		parsedMarker.z = fallingTown.coordinates.spawn.z
 
-		marker.popup = buildFallingPopup(fallingTown)
+		marker.popup = buildMarkerPopup(fallingTown, 'falling')
 
 		return fallingTown.status.isOpen 
 			? setMarkerColour(marker, DEFAULT_GREEN, DEFAULT_GREEN)

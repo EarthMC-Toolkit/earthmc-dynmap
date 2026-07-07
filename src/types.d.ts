@@ -76,35 +76,57 @@ declare global {
         mayor?: string
     }
 
+    // --------------------- ALLIANCE TYPES ---------------------
+    export interface Alliance {
+        name: string
+        modeType: string
+        colours: AllianceColours
+        ownNations: Array<string>
+        puppetNations: Array<string>
+        /** Set of all nations (own & puppets) in this alliance. */
+        _nationSet: Set<string>
+    }
+
+    export interface AllianceColours {
+        fill: string
+        outline: string
+    }
+
     // --------------------- EMC STATS API TYPES ---------------------
-    export interface CAPIFallingTown extends CAPITown {
+    export interface CAPIFallingTown extends OAPITown {
         ruinAt: Date
         deletionAt: Date
         mayorLastOnline: Date
         /** Duration in seconds the mayor has been inactive */
         inactiveDuration: number
-        nation: Entity
-        ranks: {
-            [key: string]: Array<Entity>
-        }
     }
 
-    export interface CAPIRuinedTown extends CAPITown {
-        nation: { name: null, uuid: null }
+    export interface CAPIRuinedTown extends OAPITown {
         deletionAt: Date
     }
 
-    export type CAPITown = Entity & {
+    // --------------------- EMC API RESPONSE TYPES ---------------------
+    export interface OAPITown extends Entity {
         board: string
+        discord: string
         founder: string
         mayor: Entity
+        nation: Entity // when ruined: { name: null, uuid: null }
         residents: Array<Entity>
-        stats: { balance: number }
+        stats: {
+            numTownBlocks: number
+            maxTownBlocks: number
+            numResidents: number
+            balance: number
+        }
         status: {
             isPublic: boolean
             isOpen: boolean
             isCapital: boolean
             isOverClaimed: boolean
+            isRuined: boolean
+            canOutsidersSpawn: boolean
+            forSale: boolean
         }
         timestamps: {
             registered: number
@@ -135,25 +157,11 @@ declare global {
                 mobs: boolean       // when ruined: true
             }
         }
+        ranks: {
+            [key: string]: Array<Entity>
+        }
     }
 
-    // --------------------- ALLIANCE TYPES ---------------------
-    export interface Alliance {
-        name: string
-        modeType: string
-        colours: AllianceColours
-        ownNations: Array<string>
-        puppetNations: Array<string>
-        /** Set of all nations (own & puppets) in this alliance. */
-        _nationSet: Set<string>
-    }
-
-    export interface AllianceColours {
-        fill: string
-        outline: string
-    }
-
-    // --------------------- RESPONSE TYPES ---------------------
     export interface ServerInfo {
         version: string
         moonPhase: string
