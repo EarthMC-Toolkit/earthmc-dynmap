@@ -23,23 +23,18 @@ jobs:
         id: version
         run: echo "version=$(jq -r .version manifest.json)" >> $GITHUB_OUTPUT
 
-      - name: Get latest release version
-        id: latest
+      - name: Check if release already exists
+        id: check
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          latest=$(gh release view --json tagName -q .tagName 2>/dev/null || echo "")
-          echo "version=$latest" >> $GITHUB_OUTPUT
-
-      - name: Skip if version unchanged
-        run: |
-          if [ -n "${{ steps.latest.outputs.version }}" ] && \
-             [ "${{ steps.version.outputs.version }}" = "${{ steps.latest.outputs.version }}" ]; then
-            echo "Version unchanged, skipping release"
-            exit 0
+          if gh release view "${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+            echo "Release ${{ steps.version.outputs.version }} already exists. Skipping release and asset overwrite."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Create GitHub Release
+        if: steps.check.outputs.skip != 'true'
         uses: softprops/action-gh-release@v3
         with:
             tag_name: ${{ steps.version.outputs.version }}
