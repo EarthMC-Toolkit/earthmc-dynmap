@@ -32,18 +32,10 @@ const archiveDate = () => parseInt(Store.local.get('archive-date'))
 /** @type {Array<ParsedMarker>} */
 let parsedMarkers = [] // this is essential for the locater to work correctly
 
-/** 
- * @typedef {Object} OAPITown
- * @property {string} name
- * @property {{ spawn: { x: number, z: number } }} coordinates
- * @property {{ numResidents: number, balance: number }} stats
- * @property {{ isOverClaimed: boolean, isRuined: boolean }} status
- */
-
-/** @type {Array<Alliance>} 	   */ let cachedAlliances 	 = null
-/** @type {Array<CAPIFallingTown>} */ let cachedFallingTowns = null
-/** @type {Array<CAPITown>} 	   */ let cachedRuinedTowns  = null
-/** @type {Map<string, OAPITown>}  */ let cachedApiTowns 	 = null
+/** @type {Array<Alliance>}			*/ let cachedAlliances		= null
+/** @type {Array<CAPIFallingTown>}  */ let cachedFallingTowns 	= null
+/** @type {Array<CAPITown>}			*/ let cachedRuinedTowns  	= null
+/** @type {Map<string, OAPITown>}  	*/ let cachedApiTowns		= null
 
 /** @param {MarkersResponse} data - The markers response JSON data. */
 async function modifyMarkers(data) {
@@ -59,26 +51,21 @@ async function modifyMarkers(data) {
 		addCountryBordersLayer(data, borders)
 	}
 
-	if (mapMode == MapMode.ARCHIVE) {
-		data = await getArchive(data)
-	}
+	if (mapMode == MapMode.ARCHIVE) data = await getArchive(data)
 	if (!data?.[0]?.markers?.length) {
 		showAlert('Unexpected error occurred while loading the map, EarthMC may be down. Try again later.')
 		return data
 	}
 
-	const isAllianceMode = mapMode == MapMode.ALLIANCES || mapMode == MapMode.MEGANATIONS
-    if (isAllianceMode && cachedAlliances == null) {
+    if (cachedAlliances == null && mapMode == MapMode.ALLIANCES || mapMode == MapMode.MEGANATIONS) {
         cachedAlliances = await fetchAlliances()
     }
-
 	if (mapMode == MapMode.NEWDAY) {
 		if (cachedFallingTowns == null) cachedFallingTowns = await fetchFallingTowns()
 		if (cachedRuinedTowns == null) cachedRuinedTowns = await fetchRuinedTowns()
 
 		addRuinMarkers(data, cachedRuinedTowns, '#ff1900')
 	}
-
 	if (mapMode == MapMode.BALANCE || mapMode == MapMode.OVERCLAIM) {
 		/** @type {Array<OAPITown>} */
 		const cached = await Store.opfs.cache("api-towns", 3*60*1000, async () => {
@@ -210,11 +197,11 @@ function modifySquaremapDescription(marker, mapMode) {
 	const councillorList = isArchiveMode ? councillors : councillors.map(c => INSERTABLE_HTML.residentClickable.replaceAll('{player}', c)).join(', ')
 
 	// Modify description
-	if (residentNum > 50) {
-		marker.popup = marker.popup.replace(residents, INSERTABLE_HTML.scrollableResidentList.replace('{list}', residentList))
-	} else {
-		marker.popup = marker.popup.replace(residents + '\n', INSERTABLE_HTML.residentList.replace('{list}', residentList) + '\n')
-	}
+	const list = residentNum > 50 ? INSERTABLE_HTML.scrollableResidentList : INSERTABLE_HTML.residentList
+	marker.popup = marker.popup.replace(
+		residentNum > 50 ? residents : residents + '\n', 
+		list.replace('{list}', residentList) + `${residentNum > 50 ? '\n' : ""}`
+	)
 
 	const area = calcMarkerArea(marker) // Area excluding interior holes
 	marker.popup = marker.popup
