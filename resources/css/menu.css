@@ -16,7 +16,8 @@
 	transition: max-height 0.25s ease, opacity 0.2s ease;
 }
 
-#menu-body.collapsed {
+#menu-body.collapsed,
+#options-menu.collapsed {
 	max-height: 0;
 	opacity: 0;
 }
@@ -101,7 +102,7 @@
 
 #archive-menu {
 	display: grid;
-	margin-bottom: 10px;
+	margin-bottom: 5px;
 }
 
 #archive-button {

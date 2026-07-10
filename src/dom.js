@@ -50,8 +50,9 @@ const INSERTABLE_HTML = /** @type {const} */ ({
 		'<div class="leaflet-control-layers link leaflet-control"><a href=""><img class="crisp-edges" src="images/clear.png"></a></div>' +
 		'</div>',
 	serverInfo: '<div class="leaflet-control-layers leaflet-control" id="server-info"></div>',
-	menuHeader: `<div id="menu-header" class="menu-header">EarthMC Dynmap+<span id="menu-arrow">▼</span></div>`,
+	menuHeader: `<div id="menu-header" class="menu-header">{title}<span id="menu-arrow">▼</span></div>`,
 	menu: '<div class="leaflet-control-layers leaflet-control" id="menu"></div>',
+	menuBody: '<div id="menu-body"></div>',
     locateMenu: '<div id="locate-menu"></div>',
     locateOptionsMenu: '<div id="locate-options-menu"></div>',
 	locateInput: '<input class="menu-input-option" id="locate-input" placeholder="London">',
@@ -213,20 +214,14 @@ function insertCustomStylesheets() {
 	// other stylesheet html links ... 
 }
 
-// TODO: Use Custom Element Registry and convert the extension menu into one.
-
-/** @param {HTMLElement} parent - The "leaflet-top leaflet-left" element. */
-function addExtensionMenu(parent) {
-	const menu = addElement(parent, INSERTABLE_HTML.menu)
-	const header = addElement(menu, INSERTABLE_HTML.menuHeader) // for toggling the menu open and closed.
-	const body = addElement(menu, `<div id="menu-body"></div>`)
-	
-	addMenuLocateSection(body) // Locator button and input box
-	addMenuArchiveSection(body)
-	addMenuOptionsList(body, currentMapMode()) // Options button and checkboxes
-
-	let collapsed = Store.local.get('menu-collapsed') == 'true'
-
+/**
+ * Adds collapsible behaviour to a section header and body.
+ * @param {HTMLElement} header
+ * @param {HTMLElement} body
+ * @param {boolean} collapsed
+ * @returns {() => boolean}
+ */
+function addCollapsibleSection(header, body, collapsed = false) {
 	const arrow = header.querySelector('#menu-arrow')
 	const apply = () => {
 		body.classList.toggle('collapsed', collapsed)
@@ -236,9 +231,24 @@ function addExtensionMenu(parent) {
 	apply()
 	header.addEventListener('click', () => {
 		collapsed = !collapsed
-		Store.local.set('menu-collapsed', collapsed)
 		apply()
 	})
+
+	return () => collapsed
+}
+
+// TODO: Use Custom Element Registry and convert the extension menu into one.
+
+/** @param {HTMLElement} parent - The "leaflet-top leaflet-left" element. */
+function addExtensionMenu(parent) {
+	const menu = addElement(parent, INSERTABLE_HTML.menu)
+	const header = addElement(menu, INSERTABLE_HTML.menuHeader.replace("{title}", "EarthMC Dynmap+"))
+	const body = addElement(menu, INSERTABLE_HTML.menuBody)
+
+	addCollapsibleSection(header, body, Store.local.get('menu-collapsed') == 'true')
+	addMenuLocateSection(body) // Locator button and input box
+	addMenuArchiveSection(body)
+	addMenuOptionsList(body, currentMapMode()) // Options button and checkboxes
 
 	return menu
 }
@@ -294,13 +304,10 @@ function addMenuArchiveSection(menu) {
  * @param {MapMode} curMapMode 
 */
 function addMenuOptionsList(menu, curMapMode) {
-	const optionsButton = addElement(menu, INSERTABLE_HTML.buttons.options)
+	const header = addElement(menu, INSERTABLE_HTML.menuHeader.replace("{title}", "Extension Options"))
 	const optionsMenu = addElement(menu, INSERTABLE_HTML.options.menu)
-	optionsMenu.style.display = 'none'
-	optionsButton.addEventListener('click', _ => {
-		optionsMenu.style.display = (optionsMenu.style.display == 'none') ? 'grid' : 'none'
-		optionsButton.textContent = (optionsMenu.style.display == 'none') ? 'Show Options' : 'Close Options'
-	})
+
+	addCollapsibleSection(header, optionsMenu, true)
 
 	let i = 0
 	addMenuToggleOption(optionsMenu, i++, 'toggle-normalize-scroll', 'Normalize scroll inputs', 'normalize-scroll', e => 
