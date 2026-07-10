@@ -10,6 +10,7 @@
 	--show-icon: url("__SHOW_ICON__");
 	--hide-icon: url("__HIDE_ICON__");
 	--screenshot-bg-image: url("__SCREENSHOT_ICON__");
+	accent-color: var(--yellow-colour); /* applies to checkbox, radio and range inputs */
 }
 
 .crisp-edges {

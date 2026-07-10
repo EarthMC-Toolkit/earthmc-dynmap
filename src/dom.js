@@ -32,7 +32,14 @@ const INSERTABLE_HTML = /** @type {const} */ ({
         menu: '<div id="options-menu"></div>',
         option: '<div class="option"></div>',
         label: '<label for="{option}">{optionText}</label>',
-        checkbox: '<input id="{option}" type="checkbox">'
+        checkbox: '<input id="{option}" type="checkbox">',
+		toggle: `<label class="toggle-switchy" for="{option}" data-text="false" data-style="rounded-square">
+			<input id="{option}" type="checkbox">
+			<span class="toggle">
+				<span class="switch"></span>
+			</span>
+			</label>
+		`
     },
 	nationClaims: '<div class="leaflet-control-layers leaflet-control" id="nation-claims"></div>',
 	nationClaimsColorInput: '<input type="color" id="nation-color-entry{index}"></input>',
@@ -45,8 +52,8 @@ const INSERTABLE_HTML = /** @type {const} */ ({
 	serverInfo: '<div class="leaflet-control-layers leaflet-control" id="server-info"></div>',
 	menuHeader: `<div id="menu-header" class="menu-header">EarthMC Dynmap+<span id="menu-arrow">▼</span></div>`,
 	menu: '<div class="leaflet-control-layers leaflet-control" id="menu"></div>',
-    menuOption: '<div class="menu-option"></div>',
     locateMenu: '<div id="locate-menu"></div>',
+    locateOptionsMenu: '<div id="locate-options-menu"></div>',
 	locateInput: '<input class="menu-input-option" id="locate-input" placeholder="London">',
     locateSelect: '<select id="locate-select"><option>Town</option><option>Nation</option><option>Resident</option></select>',
     archiveMenu: '<div id="archive-menu"></div>',
@@ -137,19 +144,21 @@ function showAlertNoDismiss(message, timeout = null) {
 
 /**
  * @param {string} selector
- * @returns {Promise<HTMLElement | null>}
+ * @param {boolean} all
+ * @returns {Promise<HTMLElement | null> | Promise<NodeListOf<HTMLElement>>}
  */
-const waitForElement = selector => new Promise(resolve => {
-    const selected = document.querySelector(selector)
-    if (selected) return resolve(selected)
+const waitForElement = (selector, all = false) => new Promise(resolve => {
+    const selected = all ? document.querySelectorAll(selector) : document.querySelector(selector)
+    if (all ? selected.length > 0 : selected) return resolve(selected)
 
     const observer = new MutationObserver(() => {
-        const selected = document.querySelector(selector)
-        if (selected) {
+        const selected = all ? document.querySelectorAll(selector) : document.querySelector(selector)
+        if (all ? selected.length > 0 : selected) {
             resolve(selected)
             observer.disconnect()
         }
     })
+
     observer.observe(document.body, { childList: true, subtree: true })
 })
 
@@ -238,11 +247,11 @@ function addExtensionMenu(parent) {
 function addMenuLocateSection(menu) {
 	const locateMenu = addElement(menu, INSERTABLE_HTML.locateMenu)
 	const locateButton = addElement(locateMenu, INSERTABLE_HTML.buttons.locate)
-	const locateSubmenu = addElement(locateMenu, INSERTABLE_HTML.menuOption, '.menu-option')
+	const locateOptionsMenu = addElement(locateMenu, INSERTABLE_HTML.locateOptionsMenu)
 
-	//#region sub menu (dropdown and input)
-	const locateSelect = addElement(locateSubmenu, INSERTABLE_HTML.locateSelect)
-	const locateInput = addElement(locateSubmenu, INSERTABLE_HTML.locateInput)
+	//#region Options menu (dropdown and input)
+	const locateSelect = addElement(locateOptionsMenu, INSERTABLE_HTML.locateSelect)
+	const locateInput = addElement(locateOptionsMenu, INSERTABLE_HTML.locateInput)
 	locateSelect.addEventListener('change', () => {
 		switch (locateSelect.value) {
 			case 'Town': locateInput.placeholder = 'London'; break
@@ -294,19 +303,19 @@ function addMenuOptionsList(menu, curMapMode) {
 	})
 
 	let i = 0
-	addMenuCheckboxOption(optionsMenu, i++, 'toggle-normalize-scroll', 'Normalize scroll inputs', 'normalize-scroll', e => 
+	addMenuToggleOption(optionsMenu, i++, 'toggle-normalize-scroll', 'Normalize scroll inputs', 'normalize-scroll', e => 
 		toggleScrollNormalize(e.target.checked)
 	)
-	addMenuCheckboxOption(optionsMenu, i++, 'toggle-darkened', 'Decrease brightness', 'darkened', e => toggleDarkened(e.target.checked))
-	addMenuCheckboxOption(optionsMenu, i++, 'toggle-darkmode', 'Toggle dark mode', 'darkmode', e => toggleDarkMode(e.target.checked))
-	addMenuCheckboxOption(optionsMenu, i++, 'toggle-serverinfo', 'Display server info', 'serverinfo', e => toggleServerInfo(e.target.checked))
+	addMenuToggleOption(optionsMenu, i++, 'toggle-darkened', 'Decrease brightness', 'darkened', e => toggleDarkened(e.target.checked))
+	addMenuToggleOption(optionsMenu, i++, 'toggle-darkmode', 'Toggle dark mode', 'darkmode', e => toggleDarkMode(e.target.checked))
+	addMenuToggleOption(optionsMenu, i++, 'toggle-serverinfo', 'Display server info', 'serverinfo', e => toggleServerInfo(e.target.checked))
 	
 	if (curMapMode != 'archive') {
-		addMenuCheckboxOption(
+		addMenuToggleOption(
 			optionsMenu, i++, 'toggle-playerlist', 'Display player list', 'playerlist', 
 			e => togglePlayerList(e.target.checked)
 		)
-		addMenuCheckboxOption(
+		addMenuToggleOption(
 			optionsMenu, i++, 'toggle-capital-stars', 'Show capital stars', 'capital-stars', 
 			e => toggleShowCapitalStars(e.target.checked)
 		)
@@ -322,20 +331,24 @@ function addMenuOptionsList(menu, curMapMode) {
  * @param {string} variable - The variable name in storage used to keep the 'checked' state 
  * @param {(e: Event) => void} listener - An optional function to call when the checkbox is toggled
  */
-function addMenuCheckboxOption(menu, index, optionId, optionText, variable, listener) {
-	/** @type {HTMLElement} */
-	const option = addElement(menu, INSERTABLE_HTML.options.option, '.option', true)[index]
+function addMenuToggleOption(menu, index, optionId, optionText, variable, listener) {
+	/** @type {HTMLElement} */ const option = addElement(menu, INSERTABLE_HTML.options.option, '.option', true)[index]
 	option.insertAdjacentHTML('beforeend', INSERTABLE_HTML.options.label
 		.replace('{option}', optionId)
 		.replace('{optionText}', optionText))
+
+	/** @type {HTMLElement} */ 		const toggle = addElement(option, INSERTABLE_HTML.options.toggle)
+	/** @type {HTMLInputElement} */ const toggleInput = toggle.querySelector("input")
 	
-	// Initialize checkbox state
-	/** @type {HTMLInputElement} */
-	const checkbox = addElement(option, INSERTABLE_HTML.options.checkbox.replace('{option}', optionId), '#' + optionId)
-	checkbox.checked = Store.local.get(variable) == 'true'
+	// Initialize toggle state and label
+	const checked = Store.local.get(variable) == 'true'
+	toggleInput.checked = checked
 	
-	if (listener) checkbox.addEventListener('change', listener)
-	return checkbox
+	toggleInput.id = optionId
+	toggle.htmlFor = optionId
+
+	if (listener) toggleInput.addEventListener('change', listener)
+	return toggleInput
 }
 
 function initToggleOptions() {
@@ -633,7 +646,7 @@ function addNationClaimsPanel(parent) {
 
 	/** @type {HTMLInputElement} */
 	const showExcludedCheckbox = appendHTML(optDiv1, 
-		INSERTABLE_HTML.options.checkbox.replace('{option}', 'show-excluded') + 
+		INSERTABLE_HTML.options.toggle.replaceAll('{option}', 'show-excluded') + 
 		INSERTABLE_HTML.options.label.replace('{option}', 'show-excluded').replace('{optionText}', 'Show irrelevant towns')
 	)
 	showExcludedCheckbox.checked = Store.local.get('nation-claims-show-excluded') == 'true'
@@ -641,7 +654,7 @@ function addNationClaimsPanel(parent) {
 
 	/** @type {HTMLInputElement} */
 	const useOpaqueCheckbox = appendHTML(optDiv2,
-		INSERTABLE_HTML.options.checkbox.replace('{option}', 'use-opaque-colors') + 
+		INSERTABLE_HTML.options.toggle.replaceAll('{option}', 'use-opaque-colors') + 
 		INSERTABLE_HTML.options.label.replace('{option}', 'use-opaque-colors').replace('{optionText}', 'Use opaque colors')
 	)
 	useOpaqueCheckbox.checked = Store.local.get('nation-claims-opaque-colors') == 'true'

@@ -34,7 +34,8 @@
 			"resources/css/layout.css",
 			"resources/css/mapmode.css",
 			"resources/css/menu.css",
-			"resources/css/popup.css"
+			"resources/css/popup.css",
+			"resources/css/toggle.css"
 		],
 		"js": [
 			"src/store.js",

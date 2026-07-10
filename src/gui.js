@@ -39,19 +39,12 @@ function togglePlayerList(boxTicked) {
 }
 
 /** @param {boolean} boxTicked */
-function toggleShowCapitalStars(boxTicked) {
+async function toggleShowCapitalStars(boxTicked) {
 	Store.local.set('capital-stars', boxTicked)
-
-	const pane = document.querySelector('.leaflet-pane.leaflet-marker-pane')
-	if (!pane) return
-
-	const imgs = pane.querySelectorAll('img')
-	for (const img of imgs) {
-		const src = img.getAttribute('src') || ''
-		if (!src.endsWith('towny_capital_icon.png')) continue
-
-		img.style.visibility = boxTicked ? 'visible' : 'hidden'
-	}
+	
+	/** @type {Array<HTMLImageElement>} */
+	const icons = await waitForElement("img[src*='towny_capital_icon.png']", true)
+	icons.forEach(img => boxTicked ? img.style.removeProperty("display") : img.style.setProperty("display", "none", "important"))
 }
 
 //#region Dark Mode

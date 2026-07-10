@@ -142,11 +142,13 @@
 }
 
 #nation-claims-apply {
+	border: none;
 	background-color: rgb(31, 137, 52) !important;
 	flex-grow: 1;
 }
 
 #nation-claims-reset-all {
+	border: none;
 	background-color: rgb(218, 69, 69) !important;
 	flex-grow: 1;
 }
@@ -159,7 +161,8 @@
 }
 
 .nation-claims-checkbox-option {
-	display: inline-block;
+	display: inline-flex;
+	flex-direction: column;
 	align-items: center;
 	margin: 5px;
 	font-family: "Inter", 'Open Sans', sans-serif;
