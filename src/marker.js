@@ -328,11 +328,6 @@ function colourMarkerNewDay(marker, parsedMarker) {
 		return marker // we already set the marker colour in addRuinMarkers()
 	}
 
-	if (marker.type == 'icon') {
-		setMarkerTransparency(marker, 0)
-		return marker // don't show icons like capital stars
-	}
-
 	setMarkerTransparency(marker, 0.33, 0.8, 0.85)
 	return setMarkerColour(marker, '#151515', '#151515')
 }

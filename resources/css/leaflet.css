@@ -65,3 +65,8 @@ div.leaflet-control-layers.screenshot img {
 	height: 35px !important;
 	background-image: var(--screenshot-bg-image) !important;
 }
+
+.leaflet-pane .leaflet-marker-pane > img[src*="towny_capital_icon.png"] {
+	width: 14px !important;
+	height: 14px !important;
+}
