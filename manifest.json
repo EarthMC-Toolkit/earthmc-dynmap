@@ -39,15 +39,15 @@
 		],
 		"js": [
 			"src/store.js",
-			"src/util.js",
 			"src/httputil.js",
+			"src/util.js",
 			"src/dom.js",
 			"src/layer.js",
 			"src/marker.js",
 			"src/locator.js",
 			"src/screenshot.js",
 			"src/modeselector.js",
-			"src/gui.js",
+			"src/interaction.js",
 			"src/main.js",
 			"src/entrypoint.js"
 		]

@@ -92,7 +92,5 @@ async function getTownSpawn(townName) {
 /** @param {string} townName */
 function getTownMidpoint(townName) {
 	const town = parsedMarkers.find(m => m.townName && m.townName.toLowerCase() == townName)
-	if (!town) return null
-
-	return { x: town.x, z: town.z }
+	return town ? { x: town.x, z: town.z } : null
 }

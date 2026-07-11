@@ -68,27 +68,21 @@ class Store {
 		// 	}
 		// }
 
-		static keys = (prefix = PREFIX) => Object.keys(localStorage)
-			.filter(k => k.startsWith(prefix))
-			.map(k => k.substring(prefix.length))
+		// static keys = (prefix = PREFIX) => Object.keys(localStorage)
+		// 	.filter(k => k.startsWith(prefix))
+		// 	.map(k => k.substring(prefix.length))
 
-		static increment(key, amount = 1, prefix = null) {
-			const value = Number(this.get(key, 0, prefix)) + amount
-			this.set(key, value, prefix)
-			return value
-		}
+		// static toggle(key, prefix = null) {
+		// 	const value = !this.get(key, false, prefix)
+		// 	this.set(key, value, prefix)
+		// 	return value
+		// }
 
-		static toggle(key, prefix = null) {
-			const value = !this.get(key, false, prefix)
-			this.set(key, value, prefix)
-			return value
-		}
-
-		static cleanup(prefix = PREFIX) {
-			for (const key of this.keys(prefix)) {
-				this.get(key, null, prefix)
-            }
-		}
+		// static cleanup(prefix = PREFIX) {
+		// 	for (const key of this.keys(prefix)) {
+		// 		this.get(key, null, prefix)
+        //     }
+		// }
 	}
 
 	static opfs = class {
@@ -147,6 +141,12 @@ class Store {
 			}
 		}
 
+		static async blob(path) {
+			const { dir, file } = await this.#parent(path)
+			const handle = await dir.getFileHandle(file)
+			return await handle.getFile()
+		}
+
 		static async cache(key, ttlMs, callback) {
 			const metaPath = `.cache/${key}.json`
 			try {
@@ -162,44 +162,38 @@ class Store {
 			return value
 		}
 
-		static async blob(path) {
-			const { dir, file } = await this.#parent(path)
-			const handle = await dir.getFileHandle(file)
-			return await handle.getFile()
-		}
-
 		static async delete(path) {
 			const { dir, file } = await this.#parent(path)
 			await dir.removeEntry(file)
 		}
 
-		static size = (path) => this.blob(path).then(b => b.size)
-		static modified = (path) => this.blob(path).then(b => b.lastModified)
+		// static size = (path) => this.blob(path).then(b => b.size)
+		// static modified = (path) => this.blob(path).then(b => b.lastModified)
 
-		static async list(path = "") {
-			let dir = await this.#root()
-			for (const part of path.split("/").filter(Boolean)) {
-				dir = await dir.getDirectoryHandle(part)
-            }
+		// static async list(path = "") {
+		// 	let dir = await this.#root()
+		// 	for (const part of path.split("/").filter(Boolean)) {
+		// 		dir = await dir.getDirectoryHandle(part)
+        //     }
 
-			const files = []
-			for await (const [name, handle] of dir.entries()) {
-				files.push({ name, kind: handle.kind })
-			}
+		// 	const files = []
+		// 	for await (const [name, handle] of dir.entries()) {
+		// 		files.push({ name, kind: handle.kind })
+		// 	}
 
-			return files
-		}
+		// 	return files
+		// }
 
-		static async mkdir(path) {
-			let dir = await this.#root()
-			for (const part of path.split("/").filter(Boolean)) {
-				dir = await dir.getDirectoryHandle(part, { create: true })
-            }
-		}
+		// static async mkdir(path) {
+		// 	let dir = await this.#root()
+		// 	for (const part of path.split("/").filter(Boolean)) {
+		// 		dir = await dir.getDirectoryHandle(part, { create: true })
+        //     }
+		// }
 
-		static async deleteDir(path, recursive = true) {
-			const { dir, file } = await this.#parent(path)
-			await dir.removeEntry(file, { recursive })
-		}
+		// static async deleteDir(path, recursive = true) {
+		// 	const { dir, file } = await this.#parent(path)
+		// 	await dir.removeEntry(file, { recursive })
+		// }
 	}
 }

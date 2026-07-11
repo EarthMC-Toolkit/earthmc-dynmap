@@ -1,5 +1,4 @@
 /** ANY CODE RELATING TO ONSCREEN INTERACTION GOES HERE IF IT DOES NOT HAVE ITS OWN FILE */
-//console.log('emcdynmapplus: loaded gui')
 
 /** @param {boolean} boxTicked */
 function toggleDarkened(boxTicked) {

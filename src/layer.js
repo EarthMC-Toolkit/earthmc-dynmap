@@ -1,10 +1,8 @@
-const isAurora = CURRENT_MAP == 'aurora'
-
 // Hand-picked constants
 // 1.94 is how many times Nostra's map is horizontally bigger than Aurora's
-const SCALE_X 	 = isAurora ? 1.0015 : 1.94133 	// Aurora is slightly stretched horizontally
-const MOVE_DOWN  = isAurora ? 0 : 8175 			// How much to move the layer down by
-const MOVE_RIGHT = isAurora ? 0 : 382.5 		// How much to move the layer right by
+const SCALE_X 	 = IS_AURORA ? 1.0015 : 1.94133 	// Aurora is slightly stretched horizontally
+const MOVE_DOWN  = IS_AURORA ? 0 : 8175 			// How much to move the layer down by
+const MOVE_RIGHT = IS_AURORA ? 0 : 382.5 		// How much to move the layer right by
 
 const AURORA_ZBOUNDS = { min: -16640, max: 16508 } // Vertical bounds of old map (Plate Carree projection)
 const NORTH_HEMISPHERE_FACTOR = 0.994 // Project from Plate Carree to Miller Cylindrical. Adjust projection of north hemisphere
@@ -51,7 +49,7 @@ function addCountryBordersLayer(data, borders) {
 				if (!isNumeric(xCoord)) continue
 
 				const zCoord = line.z[i]
-				countryPoly.push(isAurora ? { x: xCoord * SCALE_X, z: zCoord } : {
+				countryPoly.push(IS_AURORA ? { x: xCoord * SCALE_X, z: zCoord } : {
 					x: xCoord * SCALE_X + MOVE_RIGHT,
 					z: millerProjection(zCoord) + MOVE_DOWN
 				})

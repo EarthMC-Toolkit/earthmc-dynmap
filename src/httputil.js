@@ -1,8 +1,8 @@
 /** ANYTHING RELATED TO NETWORKING BELONGS IN HERE */
-//console.log('emcdynmapplus: loaded httputil')
 
 const EMC_DOMAIN = "earthmc.net"
 const CURRENT_MAP = location.href.includes('aurora') ? "aurora" : "nostra"
+const IS_AURORA = CURRENT_MAP == 'aurora'
 
 const CAPI_BASE = `https://emcstats.bot.nu`
 const MAPI_BASE = `https://map.${EMC_DOMAIN}`

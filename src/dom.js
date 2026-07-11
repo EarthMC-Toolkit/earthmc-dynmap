@@ -310,22 +310,14 @@ function addMenuOptionsList(menu, curMapMode) {
 	addCollapsibleSection(header, optionsMenu, true)
 
 	let i = 0
-	addMenuToggleOption(optionsMenu, i++, 'toggle-normalize-scroll', 'Normalize scroll inputs', 'normalize-scroll', e => 
-		toggleScrollNormalize(e.target.checked)
-	)
+	addMenuToggleOption(optionsMenu, i++, 'toggle-normalize-scroll', 'Normalize scroll inputs', 'normalize-scroll', e => toggleScrollNormalize(e.target.checked))
 	addMenuToggleOption(optionsMenu, i++, 'toggle-darkened', 'Decrease brightness', 'darkened', e => toggleDarkened(e.target.checked))
 	addMenuToggleOption(optionsMenu, i++, 'toggle-darkmode', 'Toggle dark mode', 'darkmode', e => toggleDarkMode(e.target.checked))
 	addMenuToggleOption(optionsMenu, i++, 'toggle-serverinfo', 'Display server info', 'serverinfo', e => toggleServerInfo(e.target.checked))
 	
 	if (curMapMode != 'archive') {
-		addMenuToggleOption(
-			optionsMenu, i++, 'toggle-playerlist', 'Display player list', 'playerlist', 
-			e => togglePlayerList(e.target.checked)
-		)
-		addMenuToggleOption(
-			optionsMenu, i++, 'toggle-capital-stars', 'Show capital stars', 'capital-stars', 
-			e => toggleShowCapitalStars(e.target.checked)
-		)
+		addMenuToggleOption(optionsMenu, i++, 'toggle-playerlist', 'Display player list', 'playerlist',  e => togglePlayerList(e.target.checked))
+		addMenuToggleOption(optionsMenu, i++, 'toggle-capital-stars', 'Show capital stars', 'capital-stars', e => toggleShowCapitalStars(e.target.checked))
 	}
 }
 
@@ -589,13 +581,13 @@ function insertMapModeSelector() {
 	})
 }
 
-/** @param {HTMLElement} element - The element to prevent dblckick and mousedown events on. */
+/** 
+ * Prevents panning the map when on the input element by stopping the mouse event from propogating to Leaflet.
+ * In addition, blocks the map (Leaflet) from zooming when double clicking in the extension menu.
+ * @param {HTMLElement} element - The element to prevent dblckick and mousedown events on. 
+ */
 function disablePanAndZoom(element) {
-	// Prevents panning the map when on this element by
-	// stopping the mouse event from propogating to Leaflet.
 	element.addEventListener('mousedown', e => e.stopPropagation())
-
-	// blocks the map (Leaflet) from zooming when double clicking in the extension menu.
 	element.addEventListener('dblclick', e => {
 		e.stopPropagation()
 		e.preventDefault()
@@ -710,7 +702,6 @@ function addServerInfoPanel(parent) {
 	addElement(panel, '<br>')
 	addElement(panel, '<div class="server-info-entry" id="storm">⚡ Storm: Loading..</div>')
 	addElement(panel, '<div class="server-info-entry" id="thunder">⛈️ Thunder: Loading..</div>')
-
 	return panel
 }
 
@@ -735,10 +726,9 @@ function renderServerInfo(element, info) {
 	// Server Time
 	const hours = Math.floor(serverTimeOfDay / 3600)
 	const minutes = Math.floor((serverTimeOfDay % 3600) / 60)
-
-	const displayHour = hours % 12 || 12
+	const displayHr = hours % 12 || 12
 	const displayMin = minutes.toString().padStart(2, '0')
-	const timeStr = `${displayHour}:${displayMin} ${hours >= 12 ? 'PM' : 'AM'}`
+	const timeStr = `${displayHr}:${displayMin} ${hours >= 12 ? 'PM' : 'AM'}`
 
 	// New Day In
 	let delta = newDayTime - serverTimeOfDay

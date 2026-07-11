@@ -1,17 +1,21 @@
 /** ANY CODE RELATING TO THE MAP MODE SELECTOR GOES HERE */
-//console.log('emcdynmapplus: loaded mode selector')
 
-const MAP_MODES = /** @type {const} */ ({
-    DEFAULT:        { name: "default",      img: "resources/img/map-mode-default.png", order: 0 },
-    MEGANATIONS:    { name: "meganations",  img: "resources/img/map-mode-meganations.png", order: 1 },
-    ALLIANCES:      { name: "alliances",    img: "resources/img/map-mode-alliances.png", order: 2 },
-    NATIONCLAIMS:   { name: "nationclaims", img: "resources/img/map-mode-nationclaims.png", order: 3 },
-    OVERCLAIM:      { name: "overclaim",    img: "resources/img/map-mode-overclaim.png", order: 4, skipIf: () => isAurora },
-    NEWDAY:         { name: "newday",       img: "resources/img/map-mode-newday.png", order: 5, skipIf: () => isAurora },
-    POPULATION:     { name: "population",   img: "resources/img/map-mode-heatmap-population.png", order: 6, skipIf: () => isAurora },
-    BALANCE:        { name: "balance",      img: "resources/img/map-mode-heatmap-balance.png", order: 7, skipIf: () => isAurora },
-    ARCHIVE:        { name: "archive",      img: null, order: 8 }, // null img to avoid showing up in the selector
-})
+/** The array of map mode objects, `order` key is automagically added. */
+const MAP_MODES = /** @type {const} */ [
+    { key: "DEFAULT",      name: "default",      img: "resources/img/map-mode-default.png" },
+    { key: "MEGANATIONS",  name: "meganations",  img: "resources/img/map-mode-meganations.png" },
+    { key: "ALLIANCES",    name: "alliances",    img: "resources/img/map-mode-alliances.png" },
+    { key: "NATIONCLAIMS", name: "nationclaims", img: "resources/img/map-mode-nationclaims.png" },
+    { key: "OVERCLAIM",    name: "overclaim",    img: "resources/img/map-mode-overclaim.png", skipIf: () => IS_AURORA },
+    { key: "NEWDAY",       name: "newday",       img: "resources/img/map-mode-newday.png", skipIf: () => IS_AURORA },
+    { key: "POPULATION",   name: "population",   img: "resources/img/map-mode-heatmap-population.png", skipIf: () => IS_AURORA },
+    { key: "BALANCE",      name: "balance",      img: "resources/img/map-mode-heatmap-balance.png", skipIf: () => IS_AURORA },
+    { key: "ARCHIVE",      name: "archive",      img: null },
+].reduce((obj, mode, order) => {
+    obj[mode.key] = { ...mode, order };
+    delete obj[mode.key].key;
+    return obj;
+}, {})
 Object.freeze(MAP_MODES)
 
 /**
@@ -22,7 +26,7 @@ Object.freeze(MAP_MODES)
 const MapMode = MAP_MODES // this exists at runtime to replace the typedef
 const sortedMapModes = () => Object.values(MAP_MODES).sort((a, b) => a.order - b.order)
 
-/** @type {() => MapMode} */
+/** @returns {MapMode} */
 const currentMapMode = () => {
     const name = Store.local.get('mapmode')
 	if (!name) return MapMode.DEFAULT
@@ -45,22 +49,18 @@ function addMapModeSelector(parent) {
 
         const hidden = selectorDiv.style.display == 'none'
         selectorDiv.style.display = hidden ? 'flex' : 'none'
+        
         document.getElementById('nation-claims').classList.toggle('no-selector', !hidden)
 	})
 
     const label = addElement(selectorDiv, INSERTABLE_HTML.mapMode.currentModeLabel)
     const iconContainer = addElement(selectorDiv, INSERTABLE_HTML.mapMode.optionContainer)
-    
-    const modes = sortedMapModes()
-    for (const mode of modes) {
-        if (mode.img == null) continue
-        if (mode.skipIf && mode.skipIf()) continue
-
+    for (const mode of sortedMapModes()) {
+        if (mode.img == null || mode.skipIf?.()) continue
         addMapModeBtn(iconContainer, mode, _ => selectMapMode(mode))
     }
 
-    const curMode = currentMapMode()
-    label.textContent = `Current Mode: ${curMode.name}`
+    label.textContent = `Current Mode: ${currentMapMode().name}`
 }
 
 /**

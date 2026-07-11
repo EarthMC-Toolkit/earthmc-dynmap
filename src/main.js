@@ -1,5 +1,4 @@
 /** MAIN RUNTIME LOGIC. ANYTHING NOT RELATING TO HTTP/DOM OR DOES NOT HAVE ITS OWN FILE BELONGS HERE */
-//console.log('emcdynmapplus: loaded main')
 
 // Add clickable player nameplates
 waitForElement('.leaflet-nameplate-pane').then(element => {

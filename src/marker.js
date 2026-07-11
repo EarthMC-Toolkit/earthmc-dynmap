@@ -1,3 +1,5 @@
+/** ANYTHING RELATING TO MARKERS (POPUP, COLOUR ETC) BELONGS HERE. USUALLY REFERENCED BY MAIN */
+
 /// <reference types="./types.d.ts" />
 
 /** 
