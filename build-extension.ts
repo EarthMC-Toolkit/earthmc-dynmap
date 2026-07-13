@@ -1,4 +1,4 @@
-/// <reference types="node" />
+/// <reference types="node"/>
 import * as path from 'path'
 import { statSync, readdirSync, createWriteStream } from 'fs'
 import { ZipArchive, type Archiver } from 'archiver'

@@ -1,3 +1,5 @@
+/// <reference path="util.js"/>
+
 // Hand-picked constants
 // 1.94 is how many times Nostra's map is horizontally bigger than Aurora's
 const SCALE_X 	 = IS_AURORA ? 1.0015 : 1.94133 	// Aurora is slightly stretched horizontally

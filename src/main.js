@@ -1,4 +1,9 @@
 /** MAIN RUNTIME LOGIC. ANYTHING NOT RELATING TO HTTP/DOM OR DOES NOT HAVE ITS OWN FILE BELONGS HERE */
+/// <reference path="./httputil.js"/>
+/// <reference path="./util.js"/>
+/// <reference path="./dom.js"/>
+/// <reference path="./layer.js"/>
+/// <reference path="./mapmode.js"/>
 
 // Add clickable player nameplates
 waitForElement('.leaflet-nameplate-pane').then(element => {
@@ -24,8 +29,6 @@ const DEFAULT_ALLIANCE_COLOURS = { fill: '#000000', outline: '#000000' }
 const CHUNKS_PER_RES = 12
 const DAY_MS = 86_400_000 // 24hrs in millis
 
-/** @type {() => Array<{color: string | null, input: string | null}>} */
-const nationClaimsInfo = () => Store.local.get('nation-claims-info', [])
 const archiveDate = () => parseInt(Store.local.get('archive-date'))
 
 /** @type {Array<ParsedMarker>} */
@@ -56,106 +59,28 @@ async function modifyMarkers(data) {
 		return data
 	}
 
-    if (cachedAlliances == null && mapMode == MapMode.ALLIANCES || mapMode == MapMode.MEGANATIONS) {
-        cachedAlliances = await fetchAlliances()
-    }
-	if (mapMode == MapMode.NEWDAY) {
-		if (cachedFallingTowns == null) cachedFallingTowns = await fetchFallingTowns()
-		if (cachedRuinedTowns == null) cachedRuinedTowns = await fetchRuinedTowns()
-
-		addRuinMarkers(data, cachedRuinedTowns, '#ff1900')
-	}
-	if (mapMode == MapMode.BALANCE || mapMode == MapMode.OVERCLAIM) {
-		/** @type {Array<OAPITown>} */
-		const cached = await Store.opfs.cache("api-towns", 3*60*1000, async () => {
-			const alert = showAlertNoDismiss('Querying the EMC API for extra town info...', 30)
-
-			const url = `${currentMapApiUrl()}/towns`
-			const tlist = await fetchJSON(url)
-			const towns = await queryConcurrent(url, tlist)
-			
-			alert.remove()
-			return towns
-		})
-
-		cachedApiTowns = new Map(cached.map(t => [t.name.toLowerCase(), t]))
-	}
-
 	// Get current local storage values
 	const date = archiveDate()
 	const isSquaremap = mapMode != MapMode.ARCHIVE || date >= 20240701
-
-	const useOpaque = Store.local.get('nation-claims-opaque-colors') == 'true'
-	const showExcluded = Store.local.get('nation-claims-show-excluded') == 'true'
-	const claimsCustomizerInfo = new Map(nationClaimsInfo()
-		.filter(obj => obj.input != null)
-		.map(obj => [obj.input?.toLowerCase(), obj.color])
-	)
+	
+	const mode = Object.values(MapMode).find(m => m.name == mapMode.name)
+	await mode.preload?.(data)
 
 	for (const marker of data[0].markers) {
 		if (marker.type != 'polygon' && marker.type != 'icon') continue
 
-		// Set default transparency. May be altered l8r depending on map mode.
+		// Set default transparency. May be altered l8r when specific map mode logic is applied.
 		setMarkerTransparency(marker, 0.33, 1, 1.2)
 
-		const parsed = isSquaremap 
-			? modifySquaremapDescription(marker, mapMode)
-			: modifyDynmapDescription(marker, date)
-
+		const parsed = isSquaremap ? modifySquaremapDescription(marker, mapMode) : modifyDynmapDescription(marker, date)
 		const match = parsed.mayor?.match(/^NPC(\d+)$/)
 		const isRuin = match ? Number(match[1]) >= 0 && Number(match[1]) <= 1000 : false
+		
+		const ctx = { date, isSquaremap, isRuin }
+		await mode.apply?.(marker, parsed, ctx) // each mode's implementation is defined in mapmode.js
 
-		switch (mapMode) {
-			case MapMode.DEFAULT: 
-			case MapMode.ARCHIVE: break
-			case MapMode.ALLIANCES: {
-				colourMarkerAlliances(marker, parsed)
-				break
-			}
-			case MapMode.MEGANATIONS: {
-				colourMarkerMeganations(marker, parsed)
-				break
-			}
-			case MapMode.OVERCLAIM: {
-				const t = cachedApiTowns.get(parsed.townName.toLowerCase())
-				if (t) marker.popup = buildMarkerPopup(t)
-
-				if (isRuin) setMarkerColour(marker, '#000000', '#000000')
-				else colourMarkerOverclaim(marker, t)
-				break
-			}
-			case MapMode.NATIONCLAIMS: {
-				colourMarkerNationClaims(marker, parsed.nationName, claimsCustomizerInfo, useOpaque, showExcluded)
-				break
-			}
-			case MapMode.NEWDAY: {
-				colourMarkerNewDay(marker, parsed)
-				break
-			}
-			case MapMode.POPULATION: {
-				if (isRuin) setMarkerColour(marker, '#000000', '#000000')
-				else colourMarkerHeatmap(marker, parsed.residentNum, 7)
-				break
-			}
-			case MapMode.BALANCE: {
-				if (isRuin) setMarkerColour(marker, '#000000', '#000000')
-				else {
-					const t = cachedApiTowns.get(parsed.townName.toLowerCase())
-					if (t) marker.popup = buildMarkerPopup(t)
-
-					colourMarkerHeatmap(marker, t?.stats?.balance || 0, 90)
-				}
-
-				break
-			}
-			default: if (isRuin) setMarkerColour(marker, '#000000', '#000000')
-		}
-
-		parsedMarkers.push(parsed) // needs to be at very end in case any map mode funcs modify parsed
+		parsedMarkers.push(parsed) // needs to be at very end in case parsed is modified by apply()
 	}
-	
-	//const elapsed = performance.now() - start
-	//console.log(`emcdynmapplus: modified description and colour of all markers. took ${elapsed.toFixed(2)}ms`)
 
 	return data
 }
@@ -163,7 +88,7 @@ async function modifyMarkers(data) {
 /**
  * Modifies a town description of a Squaremap marker.
  * @param {SquaremapMarker} marker
- * @param {MapMode} mapMode - The currently selected map mode.
+ * @param {MapModeType} mapMode - The currently selected map mode.
  * @returns {ParsedMarker}
  */
 function modifySquaremapDescription(marker, mapMode) {
@@ -177,10 +102,10 @@ function modifySquaremapDescription(marker, mapMode) {
 	const isCapital = marker.tooltip.match(/\(Capital of (.*)\)/) != null
 	const mayor = marker.popup.match(/Mayor: <b>(.*)<\/b>/)?.[1]
 
-	const residents = marker.popup?.match(/<\/summary>\n    \t(.*)\n   \t<\/details>/)?.[1]
+	const residents = marker.popup?.match(/<\/summary>\s*(.*?)\s*<\/details>/s)?.[1]
 	const residentNum = residents?.split(', ').length ?? 0
 
-	const councillors = marker.popup.match(/Councillors: <b>(.*)<\/b>/)?.[1]
+	const councillors = marker.popup?.match(/Councillors: <b>(.*)<\/b>/)?.[1]
 		.split(', ').filter(councillor => councillor != 'None')
 
 	// Fix a bug with names that are wrapped in angle brackets
@@ -192,8 +117,8 @@ function modifySquaremapDescription(marker, mapMode) {
 
 	// Create clickable resident lists
 	const isArchiveMode = mapMode == MapMode.ARCHIVE
-	const residentList = isArchiveMode ? residents : residents.split(', ').map(r => INSERTABLE_HTML.residentClickable.replaceAll('{player}', r)).join(', ')
-	const councillorList = isArchiveMode ? councillors : councillors.map(c => INSERTABLE_HTML.residentClickable.replaceAll('{player}', c)).join(', ')
+	const residentList = isArchiveMode ? residents : residents?.split(', ').map(r => INSERTABLE_HTML.residentClickable.replaceAll('{player}', r)).join(', ')
+	const councillorList = isArchiveMode ? councillors : councillors?.map(c => INSERTABLE_HTML.residentClickable.replaceAll('{player}', c)).join(', ')
 
 	// Modify description
 	const list = residentNum > 50 ? INSERTABLE_HTML.scrollableResidentList : INSERTABLE_HTML.residentList
@@ -246,7 +171,7 @@ function modifySquaremapDescription(marker, mapMode) {
 	return {
 		townName: fixedTownName, 
 		nationName: fixedNationName,
-		residentNum, residentList: residents.split(', '), 
+		residentNum, residentList: residents?.split(', '), 
 		isCapital, mayor, area, ...location
 	}
 }
@@ -312,7 +237,7 @@ function modifyDynmapDescription(marker, curArchiveDate) {
 /**
  * Gets all alliances the input nation exists within / is related to.
  * @param {string} nationName - The name of the nation to get related alliances.
- * @param {MapMode} mapMode - The currently selected map mode.
+ * @param {MapModeType} mapMode - The currently selected map mode.
  */
 function getNationAlliances(nationName, mapMode) {
 	if (cachedAlliances == null) return []
@@ -384,44 +309,6 @@ function convertOldMarkersStructure(markerset) {
 		points: v.x.map((x, i) => ({ x, z: v.z[i] }))
 	}))
 }
-
-/**
- * Calculate the claim limit for an independent town and report overclaimed status.
- * @param {number} claimedChunks 
- * @param {number} numResidents 
- */
-// function checkOverclaimedNationless(claimedChunks, numResidents) {
-//     const resLimit = numResidents * CHUNKS_PER_RES
-//     const isOverclaimed = claimedChunks > resLimit
-
-//     // Calculate how much the town is overclaimed by, if applicable
-//     return {
-// 		isOverclaimed,
-// 		chunksOverclaimed: isOverclaimed ? claimedChunks - resLimit : 0,
-// 		resLimit
-// 	}
-// }
-
-/**
- * Calculate the claim limit for a town with a nation and report overclaimed status.
- * @param {number} claimedChunks
- * @param {number} numResidents
- * @param {number} numNationResidents
- */
-// function checkOverclaimed(claimedChunks, numResidents, numNationResidents) {
-// 	const bonus = calcNationBonus(numNationResidents)
-
-//     const resLimit = numResidents * CHUNKS_PER_RES
-//     const totalClaimLimit = resLimit + bonus
-//     const isOverclaimed = claimedChunks > totalClaimLimit
-	
-// 	return { 
-// 		isOverclaimed,
-// 		chunksOverclaimed: isOverclaimed ? claimedChunks - totalClaimLimit : 0,
-// 		nationBonus: bonus,
-// 		resLimit, totalClaimLimit
-// 	}
-// }
 
 /** @param {number} numNationResidents */
 const calcNationBonus = numNationResidents => numNationResidents >= 200 ? 100

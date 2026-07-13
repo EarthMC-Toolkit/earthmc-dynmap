@@ -1,6 +1,6 @@
 /** ANYTHING RELATING TO MARKERS (POPUP, COLOUR ETC) BELONGS HERE. USUALLY REFERENCED BY MAIN */
-
-/// <reference types="./types.d.ts" />
+/// <reference types="./types.d.ts"/>
+/// <reference path="./main.js"/>
 
 /** 
  * @param {MarkersResponse} data 
@@ -103,6 +103,8 @@ const buildMarkerPopup = (t, type = 'normal') => {
 	<br>
 	Balance: <b>${t.stats.balance ?? 0}G</b>
 	<br>
+	Size: <b>${t.stats.numTownBlocks ?? 0} Chunks</b>
+	<br>
 	${flags.map(([name, value]) => `${name}: <b>${value ? '<span style="color: green">Yes</span>' : '<span style="color: red">No</span>'}</b><br>`).join('')}
 	<br>
 	<details style="min-width: 250px">
@@ -126,7 +128,6 @@ const buildMarkerPopup = (t, type = 'normal') => {
  */
 function chunksToSquaremap(blocks) {
 	const edges = new Set()
-
 	const add = (a, b) => {
 		const k = `${a.x},${a.z}|${b.x},${b.z}`
 		const r = `${b.x},${b.z}|${a.x},${a.z}`
@@ -155,9 +156,8 @@ function chunksToSquaremap(blocks) {
 		edgeMap.get(key).push(b)
 	}
 
-	const used = new Set()
 	const out = []
-
+	const used = new Set()
 	for (const startKey of edgeMap.keys()) {
 		if (used.has(startKey)) continue
 
@@ -232,7 +232,7 @@ const setMarkerTransparency = (marker, fillOpacity, outlineOpacity = undefined, 
 /**
  * @param {Marker} marker
  * @param {string} nationName
- * @param {MapMode} mapMode - The currently selected map mode.
+ * @param {MapModeType} mapMode - The currently selected map mode.
  * @returns {Marker}
  */
 function applyAllianceColours(marker, nationName, mapMode) {
@@ -282,22 +282,18 @@ function colourMarkerOverclaim(marker, town) {
 /**
  * @param {Marker} marker
  * @param {string} nationName
- * @param {Map<string|null, string|null>} claimsCustomizerInfo
- * @param {boolean} useOpaque
- * @param {boolean} showExcluded
+ * @param {NationClaimsCacheInfo} info
  * @returns {Marker}
  */
-function colourMarkerNationClaims(marker, nationName, claimsCustomizerInfo, useOpaque, showExcluded) {
-	//const strippedName = nationName?.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase()
-	const nationColorInput = claimsCustomizerInfo.get(nationName?.toLowerCase())
+function colourMarkerNationClaims(marker, nationName, info) {
+	const nationColorInput = info.entries.get(nationName?.toLowerCase())
 	if (!nationColorInput) {
-		if (useOpaque) setMarkerTransparency(marker, 0.5)
-		if (!showExcluded) setMarkerTransparency(marker, 0) // Make town invisible if not part of a nation in claims customizer.
-
+		if (info.useOpaque) setMarkerTransparency(marker, 0.5)
+		if (!info.showExcluded) setMarkerTransparency(marker, 0) // Make town invisible if not part of a nation in claims customizer.
 		return setMarkerColour(marker, '#000000', '#000000', 1)
 	}
 
-	if (useOpaque) setMarkerTransparency(marker, 1) // 100% opacity similar to manual player drawn claim maps
+	if (info.useOpaque) setMarkerTransparency(marker, 1) // 100% opacity similar to manual player drawn claim maps
 	return setMarkerColour(marker, nationColorInput, nationColorInput, 1.5)
 }
 

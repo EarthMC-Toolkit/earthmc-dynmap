@@ -1,4 +1,6 @@
 /** ANYTHING RELATED TO NETWORKING BELONGS IN HERE */
+/// <reference path="./types.d.ts"/>
+/// <reference path="./dom.js"/>
 
 const EMC_DOMAIN = "earthmc.net"
 const CURRENT_MAP = location.href.includes('aurora') ? "aurora" : "nostra"
@@ -178,15 +180,17 @@ async function fetchAlliances() {
 	return allianceData
 }
 
-async function fetchFallingTowns() {
-	const falling = await fetchJSON(`${CAPI_BASE}/${CURRENT_MAP}/falling`)
-	return falling
-}
+/**
+ * Fetches falling towns from the EMC Stats API for the current map.
+ * @returns {Promise<Array<CAPIFallingTown>>}
+ */
+const fetchFallingTowns = () => fetchJSON(`${CAPI_BASE}/${CURRENT_MAP}/falling`)
 
-async function fetchRuinedTowns() {
-	const ruined = await fetchJSON(`${CAPI_BASE}/${CURRENT_MAP}/ruined`)
-	return ruined
-}
+/**
+ * Fetches ruined towns from the EMC Stats API for the current map.
+ * @returns {Promise<Array<CAPIFallingTown>>}
+ */
+const fetchRuinedTowns = () => fetchJSON(`${CAPI_BASE}/${CURRENT_MAP}/ruined`)
 
 /**
  * Sends multiple requests and concatenates the results to circumvent 
@@ -252,4 +256,13 @@ function createCorsFetcher() {
 		if (!r.ok) throw new Error(r.error)
 		return { ok: true, text: r.text, json: async () => JSON.parse(r.text) }
 	})
+}
+
+/**
+ * Updates the address bar / href with the specified coords and zoom.
+ * @param {Vertex} coords
+ * @param {number} zoom
+ */
+function updateUrlLocation(coords, zoom = 4) {
+	location.href = `${MAPI_BASE}?zoom=${zoom}&x=${coords.x}&z=${coords.z}`
 }

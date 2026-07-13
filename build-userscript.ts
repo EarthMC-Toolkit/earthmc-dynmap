@@ -1,5 +1,5 @@
-/// <reference types="node" />
-/// <reference types="./src/types.d.ts" />
+/// <reference types="node"/>
+/// <reference types="./src/types.d.ts"/>
 import { readdirSync, readFileSync, writeFileSync } from 'fs'
 import { build, type BuildOptions } from 'esbuild'
 import * as path from 'path'

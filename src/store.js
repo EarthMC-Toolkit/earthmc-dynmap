@@ -5,7 +5,14 @@ class Store {
 		static #key(key, prefix = null) {
 			return `${prefix || PREFIX}${key}`
 		}
-
+		
+		/**
+		 * @template T
+		 * @param {string} key
+		 * @param {T} [defaultValue=null]
+		 * @param {string?} [prefix=null]
+		 * @returns {T}
+		 */
 		static get(key, defaultValue = null, prefix = null) {
 			const raw = localStorage.getItem(this.#key(key, prefix))
 			if (raw === null) return defaultValue

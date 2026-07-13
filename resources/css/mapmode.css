@@ -65,22 +65,22 @@
 	min-width: min-content;
     width: 45vw;
 	max-width: max-content;
-	padding: 10px 20px 10px 20px;
+	padding: 10px 15px;
 	/* Position in the center of the screen, 10px from the top */
     position: fixed;
 	text-align: center;
-    top: 130px;
+    top: 110px;
     left: 50%;
     transform: translateX(-50%);
 }
 
-#nation-claims.no-selector {
+/* #nation-claims.no-selector {
 	top: 10px;
 }
 
 #nation-claims.no-selector * #nation-claims-entry-container {
 	max-height: calc(100vh - 200px);
-}
+} */
 
 #nation-claims-titlebar {
 	display: flex;
@@ -90,8 +90,8 @@
 	gap: 10px;
 	line-height: 5px;
 	font-family: "Inter", 'Open Sans', sans-serif;
-	font-size: large;
-	font-weight: 700;
+	font-size: 15px;
+	font-weight: 600;
 }
 
 /* Button to show/hide the nation claims panel */
@@ -119,7 +119,7 @@
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
 	min-height: 40vh;
-	max-height: calc(100vh - 320px);
+	max-height: calc(100vh - 290px);
 	overflow-y: auto;
 	margin-bottom: 5px;
 	margin-top: 10px;

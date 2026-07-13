@@ -46,7 +46,7 @@
 			"src/marker.js",
 			"src/locator.js",
 			"src/screenshot.js",
-			"src/modeselector.js",
+			"src/mapmode.js",
 			"src/interaction.js",
 			"src/main.js",
 			"src/entrypoint.js"

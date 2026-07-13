@@ -1,8 +1,8 @@
-//const nextFrame = () => new Promise(r => requestAnimationFrame(r))
-const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
-const queryTileElements = () => document.querySelectorAll(".leaflet-tile-pane .leaflet-layer img.leaflet-tile")
+/// <reference path="./dom.js"/>
 
 const OUTPUT_RES_SCALE = 1.5 // increase canvas resolution
+const queryTileElements = () => document.querySelectorAll(".leaflet-tile-pane .leaflet-layer img.leaflet-tile")
+const delay = ms => new Promise(r => setTimeout(r, ms))
 
 /** @param {"low" | "medium" | "high" | null | undefined} antialiasing */
 const screenshotViewport = async (antialiasing = null) => {

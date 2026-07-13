@@ -1,5 +1,7 @@
 /** ANY DOM MANIPULATION OR ELEMENT INSERTION CODE BELONGS HERE */
 //console.log('emcdynmapplus: loaded dom') 
+/// <reference path="./store.js"/>
+/// <reference path="./interaction.js"/>
 
 const ARCHIVE_DATE = {
 	MIN: "2022-05-01",
@@ -218,10 +220,13 @@ function insertCustomStylesheets() {
  * Adds collapsible behaviour to a section header and body.
  * @param {HTMLElement} header
  * @param {HTMLElement} body
- * @param {boolean} collapsed
+ * @param {boolean} collapsed - The initial collapsed state, used if storageKey is not specified.
+ * @param {string} storageKey - The stored collapsed state which will be used if available.
  * @returns {() => boolean}
  */
-function addCollapsibleSection(header, body, collapsed = false) {
+function addCollapsibleSection(header, body, storageKey = null, collapsed = null) {
+	collapsed = storageKey && collapsed == null ? Store.local.get(storageKey) == 'true' : false
+	
 	const arrow = header.querySelector('#menu-arrow')
 	const apply = () => {
 		body.classList.toggle('collapsed', collapsed)
@@ -231,10 +236,9 @@ function addCollapsibleSection(header, body, collapsed = false) {
 	apply()
 	header.addEventListener('click', () => {
 		collapsed = !collapsed
+		if (storageKey) Store.local.set(storageKey, String(collapsed))
 		apply()
 	})
-
-	return () => collapsed
 }
 
 // TODO: Use Custom Element Registry and convert the extension menu into one.
@@ -245,7 +249,7 @@ function addExtensionMenu(parent) {
 	const header = addElement(menu, INSERTABLE_HTML.menuHeader.replace("{title}", "EarthMC Dynmap+"))
 	const body = addElement(menu, INSERTABLE_HTML.menuBody)
 
-	addCollapsibleSection(header, body, Store.local.get('menu-collapsed') == 'true')
+	addCollapsibleSection(header, body, 'menu-collapsed')
 	addMenuLocateSection(body) // Locator button and input box
 	addMenuArchiveSection(body)
 	addMenuOptionsList(body, currentMapMode()) // Options button and checkboxes
@@ -301,13 +305,13 @@ function addMenuArchiveSection(menu) {
 
 /** 
  * @param {HTMLElement} menu 
- * @param {MapMode} curMapMode 
+ * @param {MapModeType} curMapMode 
 */
 function addMenuOptionsList(menu, curMapMode) {
 	const header = addElement(menu, INSERTABLE_HTML.menuHeader.replace("{title}", "Extension Options"))
 	const optionsMenu = addElement(menu, INSERTABLE_HTML.options.menu)
 
-	addCollapsibleSection(header, optionsMenu, true)
+	addCollapsibleSection(header, optionsMenu, 'menu-options-collapsed')
 
 	let i = 0
 	addMenuToggleOption(optionsMenu, i++, 'toggle-normalize-scroll', 'Normalize scroll inputs', 'normalize-scroll', e => toggleScrollNormalize(e.target.checked))
@@ -544,7 +548,7 @@ async function editUILayout() {
 
 /** 
  * Inserts the claim color customizer only if the active map mode matches mapMode.
- * @param {MapMode} mapMode - The name of the map mode required to insert the claims panel.
+ * @param {MapModeType} mapMode - The name of the map mode required to insert the claims panel.
  * @returns {Promise<Element | null>} The "#nation-claims" element. 
  */
 function tryInsertNationClaimsPanel(mapMode) {
@@ -646,7 +650,8 @@ function addNationClaimsPanel(parent) {
 	/** @type {HTMLInputElement} */
 	const showExcludedCheckbox = appendHTML(optDiv1, 
 		INSERTABLE_HTML.options.toggle.replaceAll('{option}', 'show-excluded') + 
-		INSERTABLE_HTML.options.label.replace('{option}', 'show-excluded').replace('{optionText}', 'Show irrelevant towns')
+		INSERTABLE_HTML.options.label.replace('{option}', 'show-excluded').replace('{optionText}', 'Show irrelevant towns'),
+		{ selector: 'input' }
 	)
 	showExcludedCheckbox.checked = Store.local.get('nation-claims-show-excluded') == 'true'
 	showExcludedCheckbox.addEventListener('change', e => Store.local.set('nation-claims-show-excluded', e.target.checked))
@@ -654,7 +659,8 @@ function addNationClaimsPanel(parent) {
 	/** @type {HTMLInputElement} */
 	const useOpaqueCheckbox = appendHTML(optDiv2,
 		INSERTABLE_HTML.options.toggle.replaceAll('{option}', 'use-opaque-colors') + 
-		INSERTABLE_HTML.options.label.replace('{option}', 'use-opaque-colors').replace('{optionText}', 'Use opaque colors')
+		INSERTABLE_HTML.options.label.replace('{option}', 'use-opaque-colors').replace('{optionText}', 'Use opaque colors'),
+		{ selector: 'input' }
 	)
 	useOpaqueCheckbox.checked = Store.local.get('nation-claims-opaque-colors') == 'true'
 	useOpaqueCheckbox.addEventListener('change', e => Store.local.set('nation-claims-opaque-colors', e.target.checked))

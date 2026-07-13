@@ -1,4 +1,5 @@
 /** ANY CODE RELATING TO ONSCREEN INTERACTION GOES HERE IF IT DOES NOT HAVE ITS OWN FILE */
+/// <reference path="dom.js"/>
 
 /** @param {boolean} boxTicked */
 function toggleDarkened(boxTicked) {
@@ -108,13 +109,4 @@ function searchArchive(date) {
 	Store.local.set('mapmode', MapMode.ARCHIVE.name)
 
 	location.reload()
-}
-
-/**
- * Updates the address bar / href with the specified coords and zoom.
- * @param {Vertex} coords
- * @param {number} zoom
- */
-function updateUrlLocation(coords, zoom = 4) {
-	location.href = `${MAPI_BASE}?zoom=${zoom}&x=${coords.x}&z=${coords.z}`
 }

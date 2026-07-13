@@ -1,3 +1,7 @@
+/// <reference types="./types.d.ts"/>
+/// <reference path="./dom.js"/>
+/// <reference path="./mapmode.js"/>
+
 /** @returns {boolean} */
 function isUserscript() {
 	return typeof IS_USERSCRIPT !== 'undefined' && IS_USERSCRIPT
@@ -83,7 +87,7 @@ async function init(manifest) {
     await editUILayout()
 	await insertScreenshotBtn()
 
-	const insertedPanel = await tryInsertNationClaimsPanel(MapMode.NATIONCLAIMS)
+	const insertedPanel = await tryInsertNationClaimsPanel(MapMode.NATION_CLAIMS)
 	if (insertedPanel) loadNationClaims(insertedPanel)
 
 	initToggleOptions()

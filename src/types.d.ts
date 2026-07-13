@@ -32,6 +32,7 @@ declare global {
     export type MarkerPoints = Array<Polygon>
     export type MultiPolygonPoints = Array<MarkerPoints>
 
+    // --------------------- EMC MAP RESPONSE TYPES ---------------------
     /** The raw response data from `markers.json`. Contains markers from Towny at index 0 and World Border at index 1. */
     export type MarkersResponse = Array<ResponseMarker>
     export interface ResponseMarker { 
@@ -74,6 +75,34 @@ declare global {
         x: number
         z: number
         mayor?: string
+    }
+
+    // --------------------- MAP MODE TYPES ---------------------
+    export interface NationClaimsEntry {
+        input?: string | null,
+        color?: string | null
+    }
+
+    export interface NationClaimsCacheInfo {
+        entries: Map<string, string>
+        showExcluded: boolean
+        useOpaque: boolean
+    }
+
+    export interface MarkerApplyContext {
+        date: number // eg: 20240701
+        isSquaremap: boolean
+        isRuin: boolean
+    }
+
+    export interface MapModeType {
+        name: string
+        img: string | null
+        order: number // the index at which it sits in the selector
+        cache?: { [key: string]: any },
+        skipIf?: () => boolean
+        preload?: (data: MarkersResponse) => Promise<any>
+        apply?: <T = SquaremapMarker | DynmapMarker>(marker: T, parsed: ParsedMarker, context: MarkerApplyContext) => Promise<T | void>
     }
 
     // --------------------- ALLIANCE TYPES ---------------------
