@@ -108,9 +108,7 @@ const BALANCE = {
 /** @type {MapModeType} */
 const CUSTOM = {
     name: "custom", img: "resources/img/map-mode-default.png", skipIf: () => IS_AURORA,
-    apply: async (marker, parsed, context) => {
-        
-    }
+    apply: async (marker, parsed, context) => {}
 }
 
 const MapMode = Object.freeze({
@@ -122,7 +120,7 @@ const MapMode = Object.freeze({
 
 const MAP_MODE_LIST = Object.values(MapMode).map((mode, i) => { mode.order = i; return mode })
 const sortedMapModes = () => [...MAP_MODE_LIST].sort((a, b) => a.order - b.order)
-const currentMapMode = () => sortedMapModes().find(m => m.name == Store.local.get('mapmode')) ?? MapMode.DEFAULT
+const currentMapMode = () => MapMode[(Store.local.get('mapmode', null) || MapMode.DEFAULT.name).toUpperCase()]
 
 /** @param {MapModeType} mode */
 function selectMapMode(mode) {
