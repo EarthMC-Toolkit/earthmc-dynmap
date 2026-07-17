@@ -1,7 +1,3 @@
-/// <reference path="./httputil.js"/>
-/// <reference path="./dom.js"/>
-/// <reference path="./main.js"/>
-
 /**
  * Runs appropriate locator func based on selectValue, passing inputValue as the argument. 
  * @param {string} selectValue

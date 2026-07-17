@@ -1,8 +1,5 @@
 /** ANY DOM MANIPULATION OR ELEMENT INSERTION CODE BELONGS HERE */
 //console.log('emcdynmapplus: loaded dom') 
-/// <reference path="./store.js"/>
-/// <reference path="./interaction.js"/>
-
 const ARCHIVE_DATE = {
 	MIN: "2022-05-01",
 	MAX: new Date().toLocaleDateString()

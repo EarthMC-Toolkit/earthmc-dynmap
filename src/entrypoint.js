@@ -1,7 +1,3 @@
-/// <reference types="./types.d.ts"/>
-/// <reference path="./dom.js"/>
-/// <reference path="./mapmode.js"/>
-
 /** @returns {boolean} */
 function isUserscript() {
 	return typeof IS_USERSCRIPT !== 'undefined' && IS_USERSCRIPT
@@ -9,6 +5,9 @@ function isUserscript() {
 
 /** THIS FILE IS RUN FIRST, ANY SETUP/INIT REQUIRED BELONGS HERE */
 (async function entrypoint() {
+	if (window.L.Browser.ielt9) return showAlertNoDismiss('EarthMC Dynmap+ has been disabled. Internet Explorer pleb detected.')
+	if (window.L.Browser.canvas) return showAlertNoDismiss('EarthMC Dynmap+ has been disabled. Internet Explorer pleb detected.')
+
 	const manifest = isUserscript() ? MANIFEST : chrome.runtime.getManifest()
 	if (!isUserscript()) {
 		// Any scripts that need to be injected into the page context should be specified in 

@@ -1,10 +1,4 @@
 /** MAIN RUNTIME LOGIC. ANYTHING NOT RELATING TO HTTP/DOM OR DOES NOT HAVE ITS OWN FILE BELONGS HERE */
-/// <reference path="./httputil.js"/>
-/// <reference path="./util.js"/>
-/// <reference path="./dom.js"/>
-/// <reference path="./layer.js"/>
-/// <reference path="./mapmode.js"/>
-
 // Add clickable player nameplates
 waitForElement('.leaflet-nameplate-pane').then(element => {
 	element.addEventListener('click', event => {

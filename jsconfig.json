@@ -1,0 +1,10 @@
+{
+    "compilerOptions": {
+        "lib": ["DOM", "ESNext"],
+        "types": ["leaflet", "node"]
+    },
+    "exclude": [
+        "node_modules", "dist", ".github", 
+        "build-extension.ts", "build-userscript.ts"
+    ],
+}

@@ -8,6 +8,7 @@
     "build": "bun run userscript && bun run extension"
   },
   "devDependencies": {
+    "@types/leaflet": "^1.9.21",
     "@types/node": "^26.0.1",
     "archiver": "^8.0.0",
     "esbuild": "^0.28.0",

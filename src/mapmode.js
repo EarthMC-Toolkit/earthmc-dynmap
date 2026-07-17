@@ -1,9 +1,4 @@
 /** ANY CODE RELATING TO MAP MODES / SELECTION LOGIC GOES HERE */
-/// <reference types="./types.d.ts"/>
-/// <reference path="./httputil.js"/>
-/// <reference path="./store.js"/>
-/// <reference path="./marker.js"/>
-
 const preloadTowns = async () => {
     /** @type {Array<OAPITown>} */
     const cached = await Store.opfs.cache("api-towns", 3*60*1000, async () => {

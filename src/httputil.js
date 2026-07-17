@@ -1,7 +1,4 @@
 /** ANYTHING RELATED TO NETWORKING BELONGS IN HERE */
-/// <reference path="./types.d.ts"/>
-/// <reference path="./dom.js"/>
-
 const EMC_DOMAIN = "earthmc.net"
 const CURRENT_MAP = location.href.includes('aurora') ? "aurora" : "nostra"
 const IS_AURORA = CURRENT_MAP == 'aurora'

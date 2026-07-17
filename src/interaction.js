@@ -1,6 +1,4 @@
 /** ANY CODE RELATING TO ONSCREEN INTERACTION GOES HERE IF IT DOES NOT HAVE ITS OWN FILE */
-/// <reference path="dom.js"/>
-
 /** @param {boolean} boxTicked */
 function toggleDarkened(boxTicked) {
 	const element = document.querySelector('.leaflet-tile-pane')
