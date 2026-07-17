@@ -5,24 +5,6 @@ declare global {
     export interface Entity { name: string, uuid: string }
 
     // --------------------- BUILD SCRIPT TYPES ---------------------
-    export interface Manifest {
-        [key: string]: any
-        name: string
-        version: string
-        description: string
-        author: string
-        web_accessible_resources: Array<{
-            run_at: string
-            matches: Array<string>
-            resources: Array<string>
-        }>
-        content_scripts: Array<{
-            matches: Array<string>,
-            css: Array<string>
-            js: Array<string>
-        }>
-    }
-
     export interface Border { x: Array<number>, y: Array<number>, z: Array<number> }
     export interface Borders { [key: string]: Border }
 
