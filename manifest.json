@@ -23,6 +23,7 @@
 		"resources": [
 			"resources/interceptor.js",
 			"resources/borders-countries.json",
+			"resources/borders-provinces.json",
 			"resources/img/*"
 		]
 	}],

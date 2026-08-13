@@ -33,7 +33,9 @@ interface Border {
 
 const COUNTRIES_INPUT = "./local/ne_10m_admin_0_countries.json"
 const PROVINCES_INPUT = "./local/ne_10m_admin_1_states_provinces.json"
-const OUTPUT = "./resources/borders-countries.json"
+
+const COUNTRIES_OUTPUT = "./resources/borders-countries.json"
+const PROVINCES_OUTPUT = "./resources/borders-provinces.json"
 
 // Hand-picked constants from the existing map.
 
@@ -78,7 +80,7 @@ function convertRing(ring: Ring): Border {
 
 const round = (value: number): number => Math.round(value * 100) / 100
 
-const input = await readFile(COUNTRIES_INPUT, "utf8")
+const input = await readFile(PROVINCES_INPUT, "utf8")
 const geojson = JSON.parse(input) as GeoJSON
 
 const borders: Record<string, Border> = {}
@@ -109,5 +111,5 @@ for (const feature of geojson.features) {
 	}
 }
 
-await writeFile(OUTPUT, JSON.stringify(borders), "utf8")
-console.log(`Wrote ${idx} border rings to ${OUTPUT}`)
+await writeFile(PROVINCES_OUTPUT, JSON.stringify(borders), "utf8")
+console.log(`Wrote ${idx} border rings to ${PROVINCES_OUTPUT}`)

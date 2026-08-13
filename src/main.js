@@ -11,7 +11,7 @@ waitForElement('.leaflet-nameplate-pane').then(element => {
 })
 
 const EXTRA_BORDER_OPTS = {
-	label: "Country Border",
+	label: "Border",
 	opacity: 0.5,
 	weight: 3,
 	color:  "#000000",
@@ -38,14 +38,23 @@ async function modifyMarkers(data) {
 	const mapMode = currentMapMode()
 	console.log(`Modifying markers according to current map mode: ${mapMode.name}`)
 
-	const borders = isUserscript() ? BORDERS.countries : await fetch(chrome.runtime.getURL('resources/borders-countries.json')).then(r => r.json())
-	if (!borders) showAlert("An unexpected error occurred fetching the borders resource file.")
-	else {
-		for (const key in borders) {
-			borders[key] = { ...borders[key], ...EXTRA_BORDER_OPTS }
-		}
-		addCountryBordersLayer(data, borders)
+	/** @type {Borders} */
+	const countryBorders = isUserscript() ? BORDERS.countries
+		: await fetch(chrome.runtime.getURL('resources/borders-countries.json')).then(r => r.json())
+	
+	/** @type {Borders} */
+	const provinceBorders = isUserscript() ? BORDERS.provinces
+		: await fetch(chrome.runtime.getURL('resources/borders-provinces.json')).then(r => r.json())
+
+	for (const key in countryBorders) {
+		countryBorders[key] = { ...countryBorders[key], ...EXTRA_BORDER_OPTS }
 	}
+	for (const key in provinceBorders) {
+		provinceBorders[key] = { ...provinceBorders[key], ...EXTRA_BORDER_OPTS }
+	}
+
+	if (countryBorders && provinceBorders) addBorderLayers(data, countryBorders, provinceBorders)
+	else showAlert("An unexpected error occurred fetching the border resource files.")
 
 	if (mapMode == MapMode.ARCHIVE) data = await getArchive(data)
 	if (!data?.[0]?.markers?.length) {
