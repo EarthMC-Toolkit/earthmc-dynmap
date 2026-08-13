@@ -66,6 +66,18 @@ div.leaflet-control-layers.screenshot img {
 	background-image: var(--screenshot-bg-image) !important;
 }
 
+/** Scale down the name text in the nameplate so it's less intrusive. */
+div.leaflet-nameplate-pane div {
+	font-weight: 550 !important;
+	font-size: .6rem !important;
+	padding: 2px 4px 3px !important;
+}
+
+/** Scale down the player head in the nameplate to match the smaller font size. */
+div.leaflet-nameplate-pane * img.head {
+	height: 14px !important;
+}
+
 .leaflet-pane .leaflet-marker-pane > img[src*="towny_capital_icon.png"] {
 	width: 14px !important;
 	height: 14px !important;
