@@ -1,9 +1,9 @@
-import { readFile, writeFile } from "node:fs/promises"
+/// <reference types="node"/>
+import { readFile, writeFile } from "fs/promises"
 
 type Position = [number, number]
-type Ring = Position[]
-type Polygon = Ring[]
-type MultiPolygon = Polygon[]
+type Ring = Array<Position>
+type Polygon = Array<Ring>
 
 interface GeoJSON {
 	type: "FeatureCollection"
@@ -16,7 +16,7 @@ interface Feature {
 		coordinates: Polygon
 	} | {
 		type: "MultiPolygon"
-		coordinates: MultiPolygon
+		coordinates: Array<Polygon>
 	}
 	properties: {
 		name?: string
@@ -27,17 +27,11 @@ interface Feature {
 }
 
 interface Border {
-	x: number[]
-	z: number[]
+	x: Array<number>
+	z: Array<number>
 }
 
-const COUNTRIES_INPUT = "./local/ne_10m_admin_0_countries.json"
-const PROVINCES_INPUT = "./local/ne_10m_admin_1_states_provinces.json"
-
-const COUNTRIES_OUTPUT = "./resources/borders-countries.json"
-const PROVINCES_OUTPUT = "./resources/borders-provinces.json"
-
-// Hand-picked constants from the existing map.
+//#region Hand-picked constants from the existing map.
 
 // 16574 is a mean average of old map vertical bounds
 const MILLER_Y_CALC = (5/4 * Math.asinh(Math.tan(4/5 * (90 * (Math.PI / 180))))) // ≈ 2.3034125433763912
@@ -54,22 +48,41 @@ const NOSTRA_X_BOUNDS = {
 	min: -64512,
 	max: 64512
 }
+//#endregion
 
+// the humble round func. will round your number to the nearest 0.001 no questions asked
+const round = (v: number): number => Math.round(v * 1000) / 1000
+
+/**
+ * Converts a Web Mercator X coordinate from metres into a Nostra X coordinate.
+ *
+ * The input is converted into a normalized world coordinate, where ±PI*MERCATOR_RADIUS represents the full width 
+ * of the projected world. It is then scaled into Nostra's X coordinate range defined by its map bounds.
+ *
+ * @param x Web Mercator X coordinate in metres.
+ */
 function convertX(x: number): number {
 	const normalized = x / (Math.PI * MERCATOR_RADIUS)
 	const boundsDiff = (NOSTRA_X_BOUNDS.max - NOSTRA_X_BOUNDS.min)
 	return round(normalized * boundsDiff / 2)
 }
 
+/**
+ * Converts a Miller projection Z coordinate from metres into a Nostra Z coordinate.
+
+ * The input is converted into a normalized Miller coordinate using the radius used by the source projection, 
+ * the result then gets negated because Nostra's Z axis is inverted relative to the GeoJSON projection 
+ * (prolly caused by Minecraft/Squaremap), as to convert it from projection Y to map Z.
+ *
+ * @param z Miller projection Z coordinate in metres.
+ */
 function convertZ(z: number): number {
 	const millerZ = (z / MILLER_RADIUS) * MILLER_Y_NORMALIZER
 	return round(-millerZ * MAP_SCALE_FACTOR + MOVE_DOWN)
 }
 
 function convertRing(ring: Ring): Border {
-	const x: number[] = []
-	const z: number[] = []
-
+	const [x, z] = [new Array<number>(), new Array<number>()]
 	for (const [projectedX, projectedZ] of ring) {
 		x.push(convertX(projectedX))
 		z.push(convertZ(projectedZ))
@@ -78,38 +91,64 @@ function convertRing(ring: Ring): Border {
 	return { x, z }
 }
 
-const round = (value: number): number => Math.round(value * 100) / 100
-
-const input = await readFile(PROVINCES_INPUT, "utf8")
-const geojson = JSON.parse(input) as GeoJSON
-
-const borders: Record<string, Border> = {}
-
 let idx = 0
 
-for (const feature of geojson.features) {
-	if (
-		feature.properties?.admin === "Antarctica" ||
-		feature.properties?.adm0_a3 === "ATA" ||
-		feature.properties?.ADM0_A3 === "ATA"
-	) {
-		continue
-	}
+/** 
+ * Parses a file in the GeoJSON format, returning a Record<string, Border> where the key is the index of the country.\
+ * Since Nostra crops out Antarctica, we skip it here to ensure its border does not exist in the record.
+*/
+function parseGeoJSON(json: GeoJSON) {
+	idx = 0
 
-	if (feature.geometry.type === "Polygon") {
-		for (const ring of feature.geometry.coordinates) {
-			borders[`countryBorders_0_1_${idx}`] = convertRing(ring)
-			idx++
-		}
-	} else {
-		for (const polygon of feature.geometry.coordinates) {
-			for (const ring of polygon) {
+	const borders: Record<string, Border> = {}
+	for (const feature of json.features) {
+		if (feature.properties?.admin === "Antarctica") continue
+		if (feature.properties?.adm0_a3 === "ATA" || feature.properties?.ADM0_A3 === "ATA") continue
+
+		if (feature.geometry.type === "Polygon") {
+			for (const ring of feature.geometry.coordinates) {
 				borders[`countryBorders_0_1_${idx}`] = convertRing(ring)
 				idx++
 			}
+		} else {
+			for (const polygon of feature.geometry.coordinates) {
+				for (const ring of polygon) {
+					borders[`countryBorders_0_1_${idx}`] = convertRing(ring)
+					idx++
+				}
+			}
 		}
 	}
+
+	return borders
 }
 
-await writeFile(PROVINCES_OUTPUT, JSON.stringify(borders), "utf8")
-console.log(`Wrote ${idx} border rings to ${PROVINCES_OUTPUT}`)
+const GREEN = "\x1b[32m"
+const BLUE = "\x1b[4;34m"
+const RESET = "\x1b[0m"
+
+/**
+ * Convert GeoJSON file to regular JSON encoded file, stripping unnecessary duplicate info 
+ * (such as features, type and properties) since only want to output a Record<string, Border> 
+ * where the key is the country index and the value (Border) contains its X and Z coordinates.
+*/ 
+async function convertGeoJsonFile(inputPath: string, outputPath: string): Promise<void> {
+	const input = await readFile(inputPath, "utf8")
+	const geojson = JSON.parse(input) as GeoJSON
+	const borders = parseGeoJSON(geojson)
+
+	await writeFile(outputPath, JSON.stringify(borders), "utf8")
+	console.log(`Parsed contents of ${BLUE}${inputPath}${RESET}`)
+	console.log(`\tWrote ${GREEN}${Object.keys(borders).length}${RESET} border rings to ${BLUE}${outputPath}${RESET}\n`)
+}
+
+const COUNTRIES_INPUT_PATH = "./local/ne_10m_admin_0_countries.json"
+const COUNTRIES_OUTPUT_PATH = "./resources/borders-countries.json"
+
+const PROVINCES_INPUT_PATH = "./local/ne_10m_admin_1_states_provinces.json"
+const PROVINCES_OUTPUT_PATH = "./resources/borders-provinces.json"
+
+console.log('Converting GeoJSON border files to JSON...\n')
+await convertGeoJsonFile(COUNTRIES_INPUT_PATH, COUNTRIES_OUTPUT_PATH)
+await convertGeoJsonFile(PROVINCES_INPUT_PATH, PROVINCES_OUTPUT_PATH)
+console.log("Converted.")
