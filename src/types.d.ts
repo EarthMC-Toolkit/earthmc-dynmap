@@ -5,7 +5,7 @@ declare global {
     export interface Entity { name: string, uuid: string }
 
     // --------------------- BUILD SCRIPT TYPES ---------------------
-    export interface Border { x: Array<number>, y: Array<number>, z: Array<number> }
+    export interface Border { x: Array<number>, z: Array<number> }
     export interface Borders { [key: string]: Border }
 
     // --------------------- GEOMETRY TYPES ---------------------

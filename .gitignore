@@ -1,7 +1,12 @@
+# Archives or anything that does not belong on git. Only local computer.
+archive/
+local/
+
+# Output and dependency dirs
+node_modules/
+dist/
+
+# Package Manager related files
 bun.lockb
 bun.lock
 package-lock.json
-
-node_modules/
-archive/
-dist

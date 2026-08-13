@@ -38,7 +38,7 @@ async function modifyMarkers(data) {
 	const mapMode = currentMapMode()
 	console.log(`Modifying markers according to current map mode: ${mapMode.name}`)
 
-	const borders = isUserscript() ? BORDERS : await fetch(chrome.runtime.getURL('resources/borders.json')).then(r => r.json())
+	const borders = isUserscript() ? BORDERS.countries : await fetch(chrome.runtime.getURL('resources/borders-countries.json')).then(r => r.json())
 	if (!borders) showAlert("An unexpected error occurred fetching the borders resource file.")
 	else {
 		for (const key in borders) {

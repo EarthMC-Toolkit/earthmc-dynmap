@@ -21,3 +21,13 @@
 	image-rendering: optimize-contrast;         /* CSS3 Proposed	*/
 	image-rendering: crisp-edges;               /* CSS4 Proposed  	*/
 }
+
+.interaction-blocker {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100vw;
+	height: 100vh;
+	z-index: 999999;
+	cursor: wait;
+}

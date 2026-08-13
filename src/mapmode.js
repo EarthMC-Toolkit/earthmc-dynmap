@@ -110,7 +110,8 @@ const MapMode = Object.freeze({
     DEFAULT, MEGANATIONS, ALLIANCES,
     NATION_CLAIMS, OVERCLAIM, NEWDAY,
     POPULATION, BALANCE,
-    CUSTOM, ARCHIVE
+    //CUSTOM, 
+    ARCHIVE
 })
 
 const MAP_MODE_LIST = Object.values(MapMode).map((mode, i) => { mode.order = i; return mode })

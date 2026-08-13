@@ -51,9 +51,7 @@ const residentClickable = name => `<span class="resident-clickable">${name}</spa
  * @param {'normal' | 'ruined' | 'falling'} type
  */
 const buildMarkerPopup = (t, type = 'normal') => {
-	const isRuined = type === 'ruined'
-	const isFalling = type === 'falling'
-
+	const [isFalling, isRuined] = [type == 'falling', type == 'ruined']
 	const title = isRuined
 		? `${t.name} (Ruined)`
 		: `${t.status.isCapital ? '⭐ ' : ''}${t.name} (${t.nation.name || 'No Nation'})${isFalling ? ' (Falling)' : ''}`
@@ -327,7 +325,13 @@ function colourMarkerNewDay(marker, parsedMarker) {
 	return setMarkerColour(marker, '#151515', '#151515')
 }
 
-const rgb = (r, g, b) => ({ r: r, g: g, b: b })
+/**
+ * Constructs an object representing an RGB colour.
+ * @param {number} r
+ * @param {number} g
+ * @param {number} b
+ */
+const rgb = (r, g, b) => ({ r, g, b })
 const stops = [
 	rgb(255, 255, 255), // white
 	rgb(0, 255, 0), // green

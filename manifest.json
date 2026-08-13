@@ -22,7 +22,7 @@
 		"matches": ["https://map.earthmc.net/*", "https://aurora.earthmc.net/*"],
 		"resources": [
 			"resources/interceptor.js",
-			"resources/borders.json",
+			"resources/borders-countries.json",
 			"resources/img/*"
 		]
 	}],

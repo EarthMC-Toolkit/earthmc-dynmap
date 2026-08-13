@@ -412,17 +412,11 @@ async function insertScreenshotBtn() {
  * @param {() => Promise<T>} fn - Async function to run while blocked.
  * @returns {Promise<T>} Resolves with whatever the callback returns.
  */
-const withInteractionBlocked = async (fn) => {
+const withInteractionBlocked = async fn => {
 	const blocker = document.createElement('div')
-	blocker.style.position = 'fixed'
-	blocker.style.top = '0'
-	blocker.style.left = '0'
-	blocker.style.width = '100vw'
-	blocker.style.height = '100vh'
-	blocker.style.zIndex = '999999'
-	blocker.style.cursor = 'wait'
-	document.body.appendChild(blocker)
+	blocker.classList.add("interaction-blocker")
 
+	document.body.appendChild(blocker)
 	try {
 		return await fn()
 	} finally {
