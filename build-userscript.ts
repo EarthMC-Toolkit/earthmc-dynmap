@@ -1,5 +1,6 @@
 /// <reference types="node"/>
 /// <reference types="./src/types.d.ts"/>
+/// <reference types="./node_modules/@types/chrome/index.d.ts"/>
 import { readdirSync, readFileSync, writeFileSync } from 'fs'
 import { build, type BuildOptions } from 'esbuild'
 import * as path from 'path'
@@ -11,8 +12,9 @@ const STYLE_CSS = readdirSync('resources/css').filter(f => f.endsWith('.css'))
   .replaceAll('url("__HIDE_ICON__")', `url(${ftob64('resources/img/icon-hide.png')})`)
   .replaceAll('url("__SCREENSHOT_ICON__");', `url(${ftob64('resources/img/icon-screenshot.png')})`)
 
-const BORDERS: Borders = JSON.parse(readFileSync('resources/borders.json', 'utf8'))
-const MANIFEST: Manifest = JSON.parse(readFileSync('manifest.json', 'utf8'))
+const BORDERS_COUNTRIES: Borders = JSON.parse(readFileSync('resources/borders-countries.json', 'utf8'))
+const BORDERS_PROVINCES: Borders = JSON.parse(readFileSync('resources/borders-provinces.json', 'utf8'))
+const MANIFEST: chrome.runtime.ManifestV3 = JSON.parse(readFileSync('manifest.json', 'utf8'))
 
 const MAP_MODE_IMGS = {
     "default":      `${ftob64('resources/img/map-mode-default.png')}`,
@@ -27,14 +29,14 @@ const MAP_MODE_IMGS = {
 }
 
 // TODO: Dynamically insert @include tags depending on matches arr count
-const contentScripts = MANIFEST.content_scripts[0]
+const contentScripts = MANIFEST.content_scripts![0]
 const HEADER = `// ==UserScript==
 // @name        ${MANIFEST.name}
 // @version     ${MANIFEST.version}
 // @description ${MANIFEST.description}
 // @author      ${MANIFEST.author}
-// @include     ${contentScripts.matches[0]}
-// @include     ${contentScripts.matches[1]}
+// @include     ${contentScripts.matches![0]}
+// @include     ${contentScripts.matches![1]}
 // @icon        https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/main/resources/icon48.png
 // @grant       GM_addStyle
 // @grant       GM_getResourceURL
@@ -45,8 +47,9 @@ const HEADER = `// ==UserScript==
 const outdir = 'dist'
 const outfile = path.join(outdir, 'emc-dynmapplus.user.js')
 
+const scripts = contentScripts.js || []
 const buildOpts: BuildOptions = {
-    entryPoints: ['resources/interceptor.js', ...contentScripts.js],
+    entryPoints: ['resources/interceptor.js', ...scripts],
     outdir: outdir,
     format: 'esm',
     target: ['es2020'], // Backwards compatible enough. Most browsers support it.
@@ -58,7 +61,10 @@ const buildOpts: BuildOptions = {
         // Make some resources and flags available to userscript when in use.
         IS_USERSCRIPT: 'true',
         STYLE_CSS: JSON.stringify(STYLE_CSS),
-        BORDERS: JSON.stringify(BORDERS),
+        BORDERS: JSON.stringify({
+            countries: JSON.stringify(BORDERS_COUNTRIES),
+            provinces: JSON.stringify(BORDERS_PROVINCES)
+        }),
         MANIFEST: JSON.stringify(MANIFEST),
         MAP_MODE_IMGS: JSON.stringify(MAP_MODE_IMGS),
         // Swap out instances of keywords with their userscript compatible counterpart.

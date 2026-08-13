@@ -1,7 +1,8 @@
+// Keep this here since LSP still shouts at us when jsconfig declares "node" types :/
 /// <reference types="node"/>
 import * as path from 'path'
 import { statSync, readdirSync, createWriteStream } from 'fs'
-import { ZipArchive, type Archiver } from 'archiver'
+import { ZipArchive, Archiver } from '@archiver/archiver'
 
 /**
  * Adds a directory to the archive recursively, skipping files specified by `ignore`.
@@ -31,9 +32,9 @@ function addDirIgnore(archive: Archiver, srcDir: string, destDir: string, ignore
 const EXT_NAME = 'emc-dynmapplus'
 const outfile = path.join('dist', EXT_NAME+".zip")
 
-const start = performance.now()
 const archive = new ZipArchive({ zlib: { level: 9 } })
 
+const start = performance.now()
 const output = createWriteStream(outfile) // We don't rly use this but its required to gen the zip via pipe()
 archive.pipe(output)
 

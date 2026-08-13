@@ -8,11 +8,11 @@
     "build": "bun run userscript && bun run extension"
   },
   "devDependencies": {
-    "@types/chrome": "^0.2.2",
-    "@types/leaflet": "^1.9.21",
-    "@types/node": "^26.0.1",
-    "archiver": "^8.0.0",
-    "esbuild": "^0.28.0",
+    "@types/node": "^26.2.0",
+    "@types/chrome": "^0.2.5",
+    "@types/leaflet": "^1.9.22",
+    "@archiver/archiver": "^0.1.1",
+    "esbuild": "^0.28.2",
     "typescript": "latest"
   },
   "engines": {
