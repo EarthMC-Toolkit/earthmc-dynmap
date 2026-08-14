@@ -1,6 +1,9 @@
 /// <reference types="node"/>
 import { readFile, writeFile } from "fs/promises"
 
+// @ts-ignore mapshaper does not provide TypeScript declarations
+import * as mapshaper from "mapshaper"
+
 type Position = [number, number]
 type Ring = Array<Position>
 type Polygon = Array<Ring>
@@ -17,7 +20,7 @@ interface Feature {
 	} | {
 		type: "MultiPolygon"
 		coordinates: Array<Polygon>
-	}
+	} | null
 	properties: {
 		name?: string
 		admin?: string
@@ -50,8 +53,10 @@ const NOSTRA_X_BOUNDS = {
 }
 //#endregion
 
-// the humble round func. will round your number to the nearest 0.001 no questions asked
-const round = (v: number): number => Math.round(v * 1000) / 1000
+const PRECISION = 0.01
+
+// the humble round func. will round your number to the nearest precision, no questions asked.
+const round = (v: number, precision = PRECISION): number => Math.round(v / precision) * precision
 
 /**
  * Converts a Web Mercator X coordinate from metres into a Nostra X coordinate.
@@ -102,6 +107,7 @@ function parseGeoJSON(json: GeoJSON) {
 
 	const borders: Record<string, Border> = {}
 	for (const feature of json.features) {
+		if (!feature.geometry) continue
 		if (feature.properties?.admin === "Antarctica") continue
 		if (feature.properties?.adm0_a3 === "ATA" || feature.properties?.ADM0_A3 === "ATA") continue
 
@@ -132,9 +138,14 @@ const RESET = "\x1b[0m"
  * (such as features, type and properties) since only want to output a Record<string, Border> 
  * where the key is the country index and the value (Border) contains its X and Z coordinates.
 */ 
-async function convertGeoJsonFile(inputPath: string, outputPath: string): Promise<void> {
-	const input = await readFile(inputPath, "utf8")
-	const geojson = JSON.parse(input) as GeoJSON
+async function convertGeoJsonFile(inputPath: string, outputPath: string, simplify: string): Promise<void> {
+	const input = await readFile(inputPath)
+	const output = await mapshaper.applyCommands(
+		"-i input.geojson -proj +proj=mill -clean -simplify dp 90% -o format=geojson fix-geometry precision=0.01 output.geojson",
+		{ "input.geojson": input }
+	)
+
+	const geojson = JSON.parse(output["output.geojson"].toString("utf8")) as GeoJSON
 	const borders = parseGeoJSON(geojson)
 
 	await writeFile(outputPath, JSON.stringify(borders), "utf8")
@@ -142,13 +153,13 @@ async function convertGeoJsonFile(inputPath: string, outputPath: string): Promis
 	console.log(`\tWrote ${GREEN}${Object.keys(borders).length}${RESET} border rings to ${BLUE}${outputPath}${RESET}\n`)
 }
 
-const COUNTRIES_INPUT_PATH = "./local/ne_10m_admin_0_countries.json"
+const COUNTRIES_INPUT_PATH = "./geojson/ne_10m_admin_0_countries.geojson"
 const COUNTRIES_OUTPUT_PATH = "./resources/borders-countries.json"
 
-const PROVINCES_INPUT_PATH = "./local/ne_10m_admin_1_states_provinces.json"
+const PROVINCES_INPUT_PATH = "./geojson/ne_10m_admin_1_states_provinces.geojson"
 const PROVINCES_OUTPUT_PATH = "./resources/borders-provinces.json"
 
-console.log('Converting GeoJSON border files to JSON...\n')
-await convertGeoJsonFile(COUNTRIES_INPUT_PATH, COUNTRIES_OUTPUT_PATH)
-await convertGeoJsonFile(PROVINCES_INPUT_PATH, PROVINCES_OUTPUT_PATH)
-console.log("Converted.")
+console.log('Converting GeoJSON files to JSON...\n')
+await convertGeoJsonFile(COUNTRIES_INPUT_PATH, COUNTRIES_OUTPUT_PATH, "90%")
+await convertGeoJsonFile(PROVINCES_INPUT_PATH, PROVINCES_OUTPUT_PATH, "40%")
+console.log("Generated border files.")

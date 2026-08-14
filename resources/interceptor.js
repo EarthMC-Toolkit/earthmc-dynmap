@@ -1,12 +1,25 @@
 const { fetch: originalFetch } = window
 
-// Replace the default fetch() with ours to intercept responses
+// For throttling players.json to improve perf. Uses last response every other req.
+let lastPlayersResponse = null
+let usePreviousPlayersResponse = false
+
 let markersIntercepted = false
+
+// Replace the default fetch() with ours to intercept responses
 window.fetch = async (...args) => {
 	const response = await originalFetch(...args)
     
     const playerList = document.getElementById('players')
 	if (response.url.includes('players.json') && playerList) {
+       if (usePreviousPlayersResponse && lastPlayersResponse) {
+			usePreviousPlayersResponse = false
+			return lastPlayersResponse.clone()
+		}
+
+		usePreviousPlayersResponse = true
+		lastPlayersResponse = response.clone()
+
 		const scroll = playerList.scrollTop
 		setTimeout(() => playerList.scrollTop = scroll, 1)
 	}

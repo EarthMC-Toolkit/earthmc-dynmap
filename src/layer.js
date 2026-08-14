@@ -59,7 +59,7 @@ function addBorderLayers(data, countryBorders, provinceBorders) {
 			'name': 'Province Borders',
 			'id': 'province-borders',
 			'order': 102,
-			'hide': false,
+			'hide': true,
 			'control': true,
 			'markers': [makePolyline(points, 0.85, 0.52, '#c3dee9')]
 		})

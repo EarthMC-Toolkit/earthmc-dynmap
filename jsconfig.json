@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
         "lib": ["DOM", "ESNext"],
-        "types": ["node", "chrome", "leaflet"]
+        "types": ["bun", "node", "chrome", "leaflet"]
     },
     "exclude": [
         "node_modules", "dist", ".github", 
