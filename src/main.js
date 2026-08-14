@@ -13,7 +13,7 @@ waitForElement('.leaflet-nameplate-pane').then(element => {
 const EXTRA_BORDER_OPTS = {
 	label: "Border",
 	opacity: 0.5,
-	weight: 3,
+	weight: 1,
 	color:  "#000000",
 	markup: false,
 }
@@ -73,7 +73,7 @@ async function modifyMarkers(data) {
 		if (marker.type != 'polygon' && marker.type != 'icon') continue
 
 		// Set default transparency. May be altered l8r when specific map mode logic is applied.
-		setMarkerTransparency(marker, 0.33, 1, 1.2)
+		setMarkerTransparency(marker, 0.4, 1, 1.15)
 
 		const parsed = isSquaremap ? modifySquaremapDescription(marker, mapMode) : modifyDynmapDescription(marker, date)
 		const match = parsed.mayor?.match(/^NPC(\d+)$/)

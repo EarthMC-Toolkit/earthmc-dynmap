@@ -53,10 +53,8 @@ const NOSTRA_X_BOUNDS = {
 }
 //#endregion
 
-const PRECISION = 0.01
-
 // the humble round func. will round your number to the nearest precision, no questions asked.
-const round = (v: number, precision = PRECISION): number => Math.round(v / precision) * precision
+const round = (v: number, precision = 0.01): number => Math.round(v / precision) * precision
 
 /**
  * Converts a Web Mercator X coordinate from metres into a Nostra X coordinate.
@@ -141,7 +139,7 @@ const RESET = "\x1b[0m"
 async function convertGeoJsonFile(inputPath: string, outputPath: string, simplify: string): Promise<void> {
 	const input = await readFile(inputPath)
 	const output = await mapshaper.applyCommands(
-		"-i input.geojson -proj +proj=mill -clean -simplify dp 90% -o format=geojson fix-geometry precision=0.01 output.geojson",
+		`-i input.geojson -proj +proj=mill -clean -simplify dp ${simplify} -o format=geojson fix-geometry precision=0.01 output.geojson`,
 		{ "input.geojson": input }
 	)
 
@@ -160,6 +158,6 @@ const PROVINCES_INPUT_PATH = "./geojson/ne_10m_admin_1_states_provinces.geojson"
 const PROVINCES_OUTPUT_PATH = "./resources/borders-provinces.json"
 
 console.log('Converting GeoJSON files to JSON...\n')
-await convertGeoJsonFile(COUNTRIES_INPUT_PATH, COUNTRIES_OUTPUT_PATH, "90%")
-await convertGeoJsonFile(PROVINCES_INPUT_PATH, PROVINCES_OUTPUT_PATH, "40%")
+await convertGeoJsonFile(COUNTRIES_INPUT_PATH, COUNTRIES_OUTPUT_PATH, "80%")
+await convertGeoJsonFile(PROVINCES_INPUT_PATH, PROVINCES_OUTPUT_PATH, "30%")
 console.log("Generated border files.")
