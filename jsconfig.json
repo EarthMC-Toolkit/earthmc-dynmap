@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
         "lib": ["DOM", "ESNext"],
-        "types": ["node", "chrome", "leaflet", "mapshaper", "geojson"]
+        "types": ["node", "chrome", "leaflet", "geojson"]
     },
     "exclude": [
         "node_modules", "dist", ".github", 

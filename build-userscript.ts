@@ -12,8 +12,8 @@ const STYLE_CSS = readdirSync('resources/css').filter(f => f.endsWith('.css'))
   .replaceAll('url("__HIDE_ICON__")', `url(${ftob64('resources/img/icon-hide.png')})`)
   .replaceAll('url("__SCREENSHOT_ICON__");', `url(${ftob64('resources/img/icon-screenshot.png')})`)
 
-const BORDERS_COUNTRIES: Borders = JSON.parse(readFileSync('resources/borders-countries.json', 'utf8'))
-const BORDERS_PROVINCES: Borders = JSON.parse(readFileSync('resources/borders-provinces.json', 'utf8'))
+const BORDERS_COUNTRIES: Borders = JSON.parse(readFileSync('resources/borders-countries.geojson', 'utf8'))
+const BORDERS_PROVINCES: Borders = JSON.parse(readFileSync('resources/borders-provinces.geojson', 'utf8'))
 const MANIFEST: chrome.runtime.ManifestV3 = JSON.parse(readFileSync('manifest.json', 'utf8'))
 
 const MAP_MODE_IMGS = {
@@ -29,27 +29,31 @@ const MAP_MODE_IMGS = {
 }
 
 // TODO: Dynamically insert @include tags depending on matches arr count
-const contentScripts = MANIFEST.content_scripts![0]
+const contentScriptsHook = MANIFEST.content_scripts![0]
+const contentScriptsMain = MANIFEST.content_scripts![1]
 const HEADER = `// ==UserScript==
 // @name        ${MANIFEST.name}
 // @version     ${MANIFEST.version}
 // @description ${MANIFEST.description}
 // @author      ${MANIFEST.author}
-// @include     ${contentScripts.matches![0]}
-// @include     ${contentScripts.matches![1]}
+// @include     ${contentScriptsMain.matches![0]}
+// @include     ${contentScriptsMain.matches![1]}
 // @icon        https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/main/resources/icon48.png
 // @grant       GM_addStyle
 // @grant       GM_getResourceURL
 // @grant       GM_xmlhttpRequest
+// @run-at       document-start
 // ==/UserScript==
 `
 
 const outdir = 'dist'
 const outfile = path.join(outdir, 'emc-dynmapplus.user.js')
 
-const scripts = contentScripts.js || []
+const scriptsHook = contentScriptsHook.js || []
+const scriptsMain = contentScriptsMain.js || []
+
 const buildOpts: BuildOptions = {
-    entryPoints: ['resources/interceptor.js', ...scripts],
+    entryPoints: ['resources/interceptor.js', ...scriptsHook, ...scriptsMain],
     outdir: outdir,
     format: 'esm',
     target: ['es2020'], // Backwards compatible enough. Most browsers support it.

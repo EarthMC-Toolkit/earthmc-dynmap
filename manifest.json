@@ -21,14 +21,25 @@
 		"run_at": "document_idle",
 		"matches": ["https://map.earthmc.net/*", "https://aurora.earthmc.net/*"],
 		"resources": [
-			"resources/interceptor.js",
-			"resources/borders-countries.json",
-			"resources/borders-provinces.json",
-			"resources/img/*"
+			"resources/borders-countries.geojson",
+			"resources/borders-provinces.geojson",
+			"resources/img/*",
+			"resources/interceptor.js"
 		]
 	}],
 	"content_scripts": [{
-		"matches": ["https://map.earthmc.net/*", "https://aurora.earthmc.net/*"],
+		"matches": [
+			"https://map.earthmc.net/*",
+			"https://aurora.earthmc.net/*"
+		],
+		"js": ["src/leaflet-hook.js"],
+		"run_at": "document_start",
+		"world": "MAIN"
+	}, {
+		"matches": [
+			"https://map.earthmc.net/*",
+			"https://aurora.earthmc.net/*"
+		],
 		"css": [
 			"resources/css/global.css",
 			"resources/css/leaflet.css",

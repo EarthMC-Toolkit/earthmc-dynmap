@@ -40,18 +40,18 @@ async function modifyMarkers(data) {
 
 	/** @type {Borders} */
 	const countryBorders = isUserscript() ? BORDERS.countries
-		: await fetch(chrome.runtime.getURL('resources/borders-countries.json')).then(r => r.json())
+		: await fetch(chrome.runtime.getURL('resources/borders-countries.geojson')).then(r => r.json())
 	
 	/** @type {Borders} */
 	const provinceBorders = isUserscript() ? BORDERS.provinces
-		: await fetch(chrome.runtime.getURL('resources/borders-provinces.json')).then(r => r.json())
+		: await fetch(chrome.runtime.getURL('resources/borders-provinces.geojson')).then(r => r.json())
 
-	for (const key in countryBorders) {
-		countryBorders[key] = { ...countryBorders[key], ...EXTRA_BORDER_OPTS }
-	}
-	for (const key in provinceBorders) {
-		provinceBorders[key] = { ...provinceBorders[key], ...EXTRA_BORDER_OPTS }
-	}
+	// for (const key in countryBorders) {
+	// 	countryBorders[key] = { ...countryBorders[key], ...EXTRA_BORDER_OPTS }
+	// }
+	// for (const key in provinceBorders) {
+	// 	provinceBorders[key] = { ...provinceBorders[key], ...EXTRA_BORDER_OPTS }
+	// }
 
 	if (countryBorders && provinceBorders) addBorderLayers(data, countryBorders, provinceBorders)
 	else showAlert("An unexpected error occurred fetching the border resource files.")
@@ -213,15 +213,17 @@ function modifyDynmapDescription(marker, curArchiveDate) {
 		.replaceAll('true<', '&#9;<span style="color:green">Yes</span><')
 		.replaceAll('false<', '&#9;<span style="color:red">No</span><')
 		.replace(`${membersTitle} <span`, `${membersTitle} <b>[${residentNum}]</b> <span`)
+
 	if (area > 0) {
-		marker.popup = marker.popup
-		.replace(`</span><br /> ${membersTitle}`, `</span><br>Size:<span style="font-weight:bold"> ${area} chunks</span><br> ${membersTitle}`)
+		const replacement = `</span><br>Size:<span style="font-weight:bold"> ${area} chunks</span><br> ${membersTitle}`
+		marker.popup = marker.popup.replace(`</span><br /> ${membersTitle}`, replacement)
 	}
+	
 	// Scrollable resident list
 	if (residentNum > 50) {
+		const replacement = `<b>[${residentNum}]</b> <div id="scrollable-list"><span style="font-weight:bold">`
 		marker.popup = marker.popup
-			.replace(`<b>[${residentNum}]</b> <span style="font-weight:bold">`,
-				`<b>[${residentNum}]</b> <div id="scrollable-list"><span style="font-weight:bold">`)
+			.replace(`<b>[${residentNum}]</b> <span style="font-weight:bold">`, replacement)
 			.replace('<br>Flags', '</div><br>Flags')
 	}
 

@@ -38,15 +38,23 @@ function parseBorders(borders) {
  */
 function addBorderLayers(data, countryBorders, provinceBorders) {
 	try {
-		const points = parseBorders(countryBorders)
-		data.push({
-			'name': 'Country Borders',
-			'id': 'country-borders',
-			'order': 101,
-			'hide': false,
-			'control': true,
-			'markers': [makePolyline(points, 1.1, 0.8, '#d0ffff')]
-		})
+		/** @type {L.PathOptions} */
+		const style = {
+			weight: 1.2,
+			opacity: 0.9,
+			color: '#d4ffff',
+			fill: false
+		}
+		const layer = {
+			data: countryBorders,
+			id: 'country-borders',
+			name: "Country Borders",
+			interactive: false,
+			order: 71,
+			hide: false,
+			style
+		}
+		document.dispatchEvent(new CustomEvent('EMCDYNMAPPLUS_ADD_BORDER_LAYER', { detail: layer }))
 	} catch (e) {
 		showAlert(`Could not set up a layer of country borders. You may need to clear this website's data. If problem persists, contact the developer.`)
 		console.error(e)
@@ -54,15 +62,25 @@ function addBorderLayers(data, countryBorders, provinceBorders) {
 	}
 
 	try {
-		const points = parseBorders(provinceBorders)
-		data.push({
-			'name': 'Province Borders',
-			'id': 'province-borders',
-			'order': 102,
-			'hide': true,
-			'control': true,
-			'markers': [makePolyline(points, 0.85, 0.52, '#c3dee9')]
-		})
+		/** @type {L.PathOptions} */
+		const style = {
+			weight: 1.,
+			opacity: 0.45,
+			color: '#87c9ebe5',
+			fillColor: '#161e2a',
+			fillOpacity: 0.12
+		}
+		const layer = {
+			data: provinceBorders,
+			id: 'provinces',
+			name: "Provinces",
+			order: 70,
+			hide: true,
+			interactive: true,
+			enableTooltip: true,
+			style
+		}
+		document.dispatchEvent(new CustomEvent('EMCDYNMAPPLUS_ADD_BORDER_LAYER', { detail: layer }))
 	} catch (e) {
 		showAlert(`Could not set up a layer of province borders. You may need to clear this website's data. If problem persists, contact the developer.`)
 		console.error(e)

@@ -16,7 +16,7 @@
     "@types/node": "latest",
     "typescript": "latest",
     "esbuild": "^0.28.2",
-    "mapshaper": "github:Owen3H/mapshaper-typed"
+    "mapshaper-typed": "github:Owen3H/mapshaper-typed"
   },
   "engines": {
     "bun": ">=1.3.0"
