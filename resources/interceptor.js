@@ -9,7 +9,8 @@ let markersIntercepted = false
 // Replace the default fetch() with ours to intercept responses
 window.fetch = async (...args) => {
 	const response = await originalFetch(...args)
-    
+	if (response.url.endsWith(".png")) return originalFetch(...args)
+
     const playerList = document.getElementById('players')
 	if (response.url.includes('players.json') && playerList) {
        if (usePreviousPlayersResponse && lastPlayersResponse) {

@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "cleandeps": "bun -e \"await require('node:fs').promises.rm('./node_modules', { recursive: true, force: true })\"",
     "borders": "bun build-borders.ts",
     "userscript": "bun build-userscript.ts",
     "extension": "bun build-extension.ts",

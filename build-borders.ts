@@ -137,12 +137,13 @@ const RESET = "\x1b[0m"
  * where the key is the country index and the value (Border) contains its X and Z coordinates.
 */ 
 async function convertGeoJsonFile(inputPath: string, outputPath: string, simplify: string): Promise<void> {
+	const inputCmd = `-i input.geojson -proj +proj=mill -clean -simplify dp ${simplify} `
+	const outputCmd = `-o format=geojson precision=0.01 fix-geometry output.geojson`
+	
+	// Read border input file, run our mapshaper cmds on it and save to a temp buffer.
 	const input = await readFile(inputPath)
-	const output = await mapshaper.applyCommands(
-		`-i input.geojson -proj +proj=mill -clean -simplify dp ${simplify} -o format=geojson fix-geometry precision=0.01 output.geojson`,
-		{ "input.geojson": input }
-	)
-
+	const output = await mapshaper.applyCommands(inputCmd + outputCmd, { "input.geojson": input })
+	
 	const geojson = JSON.parse(output["output.geojson"].toString("utf8")) as GeoJSON
 	const borders = parseGeoJSON(geojson)
 
@@ -158,6 +159,6 @@ const PROVINCES_INPUT_PATH = "./geojson/ne_10m_admin_1_states_provinces.geojson"
 const PROVINCES_OUTPUT_PATH = "./resources/borders-provinces.json"
 
 console.log('Converting GeoJSON files to JSON...\n')
-await convertGeoJsonFile(COUNTRIES_INPUT_PATH, COUNTRIES_OUTPUT_PATH, "80%")
-await convertGeoJsonFile(PROVINCES_INPUT_PATH, PROVINCES_OUTPUT_PATH, "30%")
+await convertGeoJsonFile(COUNTRIES_INPUT_PATH, COUNTRIES_OUTPUT_PATH, "60%")
+await convertGeoJsonFile(PROVINCES_INPUT_PATH, PROVINCES_OUTPUT_PATH, "40%")
 console.log("Generated border files.")
