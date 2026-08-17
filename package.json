@@ -10,13 +10,13 @@
     "build": "bun run userscript && bun run extension"
   },
   "devDependencies": {
-    "@archiver/archiver": "^0.1.1",
+    "@archiver/archiver": "latest",
     "@types/chrome": "latest",
     "@types/leaflet": "latest",
     "@types/node": "latest",
     "typescript": "latest",
     "esbuild": "^0.28.2",
-    "mapshaper": "^0.7.52"
+    "mapshaper": "github:Owen3H/mapshaper-typed"
   },
   "engines": {
     "bun": ">=1.3.0"

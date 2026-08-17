@@ -1,33 +1,11 @@
 /// <reference types="node"/>
+/// <reference types="geojson"/>
 import { readFile, writeFile } from "fs/promises"
 
-// @ts-ignore mapshaper does not provide TypeScript declarations
-import * as mapshaper from "mapshaper"
+import { applyCommands } from "mapshaper"
 
-type Position = [number, number]
-type Ring = Array<Position>
-type Polygon = Array<Ring>
-
-interface GeoJSON {
-	type: "FeatureCollection"
-	features: Feature[]
-}
-
-interface Feature {
-	geometry: {
-		type: "Polygon"
-		coordinates: Polygon
-	} | {
-		type: "MultiPolygon"
-		coordinates: Array<Polygon>
-	} | null
-	properties: {
-		name?: string
-		admin?: string
-		adm0_a3?: string
-		ADM0_A3?: string
-	} | null
-}
+type Ring = Array<GeoJSON.Position>
+type GeoJsonData = GeoJSON.FeatureCollection
 
 interface Border {
 	x: Array<number>
@@ -100,7 +78,7 @@ let idx = 0
  * Parses a file in the GeoJSON format, returning a Record<string, Border> where the key is the index of the country.\
  * Since Nostra crops out Antarctica, we skip it here to ensure its border does not exist in the record.
 */
-function parseGeoJSON(json: GeoJSON) {
+function parseGeoJSON(json: GeoJsonData) {
 	idx = 0
 
 	const borders: Record<string, Border> = {}
@@ -114,7 +92,8 @@ function parseGeoJSON(json: GeoJSON) {
 				borders[`countryBorders_0_1_${idx}`] = convertRing(ring)
 				idx++
 			}
-		} else {
+		}
+		if (feature.geometry.type === "MultiPolygon")  {
 			for (const polygon of feature.geometry.coordinates) {
 				for (const ring of polygon) {
 					borders[`countryBorders_0_1_${idx}`] = convertRing(ring)
@@ -140,11 +119,11 @@ async function convertGeoJsonFile(inputPath: string, outputPath: string, simplif
 	const inputCmd = `-i input.geojson -proj +proj=mill -clean -simplify dp ${simplify} `
 	const outputCmd = `-o format=geojson precision=0.01 fix-geometry output.geojson`
 	
-	// Read border input file, run our mapshaper cmds on it and save to a temp buffer.
-	const input = await readFile(inputPath)
-	const output = await mapshaper.applyCommands(inputCmd + outputCmd, { "input.geojson": input })
+	// Read border input file and run our mapshaper cmds on it which then saves to a temp buffer.
+	const input = { "input.geojson": await readFile(inputPath) }
+	const res: Record<string, Buffer> = applyCommands(inputCmd + outputCmd, input)
 	
-	const geojson = JSON.parse(output["output.geojson"].toString("utf8")) as GeoJSON
+	const geojson = JSON.parse(res["output.geojson"].toString("utf8")) as GeoJsonData
 	const borders = parseGeoJSON(geojson)
 
 	await writeFile(outputPath, JSON.stringify(borders), "utf8")
