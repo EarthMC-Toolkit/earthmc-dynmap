@@ -23,7 +23,7 @@ const NOSTRA_X_BOUNDS = {
 //#endregion
 
 // the humble round func. will round your number to the nearest precision, no questions asked.
-const round = (v: number, precision = 0.01): number => Math.round(v / precision) * precision
+const round = (v: number, precision = 0.001): number => Number((Math.round(v / precision) * precision).toFixed(3))
 
 /**
  * Converts a Web Mercator X coordinate from metres into a Nostra X coordinate.
