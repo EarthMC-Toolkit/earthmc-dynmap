@@ -1,21 +1,11 @@
 /// <reference types="leaflet"/>
 
-/** @type {L.Map} */
-let squaremap
+/** @type {L.Map} */ let squaremap
+/** @type {L.Control.Layers} */ let layerControl
 
-/** @type {L.Control.Layers} */
-let layerControl
-
-function hookLeaflet() {
-	if (typeof L === 'undefined') {
-		requestAnimationFrame(hookLeaflet)
-		return
-	}
-
-	L.Map.addInitHook(function () {
-		squaremap = this
-	})
-
+// For the ext we can just use leaflet's own class hooks to set the map instance.
+function hookLeafletExtension() {
+	L.Map.addInitHook(function () { squaremap = this })
 	L.Control.Layers.addInitHook(function () {
 		layerControl = this
 
@@ -25,6 +15,34 @@ function hookLeaflet() {
 			return originalAddOverlay.call(this, layer, name)
 		}
 	})
+}
+
+// For the userscript, leaflet init hooks don't work but we can just grab L.map directly.
+function hookLeafletUserscript() {
+	const originalMap = L.map
+	L.map = function (...args) {
+		const map = originalMap.apply(this, args)
+		squaremap = map
+		return map
+	}
+
+	const originalLayers = L.control.layers
+	L.control.layers = function (...args) {
+		const control = originalLayers.apply(this, args)
+		layerControl = control
+		return control
+	}
+}
+
+const userscript = typeof IS_USERSCRIPT !== 'undefined' && IS_USERSCRIPT
+function hookLeaflet() {
+	if (typeof L === 'undefined') {
+		requestAnimationFrame(hookLeaflet)
+		return
+	}
+
+	if (userscript) hookLeafletUserscript()
+	else hookLeafletExtension()
 }
 
 hookLeaflet()

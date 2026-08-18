@@ -42,7 +42,8 @@ const HEADER = `// ==UserScript==
 // @grant       GM_addStyle
 // @grant       GM_getResourceURL
 // @grant       GM_xmlhttpRequest
-// @run-at       document-start
+// @run-at      document-start
+// @inject-into page
 // ==/UserScript==
 `
 
@@ -65,10 +66,8 @@ const buildOpts: BuildOptions = {
         // Make some resources and flags available to userscript when in use.
         IS_USERSCRIPT: 'true',
         STYLE_CSS: JSON.stringify(STYLE_CSS),
-        GEO: JSON.stringify({
-            countries: JSON.stringify(GEO_COUNTRIES),
-            provinces: JSON.stringify(GEO_PROVINCES)
-        }),
+        GEO_COUNTRIES: JSON.stringify(GEO_COUNTRIES),
+        GEO_PROVINCES: JSON.stringify(GEO_PROVINCES),
         MANIFEST: JSON.stringify(MANIFEST),
         MAP_MODE_IMGS: JSON.stringify(MAP_MODE_IMGS),
         // Swap out instances of keywords with their userscript compatible counterpart.

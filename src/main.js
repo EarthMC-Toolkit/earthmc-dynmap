@@ -39,11 +39,11 @@ async function modifyMarkers(data) {
 	console.log(`Modifying markers according to current map mode: ${mapMode.name}`)
 
 	/** @type {GeoJsonData} */
-	const countries = isUserscript() ? GEO.countries :
+	const countries = isUserscript() ? GEO_COUNTRIES :
 		await fetch(chrome.runtime.getURL('resources/borders-countries.geojson')).then(r => r.json())
 	
 	/** @type {GeoJsonData} */
-	const provinces = isUserscript() ? GEO.provinces :
+	const provinces = isUserscript() ? GEO_PROVINCES :
 		await fetch(chrome.runtime.getURL('resources/borders-provinces.geojson')).then(r => r.json())
 
 	if (countries && provinces) addBorderLayers(countries, provinces)

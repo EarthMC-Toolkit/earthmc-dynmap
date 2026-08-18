@@ -21,20 +21,20 @@ const preloadTowns = async () => {
 const MEGANATIONS = {
     name: "meganations", img: "resources/img/map-mode-meganations.png",
     preload: async data => { if (cachedAlliances == null) cachedAlliances = await fetchAlliances() },
-    apply: async (marker, parsed, context) => colourMarkerMeganations(marker, parsed)
+    apply: async (marker, parsed, ctx) => colourMarkerMeganations(marker, parsed)
 }
 
 /** @type {MapModeType} */
 const ALLIANCES = {
     name: "alliances", img: "resources/img/map-mode-alliances.png",
     preload: async data => { if (cachedAlliances == null) cachedAlliances = await fetchAlliances() },
-    apply: async(marker, parsed, context) => colourMarkerAlliances(marker, parsed)
+    apply: async(marker, parsed, ctx) => colourMarkerAlliances(marker, parsed)
 }
 
 /** @type {MapModeType} */
-const NATION_CLAIMS = {
+const NATIONCLAIMS = {
     name: "nationclaims", img: "resources/img/map-mode-nationclaims.png",
-    apply: async (marker, parsed, context) => {
+    apply: async (marker, parsed, ctx) => {
         if (!this.cache) {
             /** @type {Array<NationClaimsEntry>} */ 
             const nationClaimsInfo = Store.local.get('nation-claims-info', [])
@@ -54,8 +54,8 @@ const NATION_CLAIMS = {
 const OVERCLAIM = {
     name: "overclaim", img: "resources/img/map-mode-overclaim.png", skipIf: () => IS_AURORA,
     preload: async data => preloadTowns(),
-    apply: async (marker, parsed, context) => {
-        if (context.isRuin) return setMarkerColour(marker, '#000000', '#000000')
+    apply: async (marker, parsed, ctx) => {
+        if (ctx.isRuin) return setMarkerColour(marker, '#000000', '#000000')
 
         const t = cachedApiTowns.get(parsed.townName.toLowerCase())
         if (t) marker.popup = buildMarkerPopup(t)
@@ -67,21 +67,21 @@ const OVERCLAIM = {
 /** @type {MapModeType} */
 const NEWDAY = {
     name: "newday", img: "resources/img/map-mode-newday.png", skipIf: () => IS_AURORA,
-    preload: async (data) => {
+    preload: async data => {
         console.log('preloading new day')
         if (cachedFallingTowns == null) cachedFallingTowns = await fetchFallingTowns()
 		if (cachedRuinedTowns == null) cachedRuinedTowns = await fetchRuinedTowns()
 
 		addRuinMarkers(data, cachedRuinedTowns, '#ff1900')
     },
-    apply: async (marker, parsed, context) => colourMarkerNewDay(marker, parsed)
+    apply: async (marker, parsed, ctx) => colourMarkerNewDay(marker, parsed)
 }
 
 /** @type {MapModeType} */
 const POPULATION = {
     name: "population", img: "resources/img/map-mode-heatmap-population.png", skipIf: () => IS_AURORA,
-    apply: async (marker, parsed, context) => {
-        if (context.isRuin) return setMarkerColour(marker, '#000000', '#000000')
+    apply: async (marker, parsed, ctx) => {
+        if (ctx.isRuin) return setMarkerColour(marker, '#000000', '#000000')
 		return colourMarkerHeatmap(marker, parsed.residentNum, 7)
     }
 }
@@ -90,8 +90,8 @@ const POPULATION = {
 const BALANCE = {
     name: "balance", img: "resources/img/map-mode-heatmap-balance.png", skipIf: () => IS_AURORA,
     preload: async data => preloadTowns(),
-    apply: async (marker, parsed, context) => {
-        if (context.isRuin) return setMarkerColour(marker, '#000000', '#000000')
+    apply: async (marker, parsed, ctx) => {
+        if (ctx.isRuin) return setMarkerColour(marker, '#000000', '#000000')
 
         const t = cachedApiTowns.get(parsed.townName.toLowerCase())
         if (t) marker.popup = buildMarkerPopup(t)
@@ -103,12 +103,12 @@ const BALANCE = {
 /** @type {MapModeType} */
 const CUSTOM = {
     name: "custom", img: "resources/img/map-mode-default.png", skipIf: () => IS_AURORA,
-    apply: async (marker, parsed, context) => {}
+    apply: async (marker, parsed, ctx) => {}
 }
 
 const MapMode = Object.freeze({
     DEFAULT, MEGANATIONS, ALLIANCES,
-    NATION_CLAIMS, OVERCLAIM, NEWDAY,
+    NATIONCLAIMS, OVERCLAIM, NEWDAY,
     POPULATION, BALANCE,
     //CUSTOM, 
     ARCHIVE

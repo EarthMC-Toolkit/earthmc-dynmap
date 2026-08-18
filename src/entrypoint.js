@@ -86,7 +86,7 @@ async function init(manifest) {
     await editUILayout()
 	await insertScreenshotBtn()
 
-	const insertedPanel = await tryInsertNationClaimsPanel(MapMode.NATION_CLAIMS)
+	const insertedPanel = await tryInsertNationClaimsPanel(MapMode.NATIONCLAIMS)
 	if (insertedPanel) loadNationClaims(insertedPanel)
 
 	initToggleOptions()
