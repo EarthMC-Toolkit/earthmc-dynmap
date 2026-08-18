@@ -1,66 +1,42 @@
 /// <reference types="leaflet"/>
 
-/** @type {L.Map} */ let squaremap
-/** @type {L.Control.Layers} */ let layerControl
+/// <reference types="leaflet"/>
 
-// For the ext we can just use leaflet's own class hooks to set the map instance.
-function hookLeafletExtension() {
-	L.Map.addInitHook(function () { squaremap = this })
-	L.Control.Layers.addInitHook(function () {
-		layerControl = this
+/** @type {L.Map} */
+let squaremap
 
-		const originalAddOverlay = L.Control.Layers.prototype.addOverlay
-		L.Control.Layers.prototype.addOverlay = function(layer, name) {
-			if (layer.id === 'chunk-borders') layer.order = 1.5
-			return originalAddOverlay.call(this, layer, name)
-		}
-	})
-}
+/** @type {L.Control.Layers} */
+let layerControl
 
-// For the userscript, leaflet init hooks don't work but we can just grab L.map directly.
-function hookLeafletUserscript() {
-	const originalMap = L.map
-	L.map = function (...args) {
-		const map = originalMap.apply(this, args)
-		squaremap = map
-		return map
-	}
-
-	const originalLayers = L.control.layers
-	L.control.layers = function (...args) {
-		const control = originalLayers.apply(this, args)
-		layerControl = control
-		return control
-	}
-}
-
-const userscript = typeof IS_USERSCRIPT !== 'undefined' && IS_USERSCRIPT
 function hookLeaflet() {
 	if (typeof L === 'undefined') {
 		requestAnimationFrame(hookLeaflet)
 		return
 	}
 
-	if (userscript) hookLeafletUserscript()
-	else hookLeafletExtension()
+	const originalAddTo = L.Control.Layers.prototype.addTo
+	L.Control.Layers.prototype.addTo = function (map) {
+		layerControl = this
+		squaremap = map
+
+		console.log('Captured Squaremap map and layer control')
+
+		return originalAddTo.call(this, map)
+	}
+
+	const originalAddOverlay = L.Control.Layers.prototype.addOverlay
+	L.Control.Layers.prototype.addOverlay = function (layer, name) {
+		if (layer.id === 'chunk-borders') {
+			layer.order = 1.5
+		}
+
+		return originalAddOverlay.call(this, layer, name)
+	}
+
+	console.log('Leaflet hooks installed')
 }
 
 hookLeaflet()
-
-document.addEventListener('EMCDYNMAPPLUS_ADD_BORDER_LAYER', e => {
-	if (!squaremap || !layerControl) {
-		console.error('Squaremap has not been initialized')
-		return
-	}
-
-	/** @type {LeafletLayerData} */
-	const layerData = e.detail
-
-	const layer = initLayer(layerData)
-	tryRenderLayer(layer, layerData.name)
-
-	console.log(`Added layer to leaflet map: ${layerData.name}`)
-})
 
 /** 
  * Initializes a layer by inserting a new toggle into the layer selector dropdown.
@@ -99,3 +75,18 @@ const tryRenderLayer = (layer, hide) => {
 	const shouldHide = saved == null ? hide : saved === 'true'
 	if (!shouldHide) layer.addTo(squaremap)
 }
+
+// Fires after leaflet is hooked and we are ready to add a layer.
+document.addEventListener('EMCDYNMAPPLUS_ADD_LEAFLET_LAYER', async e => {
+	while (!squaremap || !layerControl) {
+		await new Promise(resolve => setTimeout(resolve, 10))
+	}
+
+	/** @type {LeafletLayerData} */
+	const layerData = e.detail
+
+	const layer = initLayer(layerData)
+	tryRenderLayer(layer, layerData.name)
+
+	console.log(`Added layer to leaflet map: ${layerData.name}`)
+})

@@ -18,7 +18,7 @@
 		"https://raw.githubusercontent.com/EarthMC-Toolkit/*"
 	],
 	"web_accessible_resources": [{
-		"run_at": "document_idle",
+		"run_at": "document_start",
 		"matches": ["https://map.earthmc.net/*", "https://aurora.earthmc.net/*"],
 		"resources": [
 			"resources/borders-countries.geojson",
@@ -28,14 +28,16 @@
 		]
 	}],
 	"content_scripts": [{
+		"world": "MAIN",
+		"run_at": "document_start",
 		"matches": [
 			"https://map.earthmc.net/*",
 			"https://aurora.earthmc.net/*"
 		],
-		"js": ["src/leaflet-hook.js"],
-		"run_at": "document_start",
-		"world": "MAIN"
+		"js": ["src/leaflet-hook.js"]
 	}, {
+		"world": "ISOLATED",
+		"run_at": "document_idle",
 		"matches": [
 			"https://map.earthmc.net/*",
 			"https://aurora.earthmc.net/*"

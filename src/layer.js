@@ -13,7 +13,7 @@ function addBorderLayers(countriesGeo, provincesGeo) {
 		}
 
 		const layer = createLayer(countriesGeo, 'country-borders', 'Country Borders', 71, style)
-		document.dispatchEvent(new CustomEvent('EMCDYNMAPPLUS_ADD_BORDER_LAYER', { detail: layer }))
+		document.dispatchEvent(new CustomEvent('EMCDYNMAPPLUS_ADD_LEAFLET_LAYER', { detail: layer }))
 	} catch (e) {
 		showAlert(`Could not set up a layer of country borders. You may need to clear this website's data. If problem persists, contact the developer.`)
 		console.error(e)
@@ -31,7 +31,7 @@ function addBorderLayers(countriesGeo, provincesGeo) {
 		}
 
 		const layer = createLayer(provincesGeo, 'provinces', 'Provinces', 70, style, true, true, true)
-		document.dispatchEvent(new CustomEvent('EMCDYNMAPPLUS_ADD_BORDER_LAYER', { detail: layer }))
+		document.dispatchEvent(new CustomEvent('EMCDYNMAPPLUS_ADD_LEAFLET_LAYER', { detail: layer }))
 	} catch (e) {
 		showAlert(`Could not set up a layer of province borders. You may need to clear this website's data. If problem persists, contact the developer.`)
 		console.error(e)

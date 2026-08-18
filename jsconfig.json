@@ -4,7 +4,6 @@
         "types": ["node", "chrome", "leaflet", "geojson"]
     },
     "exclude": [
-        "node_modules", "dist", ".github", 
-        "build-borders.ts", "build-extension.ts", "build-userscript.ts"
+        "node_modules", "build", "dist", ".github",
     ],
 }

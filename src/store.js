@@ -67,29 +67,6 @@ class Store {
 		static delete(key, prefix = null) {
 			localStorage.removeItem(this.#key(key, prefix))
 		}
-
-		// static clear(prefix = PREFIX) {
-		// 	for (const key of Object.keys(localStorage)) {
-		// 		if (!key.startsWith(prefix)) continue
-		// 		localStorage.removeItem(key)
-		// 	}
-		// }
-
-		// static keys = (prefix = PREFIX) => Object.keys(localStorage)
-		// 	.filter(k => k.startsWith(prefix))
-		// 	.map(k => k.substring(prefix.length))
-
-		// static toggle(key, prefix = null) {
-		// 	const value = !this.get(key, false, prefix)
-		// 	this.set(key, value, prefix)
-		// 	return value
-		// }
-
-		// static cleanup(prefix = PREFIX) {
-		// 	for (const key of this.keys(prefix)) {
-		// 		this.get(key, null, prefix)
-        //     }
-		// }
 	}
 
 	static opfs = class {
@@ -109,15 +86,15 @@ class Store {
 			return { dir, file }
 		}
 
-		static async exists(path) {
-			try {
-				const { dir, file } = await this.#parent(path)
-				await dir.getFileHandle(file)
-				return true
-			} catch {
-				return false
-			}
-		}
+		// static async exists(path) {
+		// 	try {
+		// 		const { dir, file } = await this.#parent(path)
+		// 		await dir.getFileHandle(file)
+		// 		return true
+		// 	} catch {
+		// 		return false
+		// 	}
+		// }
 
 		static async write(path, data) {
 			const { dir, file } = await this.#parent(path, true)
@@ -148,11 +125,11 @@ class Store {
 			}
 		}
 
-		static async blob(path) {
-			const { dir, file } = await this.#parent(path)
-			const handle = await dir.getFileHandle(file)
-			return await handle.getFile()
-		}
+		// static async blob(path) {
+		// 	const { dir, file } = await this.#parent(path)
+		// 	const handle = await dir.getFileHandle(file)
+		// 	return await handle.getFile()
+		// }
 
 		static async cache(key, ttlMs, callback) {
 			const metaPath = `.cache/${key}.json`
@@ -173,34 +150,5 @@ class Store {
 			const { dir, file } = await this.#parent(path)
 			await dir.removeEntry(file)
 		}
-
-		// static size = (path) => this.blob(path).then(b => b.size)
-		// static modified = (path) => this.blob(path).then(b => b.lastModified)
-
-		// static async list(path = "") {
-		// 	let dir = await this.#root()
-		// 	for (const part of path.split("/").filter(Boolean)) {
-		// 		dir = await dir.getDirectoryHandle(part)
-        //     }
-
-		// 	const files = []
-		// 	for await (const [name, handle] of dir.entries()) {
-		// 		files.push({ name, kind: handle.kind })
-		// 	}
-
-		// 	return files
-		// }
-
-		// static async mkdir(path) {
-		// 	let dir = await this.#root()
-		// 	for (const part of path.split("/").filter(Boolean)) {
-		// 		dir = await dir.getDirectoryHandle(part, { create: true })
-        //     }
-		// }
-
-		// static async deleteDir(path, recursive = true) {
-		// 	const { dir, file } = await this.#parent(path)
-		// 	await dir.removeEntry(file, { recursive })
-		// }
 	}
 }

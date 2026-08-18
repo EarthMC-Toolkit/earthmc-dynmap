@@ -19,6 +19,7 @@ function isUserscript() {
 		}
 	}
 
+	// Modify map markers with our own. This fires after markers.json was successfully intercepted.
 	document.addEventListener('EMCDYNMAPPLUS_INTERCEPT', async e => {
 		const { url, data } = e.detail
 		const evOpts = { url, data, wasModified: false }

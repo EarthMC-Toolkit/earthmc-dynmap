@@ -1,6 +1,6 @@
 /// <reference types="node"/>
-/// <reference types="./src/types.d.ts"/>
-/// <reference types="./node_modules/@types/chrome/index.d.ts"/>
+/// <reference types="chrome"/>
+/// <reference types="../src/types.d.ts"/>
 import { readdirSync, readFileSync, writeFileSync } from 'fs'
 import { build, type BuildOptions } from 'esbuild'
 import * as path from 'path'
@@ -10,10 +10,10 @@ const STYLE_CSS = readdirSync('resources/css').filter(f => f.endsWith('.css'))
   .map(f => readFileSync(path.join('resources/css', f), 'utf8')).join('\n')
   .replaceAll('url("__SHOW_ICON__")', `url(${ftob64('resources/img/icon-show.png')})`)
   .replaceAll('url("__HIDE_ICON__")', `url(${ftob64('resources/img/icon-hide.png')})`)
-  .replaceAll('url("__SCREENSHOT_ICON__");', `url(${ftob64('resources/img/icon-screenshot.png')})`)
+  .replaceAll('url("__SCREENSHOT_ICON__")', `url(${ftob64('resources/img/icon-screenshot.png')})`)
 
-const GEO_COUNTRIES: Borders = JSON.parse(readFileSync('resources/borders-countries.geojson', 'utf8'))
-const GEO_PROVINCES: Borders = JSON.parse(readFileSync('resources/borders-provinces.geojson', 'utf8'))
+const GEO_COUNTRIES = JSON.parse(readFileSync('resources/borders-countries.geojson', 'utf8'))
+const GEO_PROVINCES = JSON.parse(readFileSync('resources/borders-provinces.geojson', 'utf8'))
 const MANIFEST: chrome.runtime.ManifestV3 = JSON.parse(readFileSync('manifest.json', 'utf8'))
 
 const MAP_MODE_IMGS = {
@@ -36,14 +36,14 @@ const HEADER = `// ==UserScript==
 // @version     ${MANIFEST.version}
 // @description ${MANIFEST.description}
 // @author      ${MANIFEST.author}
-// @include     ${contentScriptsMain.matches![0]}
-// @include     ${contentScriptsMain.matches![1]}
+// @match       ${contentScriptsMain.matches![0]}
+// @match       ${contentScriptsMain.matches![1]}
 // @icon        https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/main/resources/icon48.png
 // @grant       GM_addStyle
 // @grant       GM_getResourceURL
 // @grant       GM_xmlhttpRequest
-// @run-at      document-start
 // @inject-into page
+// @run-at      document-start
 // ==/UserScript==
 `
 
@@ -54,7 +54,7 @@ const scriptsHook = contentScriptsHook.js || []
 const scriptsMain = contentScriptsMain.js || []
 
 const buildOpts: BuildOptions = {
-    entryPoints: ['resources/interceptor.js', ...scriptsHook, ...scriptsMain],
+    entryPoints: [...scriptsHook, 'resources/interceptor.js', ...scriptsMain],
     outdir: outdir,
     format: 'esm',
     target: ['es2020'], // Backwards compatible enough. Most browsers support it.

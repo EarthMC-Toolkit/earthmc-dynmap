@@ -1,6 +1,6 @@
 /// <reference types="node"/>
 /// <reference types="geojson"/>
-/// <reference types="./src/types.d.ts"/>
+/// <reference types="../src/types.d.ts"/>
 import { readFile, writeFile } from "fs/promises"
 import { applyCommands } from "mapshaper-typed"
 
@@ -82,13 +82,19 @@ function convertGeoJSON(json: GeoJsonData): GeoJsonData {
 		features: json.features.map(feature => {
 			if (!feature.geometry) return feature
 			if (feature.geometry.type === "GeometryCollection") return feature
-			return {
-				...feature,
-				geometry: {
-					...feature.geometry,
-					coordinates: convertCoordinates(feature.geometry.coordinates) as never
-				}
+			
+			const properties = {
+				// Strip all other useless properties and keep these ones.
+				name: feature.properties?.name,
+				admin: feature.properties?.admin,
+				region_sub: feature.properties?.region_sub,
+				latitude: feature.properties?.latitude,
+				longitude: feature.properties?.longitude
 			}
+			
+			const coordinates =  convertCoordinates(feature.geometry.coordinates) as never
+			const geometry = { ...feature.geometry, coordinates }
+			return { ...feature, properties, geometry }
 		})
 	}
 }

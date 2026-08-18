@@ -6,10 +6,6 @@ declare global {
     // --------------------- GENERIC SHARED TYPES ---------------------
     export interface Entity { name: string, uuid: string }
 
-    // --------------------- BUILD SCRIPT TYPES ---------------------
-    export interface Border { x: Array<number>, z: Array<number> }
-    export interface Borders { [key: string]: Border }
-
     // --------------------- GEOMETRY TYPES ---------------------
     export interface Vertex { x: number, z: number }
     export type Polygon = Array<Vertex>
