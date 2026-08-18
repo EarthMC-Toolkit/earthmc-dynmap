@@ -12,8 +12,8 @@ const STYLE_CSS = readdirSync('resources/css').filter(f => f.endsWith('.css'))
   .replaceAll('url("__HIDE_ICON__")', `url(${ftob64('resources/img/icon-hide.png')})`)
   .replaceAll('url("__SCREENSHOT_ICON__");', `url(${ftob64('resources/img/icon-screenshot.png')})`)
 
-const BORDERS_COUNTRIES: Borders = JSON.parse(readFileSync('resources/borders-countries.geojson', 'utf8'))
-const BORDERS_PROVINCES: Borders = JSON.parse(readFileSync('resources/borders-provinces.geojson', 'utf8'))
+const GEO_COUNTRIES: Borders = JSON.parse(readFileSync('resources/borders-countries.geojson', 'utf8'))
+const GEO_PROVINCES: Borders = JSON.parse(readFileSync('resources/borders-provinces.geojson', 'utf8'))
 const MANIFEST: chrome.runtime.ManifestV3 = JSON.parse(readFileSync('manifest.json', 'utf8'))
 
 const MAP_MODE_IMGS = {
@@ -65,9 +65,9 @@ const buildOpts: BuildOptions = {
         // Make some resources and flags available to userscript when in use.
         IS_USERSCRIPT: 'true',
         STYLE_CSS: JSON.stringify(STYLE_CSS),
-        BORDERS: JSON.stringify({
-            countries: JSON.stringify(BORDERS_COUNTRIES),
-            provinces: JSON.stringify(BORDERS_PROVINCES)
+        GEO: JSON.stringify({
+            countries: JSON.stringify(GEO_COUNTRIES),
+            provinces: JSON.stringify(GEO_PROVINCES)
         }),
         MANIFEST: JSON.stringify(MANIFEST),
         MAP_MODE_IMGS: JSON.stringify(MAP_MODE_IMGS),

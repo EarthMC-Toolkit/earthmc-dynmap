@@ -1,14 +1,10 @@
 /// <reference types="node"/>
 /// <reference types="geojson"/>
+/// <reference types="./src/types.d.ts"/>
 import { readFile, writeFile } from "fs/promises"
-
 import { applyCommands } from "mapshaper-typed"
 
-type GeoJsonData = GeoJSON.FeatureCollection<GeoJSON.Geometry>
-type Coordinates = GeoJSON.Position | Coordinates[]
-
 //#region Hand-picked constants from the existing map.
-
 // 16574 is a mean average of old map vertical bounds
 const MILLER_Y_CALC = (5 / 4 * Math.asinh(Math.tan(4 / 5 * (90 * (Math.PI / 180))))) // ≈ 2.3034125433763912
 const MILLER_Y_NORMALIZER = 16540 / MILLER_Y_CALC // ≈ 7178.35

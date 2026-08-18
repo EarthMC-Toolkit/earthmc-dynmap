@@ -35,26 +35,49 @@ document.addEventListener('EMCDYNMAPPLUS_ADD_BORDER_LAYER', e => {
 		return
 	}
 
-	const { data, name, style, order, hide, interactive, enableTooltip } = e.detail
-	const onEachFeature = !enableTooltip ? null : (feature, layer) => {
-		if (!feature.properties?.name) return
+	/** @type {LeafletLayerData} */
+	const layerData = e.detail
 
-		const { name, admin } = feature.properties
-		layer.bindTooltip(admin ? `${name}, ${admin}` : name, { sticky: true })
-	}
+	const layer = initLayer(layerData)
+	tryRenderLayer(layer, layerData.name)
 
-	const scale = squaremap.options.scale // this is defined within setScale() during SquaremapMap init
-	const coordsToLatLng = coords => L.latLng(-coords[1] * scale, coords[0] * scale)
+	console.log(`Added layer to leaflet map: ${layerData.name}`)
+})
 
-	const layer = L.geoJSON(data, { style, interactive, coordsToLatLng, onEachFeature })
-	
-	layer.id = e.detail.id
-	layer.order = order
-	layerControl.addOverlay(layer, name, false)
-	
+/** 
+ * Initializes a layer by inserting a new toggle into the layer selector dropdown.
+ * @param {LeafletLayerData} data
+ */
+const initLayer = data => {
+	const { scale } = squaremap.options // this is initialized when setScale() runs in SquaremapMap class
+	const layer = L.geoJSON(data.geo, {
+		...data,
+		coordsToLatLng: coords => L.latLng(-coords[1] * scale, coords[0] * scale),
+		onEachFeature: (feature, layer) => {
+			if (!data.bindTooltip || !feature.properties?.name) return
+
+			const { name, admin } = feature.properties
+			layer.bindTooltip(admin ? `${name}, ${admin}` : name, { 
+				sticky: true,
+				direction: 'top',
+				className: 'leaflet-control'
+			})
+		}
+	})
+
+	layer.id = data.id
+	if (data.order) layer.order = data.order
+
+	layerControl.addOverlay(layer, data.name, false)
+	return layer
+}
+
+/** 
+ * @param {L.Layer} layer 
+ * @param {boolean} hide
+ */
+const tryRenderLayer = (layer, hide) => {
 	const saved = localStorage.getItem(`hide_${layer.id}`)
 	const shouldHide = saved == null ? hide : saved === 'true'
 	if (!shouldHide) layer.addTo(squaremap)
-
-	console.log(`Added layer to leaflet map: ${name}`)
-})
+}

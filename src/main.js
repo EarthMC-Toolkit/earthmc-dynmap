@@ -38,22 +38,15 @@ async function modifyMarkers(data) {
 	const mapMode = currentMapMode()
 	console.log(`Modifying markers according to current map mode: ${mapMode.name}`)
 
-	/** @type {Borders} */
-	const countryBorders = isUserscript() ? BORDERS.countries
-		: await fetch(chrome.runtime.getURL('resources/borders-countries.geojson')).then(r => r.json())
+	/** @type {GeoJsonData} */
+	const countries = isUserscript() ? GEO.countries :
+		await fetch(chrome.runtime.getURL('resources/borders-countries.geojson')).then(r => r.json())
 	
-	/** @type {Borders} */
-	const provinceBorders = isUserscript() ? BORDERS.provinces
-		: await fetch(chrome.runtime.getURL('resources/borders-provinces.geojson')).then(r => r.json())
+	/** @type {GeoJsonData} */
+	const provinces = isUserscript() ? GEO.provinces :
+		await fetch(chrome.runtime.getURL('resources/borders-provinces.geojson')).then(r => r.json())
 
-	// for (const key in countryBorders) {
-	// 	countryBorders[key] = { ...countryBorders[key], ...EXTRA_BORDER_OPTS }
-	// }
-	// for (const key in provinceBorders) {
-	// 	provinceBorders[key] = { ...provinceBorders[key], ...EXTRA_BORDER_OPTS }
-	// }
-
-	if (countryBorders && provinceBorders) addBorderLayers(data, countryBorders, provinceBorders)
+	if (countries && provinces) addBorderLayers(countries, provinces)
 	else showAlert("An unexpected error occurred fetching the border resource files.")
 
 	if (mapMode == MapMode.ARCHIVE) data = await getArchive(data)

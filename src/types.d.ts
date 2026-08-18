@@ -1,4 +1,6 @@
 /** THIS FILE CONTAINS ALL TYPES FOR DEVELOPMENT AND IT IS NOT INCLUDED IN THE FINAL BUNDLE */
+/// <reference types="leaflet"/>
+/// <reference types="geojson"/>
 
 declare global {
     // --------------------- GENERIC SHARED TYPES ---------------------
@@ -14,18 +16,31 @@ declare global {
     export type MarkerPoints = Array<Polygon>
     export type MultiPolygonPoints = Array<MarkerPoints>
 
+    export type GeoJsonData = GeoJSON.FeatureCollection<GeoJSON.Geometry>
+    export type Coordinates = GeoJSON.Position | Coordinates[]
+    export type LeafletLayerData = {
+        geo: GeoJsonData
+        id: string
+        name: string
+        order: number
+        style: L.PathOptions
+        hide?: boolean
+        interactive?: boolean
+        bindTooltip?: boolean
+    }
+
     // --------------------- EMC MAP RESPONSE TYPES ---------------------
     /** The raw response data from `markers.json`. Contains markers from Towny at index 0 and World Border at index 1. */
     export type MarkersResponse = Array<ResponseMarker>
     export interface ResponseMarker { 
-        // id: string;
-        // name: string;
+        // id: string
+        // name: string
         // timestamp: number
-        // control: boolean;
-        // z_index: number;
-        // order: number;
-        // hide: boolean;
-        markers: Array<SquaremapMarker | DynmapMarker>;
+        // control: boolean
+        // z_index: number
+        // order: number
+        // hide: boolean
+        markers: Array<SquaremapMarker | DynmapMarker>
     }
 
     export interface Marker {
@@ -61,7 +76,7 @@ declare global {
 
     // --------------------- MAP MODE TYPES ---------------------
     export interface NationClaimsEntry {
-        input?: string | null,
+        input?: string | null
         color?: string | null
     }
 
@@ -81,7 +96,7 @@ declare global {
         name: string
         img: string | null
         order: number // the index at which it sits in the selector
-        cache?: { [key: string]: any },
+        cache?: { [key: string]: any }
         skipIf?: () => boolean
         preload?: (data: MarkersResponse) => Promise<any>
         apply?: <T = SquaremapMarker | DynmapMarker>(marker: T, parsed: ParsedMarker, context: MarkerApplyContext) => Promise<T | void>
