@@ -79,7 +79,9 @@ function convertCoordinates(coordinates: Coordinates): Coordinates {
 function convertGeoJSON(json: GeoJsonData): GeoJsonData {
 	return {
 		...json,
-		features: json.features.map(feature => {
+		features: json.features
+		.filter(({ properties }) => properties?.ADM0_A3 != 'ATA' && properties?.admin != 'Antarctica') // Nostra cropped out Antarctica. 
+		.map(feature => {
 			if (!feature.geometry) return feature
 			if (feature.geometry.type === "GeometryCollection") return feature
 			
