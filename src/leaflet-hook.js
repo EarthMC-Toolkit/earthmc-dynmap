@@ -2,11 +2,16 @@
 
 /// <reference types="leaflet"/>
 
-/** @type {L.Map} */
-let squaremap
+/** @type {L.Map} */ let squaremap
+/** @type {L.Control.Layers} */ let layerControl
 
-/** @type {L.Control.Layers} */
-let layerControl
+/** @type {L.GeoJSON<any, GeoJSON.Geometry>} */ let provincesLayer
+/** @type {L.GeoJSON<any, GeoJSON.Geometry>} */ let bordersLayer
+
+function updateLayerOrder() {
+	provincesLayer?.bringToBack()
+	bordersLayer?.bringToFront()
+}
 
 function hookLeaflet() {
 	if (typeof L === 'undefined') {
@@ -18,8 +23,7 @@ function hookLeaflet() {
 	L.Control.Layers.prototype.addTo = function (map) {
 		layerControl = this
 		squaremap = map
-
-		console.log('Captured Squaremap map and layer control')
+		squaremap.on('overlayadd overlayremove', () => updateLayerOrder())
 
 		return originalAddTo.call(this, map)
 	}
@@ -84,8 +88,11 @@ document.addEventListener('EMCDYNMAPPLUS_ADD_LEAFLET_LAYER', async e => {
 
 	/** @type {LeafletLayerData} */
 	const layerData = e.detail
-
 	const layer = initLayer(layerData)
+
+	if (layerData.id === 'provinces') provincesLayer = layer
+	if (layerData.id === 'country-borders') countriesLayer = layer
+
 	tryRenderLayer(layer, layerData.name)
 
 	console.log(`Added layer to leaflet map: ${layerData.name}`)
