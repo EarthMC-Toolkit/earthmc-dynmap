@@ -80,18 +80,21 @@ function convertGeoJSON(json: GeoJsonData): GeoJsonData {
 	return {
 		...json,
 		features: json.features
-		.filter(({ properties }) => properties?.ADM0_A3 != 'ATA' && properties?.admin != 'Antarctica') // Nostra cropped out Antarctica. 
+		.filter(({ properties }) => properties?.adm0_a3 != 'ATA' && properties?.admin != 'Antarctica') // Nostra cropped out Antarctica. 
 		.map(feature => {
 			if (!feature.geometry) return feature
 			if (feature.geometry.type === "GeometryCollection") return feature
 			
 			const properties = {
 				// Strip all other useless properties and keep these ones.
-				name: feature.properties?.name,
+				type: feature.properties?.type,
+				adm0_a3: feature.properties?.adm0_a3,
 				admin: feature.properties?.admin,
+				name: feature.properties?.name,
+				name_local: feature.properties?.name_local,
 				region_sub: feature.properties?.region_sub,
-				latitude: feature.properties?.latitude,
-				longitude: feature.properties?.longitude
+				//latitude: feature.properties?.latitude,
+				//longitude: feature.properties?.longitude,
 			}
 			
 			const coordinates =  convertCoordinates(feature.geometry.coordinates) as never

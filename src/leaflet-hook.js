@@ -52,14 +52,30 @@ const initLayer = data => {
 		...data,
 		coordsToLatLng: coords => L.latLng(-coords[1] * scale, coords[0] * scale),
 		onEachFeature: (feature, layer) => {
-			if (!data.bindTooltip || !feature.properties?.name) return
+			if (!feature.properties?.name) return
 
-			const { name, admin } = feature.properties
-			layer.bindTooltip(admin ? `${name}, ${admin}` : name, { 
-				sticky: true,
-				direction: 'top',
-				className: 'leaflet-control'
-			})
+			if (data.bindTooltip) {
+				const { name, admin } = feature.properties
+				layer.bindTooltip(admin ? `${name}, ${admin}` : name, { 
+					sticky: true,
+					direction: 'top',
+					className: 'leaflet-control'
+				})
+			}
+			if (data.bindPopup) {
+				const { type, adm0_a3, admin, name, name_local, region_sub } = feature.properties
+				const title = admin ? `${name}, ${admin}` : name
+				const content = `
+					<div class="infowindow">
+						<span style="font-size:120%;"><b>Province Info</b> | ${title}</span>
+						${name_local ? `<br><br><b>Local Name:</b> ${name_local}` : ''}
+						${region_sub ? `<br><b>Region:</b> ${region_sub}` : ''}
+						${type ? `<br><b>Type:</b> ${type}` : ''}
+						${adm0_a3 ? `<br><b>Code:</b> ${adm0_a3}` : ''}
+					</div>
+				`
+				layer.bindPopup(content, { autoClose: true })
+			}
 		}
 	})
 

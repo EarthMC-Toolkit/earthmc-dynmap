@@ -23,6 +23,7 @@ declare global {
         hide?: boolean
         interactive?: boolean
         bindTooltip?: boolean
+        bindPopup?: boolean
     }
 
     // --------------------- EMC MAP RESPONSE TYPES ---------------------

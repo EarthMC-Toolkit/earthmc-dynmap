@@ -30,7 +30,7 @@ function addBorderLayers(countriesGeo, provincesGeo) {
 			fillOpacity: 0.12
 		}
 
-		const layer = createLayer(provincesGeo, 'provinces', 'Provinces', 70, style, true, true, true)
+		const layer = createLayer(provincesGeo, 'provinces', 'Provinces', 70, style, true, true, true, true)
 		document.dispatchEvent(new CustomEvent('EMCDYNMAPPLUS_ADD_LEAFLET_LAYER', { detail: layer }))
 	} catch (e) {
 		showAlert(`Could not set up a layer of province borders. You may need to clear this website's data. If problem persists, contact the developer.`)
@@ -52,8 +52,10 @@ function addBorderLayers(countriesGeo, provincesGeo) {
  */
 const createLayer = (
 	geo, id, name, order, style,
-	hide = false, interactive = false, bindTooltip = false
+	hide = false, interactive = false, 
+	bindTooltip = false, bindPopup = false
 ) => ({ 
 	geo, id, name, order, style, 
-	hide, interactive, bindTooltip
+	hide, interactive, 
+	bindTooltip, bindPopup
 })
