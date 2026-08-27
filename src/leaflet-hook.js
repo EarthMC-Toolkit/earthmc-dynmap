@@ -1,7 +1,5 @@
 /// <reference types="leaflet"/>
 
-/// <reference types="leaflet"/>
-
 /** @type {L.Map} */ let squaremap
 /** @type {L.Control.Layers} */ let layerControl
 
@@ -23,21 +21,18 @@ function hookLeaflet() {
 	L.Control.Layers.prototype.addTo = function (map) {
 		layerControl = this
 		squaremap = map
-		squaremap.on('overlayadd overlayremove', () => updateLayerOrder())
+		squaremap.on('overlayadd overlayremove', _ => updateLayerOrder())
 
 		return originalAddTo.call(this, map)
 	}
 
 	const originalAddOverlay = L.Control.Layers.prototype.addOverlay
 	L.Control.Layers.prototype.addOverlay = function (layer, name) {
-		if (layer.id === 'chunk-borders') {
-			layer.order = 1.5
-		}
-
+		if (layer.id === 'chunk-borders') layer.order = 1.5
 		return originalAddOverlay.call(this, layer, name)
 	}
 
-	console.log('Leaflet hooks installed')
+	//console.log('Leaflet hooks installed')
 }
 
 hookLeaflet()
