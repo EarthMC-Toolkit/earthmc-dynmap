@@ -11,6 +11,22 @@ function updateLayerOrder() {
 	bordersLayer?.bringToFront()
 }
 
+function overrideZoomLimit() {
+	L.Map.prototype.getMinZoom = function () { return -2 }
+
+    const originalClampZoom = L.GridLayer.prototype._clampZoom
+    L.GridLayer.prototype._clampZoom = function (zoom, ...args) {
+        this.options.minZoom = -2
+        return originalClampZoom.call(this, zoom, ...args)
+    }
+
+    const originalGetTileUrl = L.TileLayer.prototype.getTileUrl
+    L.TileLayer.prototype.getTileUrl = function (coords) {
+        coords.z = Math.max(0, coords.z)
+        return originalGetTileUrl.call(this, coords)
+    }
+}
+
 function hookLeaflet() {
 	if (typeof L === 'undefined') {
 		requestAnimationFrame(hookLeaflet)
@@ -31,7 +47,8 @@ function hookLeaflet() {
 		if (layer.id === 'chunk-borders') layer.order = 1.5
 		return originalAddOverlay.call(this, layer, name)
 	}
-
+	
+	overrideZoomLimit()
 	//console.log('Leaflet hooks installed')
 }
 
