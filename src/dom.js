@@ -744,13 +744,14 @@ let serverInfoScheduler = null
 
 /** @param {HTMLElement} element - The "#server-info" element. */
 async function updateServerInfo(element) {
+	serverInfoScheduler = null
+	if (Store.local.get('serverinfo') !== true) return
+
 	const info = await fetchServerInfo()
+	if (Store.local.get('serverinfo') !== true) return // check if toggled off while fetch in progress
 	if (info) renderServerInfo(element, info)
 
-	// schedule next only if still enabled
-	const enabled = Store.local.get('serverinfo') === true
-	if (!enabled) serverInfoScheduler = null
-	else serverInfoScheduler = setTimeout(() => updateServerInfo(element), SERVERINFO_INTERVAL)
+	serverInfoScheduler = setTimeout(() => updateServerInfo(element), SERVERINFO_INTERVAL)
 }
 
 async function insertPlayerList() {
