@@ -5,7 +5,7 @@ function isUserscript() {
 
 /** THIS FILE IS RUN FIRST, ANY SETUP/INIT REQUIRED BELONGS HERE */
 (async function entrypoint() {
-	if (document.documentMode) return showAlertNoDismiss('EarthMC Dynmap+ has been disabled. Internet Explorer pleb detected.')
+	if (document.documentMode) return showAlert('EarthMC Dynmap+ has been disabled. Internet Explorer pleb detected.', null, false)
 
 	/** @type {chrome.runtime.ManifestV3} */
 	const manifest = isUserscript() ? MANIFEST : chrome.runtime.getManifest()

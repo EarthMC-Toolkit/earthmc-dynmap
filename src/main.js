@@ -254,7 +254,7 @@ function getNationAlliances(nationName, mapMode) {
 
 /** @param {MarkersResponse} data - The markers response JSON data. */
 async function getArchive(data) {
-	const loadingAlert = showAlertNoDismiss('Loading archive, please wait...', 10)
+	const loadingAlert = showAlert('Loading archive, please wait...', 10, false)
 	const date = archiveDate()
 	const path = `db/archives/${date}.json`
 

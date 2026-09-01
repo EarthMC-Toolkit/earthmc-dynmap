@@ -69,7 +69,7 @@ const INSERTABLE_HTML = /** @type {const} */ ({
     alertBoxNoDismiss: '<div id="alert"><p id="alert-message">{message}</p></div>',
 	// Used in main.js
     playerLookup: '<div class="leaflet-control-layers leaflet-control" id="player-lookup"></div>',
-    playerLookupLoading: '<div class="leaflet-control-layers leaflet-control" id="player-lookup-loading">Loading...</button>',
+    playerLookupLoading: '<div class="leaflet-control-layers leaflet-control" id="player-lookup-loading">Loading...</div>',
     residentClickable: '<span class="resident-clickable">{player}</span>',
     residentList: '<span class="resident-list">{list}</span>',
     scrollableResidentList: '<div class="resident-list" id="scrollable-list">{list}</div>',
@@ -107,39 +107,26 @@ let alertTimeout = null
 
 /**
  * Shows an alert message in a box at the center of the screen.
+ *
  * @param {string} message - The important text to show inside the alert box.
  * @param {number} timeout - The time (in sec) until the alert box is auto closed. null = manual dismiss
+ * @param {boolean} dismiss - Whether the alert can be manually dismissed. false = no dismiss button, true = dismiss button
  */
-function showAlert(message, timeout = null) {
-	let alert = document.querySelector('#alert')
-	if (!alert) {
-		alert = addElement(document.body, INSERTABLE_HTML.alertBox.replace('{message}', message))
-		alert.querySelector('#alert-close').addEventListener('click', () => {
+function showAlert(message, timeout = null, dismiss = true) {
+    let alert = document.querySelector('#alert')
+    if (!alert) {
+		const html = dismiss ? INSERTABLE_HTML.alertBox : INSERTABLE_HTML.alertBoxNoDismiss
+        alert = addElement(document.body, html.replace('{message}', message))
+        if (dismiss) alert.querySelector('#alert-close').addEventListener('click', () => {
 			clearTimeout(alertTimeout)
 			alert.remove()
 		})
-	} else alert.querySelector('#alert-message').textContent = message
+    } else alert.querySelector('#alert-message').textContent = message
+    
+    clearTimeout(alertTimeout)
+    if (timeout) alertTimeout = setTimeout(() => alert.remove(), timeout * 1000)
 
-	clearTimeout(alertTimeout)
-	if (timeout) alertTimeout = setTimeout(() => alert.remove(), timeout*1000)
-
-	return alert
-}
-
-/**
- * Shows an alert message in a box at the center of the screen.
- * @param {string} message - The important text to show inside the alert box.
- * @param {number} timeout - The time (in sec) until the alert box is auto closed. null = manual dismiss
- */
-function showAlertNoDismiss(message, timeout = null) {
-	let alert = document.querySelector('#alert')
-	if (!alert) alert = addElement(document.body, INSERTABLE_HTML.alertBoxNoDismiss.replace('{message}', message))
-	else alert.querySelector('#alert-message').textContent = message
-
-	clearTimeout(alertTimeout)
-	if (timeout) alertTimeout = setTimeout(() => alert.remove(), timeout*1000)
-
-	return alert
+    return alert
 }
 
 /**

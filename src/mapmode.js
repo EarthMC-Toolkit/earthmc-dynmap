@@ -2,7 +2,7 @@
 const preloadTowns = async () => {
     /** @type {Array<OAPITown>} */
     const cached = await Store.opfs.cache("api-towns", 3*60*1000, async () => {
-        const alert = showAlertNoDismiss('Querying the EMC API for extra town info...', 30)
+        const alert = showAlert('Querying the EMC API for extra town info...', 30, false)
 
         const url = `${currentMapApiUrl()}/towns`
         const tlist = await fetchJSON(url)
