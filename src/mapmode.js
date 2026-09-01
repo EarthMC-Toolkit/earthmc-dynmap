@@ -155,7 +155,7 @@ function addMapModeSelector(parent) {
  */
 function addMapModeBtn(iconContainer, mode, clickHandler = null) {
     const button = addElement(iconContainer, INSERTABLE_HTML.mapMode.btnOption)
-    const src = isUserscript() ? MAP_MODE_IMGS[mode.name] : chrome.runtime.getURL(mode.img)
+    const src = mode.img ? chrome.runtime.getURL(mode.img) : null
     addElement(button, `<img title="${mode.name}" alt="${mode.name}" src="${src}">`)
 
     if (clickHandler) button.addEventListener('click', clickHandler)

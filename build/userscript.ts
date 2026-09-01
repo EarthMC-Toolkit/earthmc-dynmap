@@ -11,24 +11,25 @@ const STYLE_CSS = readdirSync('resources/css').filter(f => f.endsWith('.css'))
   .replaceAll('url("__SHOW_ICON__")', `url(${ftob64('resources/img/icon-show.png')})`)
   .replaceAll('url("__HIDE_ICON__")', `url(${ftob64('resources/img/icon-hide.png')})`)
   .replaceAll('url("__SCREENSHOT_ICON__")', `url(${ftob64('resources/img/icon-screenshot.png')})`)
-  
-const STYLE_CSS_B64 = Buffer.from(STYLE_CSS).toString('base64')
 
-const GEO_COUNTRIES = JSON.parse(readFileSync('resources/borders-countries.geojson', 'utf8'))
-const GEO_PROVINCES = JSON.parse(readFileSync('resources/borders-provinces.geojson', 'utf8'))
+const COUNTRIES_GEO = readFileSync('resources/borders-countries.geojson', 'utf8')
+const PROVINCES_GEO = readFileSync('resources/borders-provinces.geojson', 'utf8')
 const MANIFEST: chrome.runtime.ManifestV3 = JSON.parse(readFileSync('manifest.json', 'utf8'))
 
-const MAP_MODE_IMGS = {
-    "default":      `${ftob64('resources/img/map-mode-default.png')}`,
-    "meganations":  `${ftob64('resources/img/map-mode-meganations.png')}`,
-    "alliances":    `${ftob64('resources/img/map-mode-alliances.png')}`,
-    "nationclaims": `${ftob64('resources/img/map-mode-nationclaims.png')}`,
-    "overclaim":    `${ftob64('resources/img/map-mode-overclaim.png')}`,
-    "newday":       `${ftob64('resources/img/map-mode-newday.png')}`,
-    "population":   `${ftob64('resources/img/map-mode-heatmap-population.png')}`,
-    "balance":      `${ftob64('resources/img/map-mode-heatmap-balance.png')}`,
-    "archive":      null,
-}
+const MAP_MODE_IMGS = [
+	"resources/img/map-mode-default.png",
+	"resources/img/map-mode-meganations.png",
+	"resources/img/map-mode-alliances.png",
+	"resources/img/map-mode-nationclaims.png",
+	"resources/img/map-mode-overclaim.png",
+	"resources/img/map-mode-newday.png",
+	"resources/img/map-mode-heatmap-population.png",
+	"resources/img/map-mode-heatmap-balance.png",
+]
+
+const MAP_MODE_RESOURCES = MAP_MODE_IMGS
+	.map(file => `// @resource    ${file}    ${ftob64(file)}`)
+	.join('\n')
 
 // TODO: Dynamically insert @include tags depending on matches arr count
 const contentScriptsHook = MANIFEST.content_scripts![0]
@@ -47,7 +48,8 @@ const HEADER = `// ==UserScript==
 // @grant       GM_xmlhttpRequest
 // @inject-into page
 // @run-at      document-start
-// @resource    style-css    data:text/css;base64,${STYLE_CSS_B64}
+// @resource    style-css       data:text/css;base64,${Buffer.from(STYLE_CSS).toString('base64')}
+${MAP_MODE_RESOURCES}
 // ==/UserScript==
 `
 
@@ -70,10 +72,10 @@ const buildOpts: BuildOptions = {
         // Make some resources and flags available to userscript when in use.
         IS_USERSCRIPT: 'true',
         //STYLE_CSS: JSON.stringify(STYLE_CSS),
-        GEO_COUNTRIES: JSON.stringify(GEO_COUNTRIES),
-        GEO_PROVINCES: JSON.stringify(GEO_PROVINCES),
+        COUNTRIES_GEO: COUNTRIES_GEO,
+        PROVINCES_GEO: PROVINCES_GEO,
         MANIFEST: JSON.stringify(MANIFEST),
-        MAP_MODE_IMGS: JSON.stringify(MAP_MODE_IMGS),
+        //MAP_MODE_IMGS: JSON.stringify(MAP_MODE_IMGS),
         // Swap out instances of keywords with their userscript compatible counterpart.
         window: 'unsafeWindow',
         'chrome.runtime.getURL': 'GM_getResourceURL',
