@@ -11,6 +11,8 @@ const STYLE_CSS = readdirSync('resources/css').filter(f => f.endsWith('.css'))
   .replaceAll('url("__SHOW_ICON__")', `url(${ftob64('resources/img/icon-show.png')})`)
   .replaceAll('url("__HIDE_ICON__")', `url(${ftob64('resources/img/icon-hide.png')})`)
   .replaceAll('url("__SCREENSHOT_ICON__")', `url(${ftob64('resources/img/icon-screenshot.png')})`)
+  
+const STYLE_CSS_B64 = Buffer.from(STYLE_CSS).toString('base64')
 
 const GEO_COUNTRIES = JSON.parse(readFileSync('resources/borders-countries.geojson', 'utf8'))
 const GEO_PROVINCES = JSON.parse(readFileSync('resources/borders-provinces.geojson', 'utf8'))
@@ -41,9 +43,11 @@ const HEADER = `// ==UserScript==
 // @icon        https://raw.githubusercontent.com/EarthMC-Toolkit/earthmc-dynmap/main/resources/icon48.png
 // @grant       GM_addStyle
 // @grant       GM_getResourceURL
+// @grant       GM_getResourceText
 // @grant       GM_xmlhttpRequest
 // @inject-into page
 // @run-at      document-start
+// @resource    style-css    data:text/css;base64,${STYLE_CSS_B64}
 // ==/UserScript==
 `
 
@@ -65,7 +69,7 @@ const buildOpts: BuildOptions = {
     define: {
         // Make some resources and flags available to userscript when in use.
         IS_USERSCRIPT: 'true',
-        STYLE_CSS: JSON.stringify(STYLE_CSS),
+        //STYLE_CSS: JSON.stringify(STYLE_CSS),
         GEO_COUNTRIES: JSON.stringify(GEO_COUNTRIES),
         GEO_PROVINCES: JSON.stringify(GEO_PROVINCES),
         MANIFEST: JSON.stringify(MANIFEST),

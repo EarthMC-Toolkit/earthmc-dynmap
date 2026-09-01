@@ -57,7 +57,7 @@ function injectScript(resource) {
 
 /** @param {Manifest} manifest */
 async function init(manifest) {
-	if (isUserscript()) GM_addStyle(STYLE_CSS)
+	if (isUserscript()) GM_addStyle(GM_getResourceText("style-css"))
 	else {
 		const root = document.documentElement.style
 		root.setProperty('--screenshot-bg-image', `url("${chrome.runtime.getURL('resources/img/icon-screenshot.png')}")`)
