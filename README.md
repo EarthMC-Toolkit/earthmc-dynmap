@@ -32,19 +32,7 @@ When creating the extension, the main idea was to group countries together into 
 > [!TIP]
 > Extension works for desktop and mobile! For the best experience, it is also recommended to use ad-blockers.
 
-### 1. Chromium Extension (Recommended)
-There are no extension releases on GitHub or the store. Please visit the [Toolkit Discord](https://discord.gg/AVtgkcRgFs) for up to date builds or install the userscript which will update automatically. Alternatively, you can download this repo source code and do the following:
-
-1. Unzip the repo source code.
-1. Go to your browser extension settings.
-1. Enable developer mode.
-1. Click `Load Unpacked` and select the unzipped folder.
-
-### 2. Userscript
-1. Install Violentmonkey extension in either the Firefox, Safari or Chrome store (for Chromium based browsers).
-1. Install the **EarthMC Dynmap+ (Owen3H Fork)** script by adding the contents of `./dist/emc-dynmapplus.user.js` into a new script, then save and enable it.
-
-Remember to check for updates frequently if Violentmonkey does not do it automatically.
+See releases page.
 
 ## Maintainability
 Neither this extension nor its maintainer are affiliated with **EarthMC**. Please keep in mind, that the extension may temporarily render unusable due to unexpected **EarthMC** updates. If that is the case, the maintainer will address potential problems sooner or later.
