@@ -50,6 +50,10 @@
 }
 
 .leaflet-control-zoom {
+	display: flex;
+    flex-direction: column;
+    align-self: end;
+    height: fit-content;
 	border: none !important;
 }
 

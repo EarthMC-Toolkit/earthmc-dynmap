@@ -25,7 +25,9 @@
 }
 
 #map-mode-option-container {
-	display: flex;
+	display: grid;
+  	grid-template-columns: repeat(4, minmax(30px, 1fr));
+  	grid-gap: 1rem;
 	gap: 10px;
 	flex-direction: row;
 }

@@ -29,7 +29,7 @@ class Store {
 				}
 
 				if (Array.isArray(parsed) || (parsed && typeof parsed === "object")) return parsed
-				if (typeof parsed === 'boolean' || typeof parsed === 'number') return parsed
+				if (typeof parsed === 'boolean') return parsed
 			} catch {}
 
 			return raw

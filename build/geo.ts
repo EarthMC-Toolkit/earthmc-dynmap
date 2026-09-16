@@ -79,9 +79,13 @@ function convertCoordinates(coordinates: Coordinates): Coordinates {
 function convertGeoJSON(json: GeoJsonData): GeoJsonData {
 	return {
 		...json,
-		features: json.features
-		.filter(({ properties }) => properties?.adm0_a3 != 'ATA' && properties?.admin != 'Antarctica') // Nostra cropped out Antarctica. 
-		.map(feature => {
+		features: json.features.filter(({ properties: p }) => {
+			const isAntarctica = p?.adm0_a3 == "ATA" || p?.admin == "Antarctica" || p?.name == "Antarctica"
+			const isAntarcticaAlt = p?.ADM0_a3 == "ATA" || p?.ADMIN == "Antarctica" || p?.NAME_EN == "Antarctica"
+			//if (isAntarctica || isAntarcticaAlt) console.log(`Filtered out an Antarctica region.`)
+
+			return !isAntarctica && !isAntarcticaAlt
+		}).map(feature => {
 			if (!feature.geometry) return feature
 			if (feature.geometry.type === "GeometryCollection") return feature
 			

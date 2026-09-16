@@ -83,6 +83,8 @@ async function init(manifest) {
 	await insertExtensionMenu()
 	await insertMapModeSelector()
 	updateServerInfo(await insertServerInfoPanel())
+	
+	await insertWorldList()
 	await insertPlayerList()
 
     await editUILayout()

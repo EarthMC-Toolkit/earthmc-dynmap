@@ -19,6 +19,17 @@
 	text-align: center;
 }
 
+fieldset#worlds {
+	flex: 1;
+	display: grid;
+	grid-auto-flow: column;
+	justify-content: space-evenly;
+	z-index: 501;
+	min-height: max-content;
+	max-height: max-content;
+	min-width: var(--max-server-info-width);
+}
+
 /* Player list */
 fieldset#players {
 	flex: 1;
@@ -36,7 +47,7 @@ fieldset#players {
 	scrollbar-color: #aaa rgba(0, 0, 0, 0.1);
 }
 
-fieldset#players > legend {
+fieldset > legend {
 	color: white;
 	font-weight: bold;
 	font-size: 23px;

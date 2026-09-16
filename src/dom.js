@@ -754,6 +754,20 @@ async function updateServerInfo(element) {
 	serverInfoScheduler = setTimeout(() => updateServerInfo(element), SERVERINFO_INTERVAL)
 }
 
+async function insertWorldList() {
+	// Move the world list to the top right corner and add the appropriate classes for styling.
+	waitForElement('#worlds').then(el => {
+		el?.classList.add('leaflet-control-layers')
+		el?.classList.add('leaflet-control')
+
+		const topRight = document.querySelector('.leaflet-top.leaflet-right')
+		topRight.appendChild(el)
+
+		el.addEventListener('wheel', e => e.stopImmediatePropagation())
+	})
+	
+}
+
 async function insertPlayerList() {
 	// Move the player list to the top right corner and add the appropriate classes for styling.
 	waitForElement('#players').then(el => {
