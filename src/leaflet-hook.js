@@ -103,7 +103,7 @@ const initLayer = data => {
  * @param {boolean} hide
  */
 const tryRenderLayer = (layer, hide) => {
-	const saved = localStorage.getItem(`hide_${layer.id}`)
+	const saved = localStorage.getItem(`hide_${layer.id}`) // Don't use Store.local here since hook executes before store.js!
 	const shouldHide = saved == null ? hide : saved === 'true'
 	if (!shouldHide) layer.addTo(squaremap)
 }

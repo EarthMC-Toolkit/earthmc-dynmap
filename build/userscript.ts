@@ -71,11 +71,11 @@ const buildOpts: BuildOptions = {
     define: {
         // Make some resources and flags available to userscript when in use.
         IS_USERSCRIPT: 'true',
+        MANIFEST: JSON.stringify(MANIFEST),
         //STYLE_CSS: JSON.stringify(STYLE_CSS),
+        //MAP_MODE_IMGS: JSON.stringify(MAP_MODE_IMGS),
         COUNTRIES_GEO: COUNTRIES_GEO,
         PROVINCES_GEO: PROVINCES_GEO,
-        MANIFEST: JSON.stringify(MANIFEST),
-        //MAP_MODE_IMGS: JSON.stringify(MAP_MODE_IMGS),
         // Swap out instances of keywords with their userscript compatible counterpart.
         window: 'unsafeWindow',
         'chrome.runtime.getURL': 'GM_getResourceURL',

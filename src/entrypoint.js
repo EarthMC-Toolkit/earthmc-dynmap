@@ -55,7 +55,7 @@ function injectScript(resource) {
 	})
 }
 
-/** @param {Manifest} manifest */
+/** @param {chrome.runtime.ManifestV3} manifest */
 async function init(manifest) {
 	if (isUserscript()) GM_addStyle(GM_getResourceText("style-css"))
 	else {
@@ -65,20 +65,21 @@ async function init(manifest) {
 		root.setProperty('--hide-icon', `url("${chrome.runtime.getURL('resources/img/icon-hide.png')}")`)
 	}
 
-    localStorage['emcdynmapplus-mapmode'] ??= MapMode.MEGANATIONS.name
-	localStorage['emcdynmapplus-normalize-scroll'] ??= 'true'
-    localStorage['emcdynmapplus-darkened'] ??= 'true'
-	localStorage['emcdynmapplus-serverinfo'] ??= 'true'
-	localStorage['emcdynmapplus-playerlist'] ??= 'true'
-	localStorage['emcdynmapplus-capital-stars'] ??= 'true'
+	// Initialize localStorage values if they don't exist yet.
+	Store.local.tryInit('mapmode', MapMode.MEGANATIONS.name)
+	Store.local.tryInit('normalize-scroll', true)
+	Store.local.tryInit('darkmode', true)
+	Store.local.tryInit('darkened', true)
+	Store.local.tryInit('serverinfo', true)
+	Store.local.tryInit('playerlist', true)
+	Store.local.tryInit('capital-stars', true)
+	Store.local.tryInit('nation-claims-opaque-colors', true)
+	Store.local.tryInit('nation-claims-show-excluded', true)
 
-	localStorage['emcdynmapplus-nation-claims-opaque-colors'] ??= 'true'
-	localStorage['emcdynmapplus-nation-claims-show-excluded'] ??= 'true'
-
+	//#region UI Elements
 	console.log("emcdynmapplus: Initializing UI elements..")
 
 	insertCustomStylesheets()
-    
 	await insertExtensionMenu()
 	await insertMapModeSelector()
 	updateServerInfo(await insertServerInfoPanel())
@@ -91,10 +92,12 @@ async function init(manifest) {
 	if (insertedPanel) loadNationClaims(insertedPanel)
 
 	initToggleOptions()
+	//#endregion
+
 	checkForUpdate(manifest)
 }
 
-/** @param {Manifest} manifest */
+/** @param {chrome.runtime.ManifestV3} manifest */
 function checkForUpdate(manifest) {
     const latestVer = manifest.version
     const cachedVer = Store.local.get('version')

@@ -209,7 +209,7 @@ function insertCustomStylesheets() {
  * @returns {() => boolean}
  */
 function addCollapsibleSection(header, body, storageKey = null, collapsed = null) {
-	collapsed = storageKey && collapsed == null ? Store.local.get(storageKey) == 'true' : false
+	collapsed = storageKey && collapsed == null ? Store.local.get(storageKey) == true : false
 	
 	const arrow = header.querySelector('#menu-arrow')
 	const apply = () => {
@@ -328,7 +328,7 @@ function addMenuToggleOption(menu, index, optionId, optionText, variable, listen
 	/** @type {HTMLInputElement} */ const toggleInput = toggle.querySelector("input")
 	
 	// Initialize toggle state and label
-	const checked = Store.local.get(variable) == 'true'
+	const checked = Store.local.get(variable) == true
 	toggleInput.checked = checked
 	
 	toggleInput.id = optionId
@@ -339,20 +339,20 @@ function addMenuToggleOption(menu, index, optionId, optionText, variable, listen
 }
 
 function initToggleOptions() {
-	const darkened = Store.local.get('darkened') == 'true'
+	const darkened = Store.local.get('darkened') == true
 	waitForElement('.leaflet-tile-pane').then(_ => toggleDarkened(darkened))
 
     const darkPref = Store.local.get('darkmode')
     const systemDark = window.matchMedia?.('(prefers-color-scheme: dark)')?.matches
-    if ((!darkPref && systemDark) || darkPref === 'true') {
-        Store.local.set('darkmode', 'true')
+    if ((!darkPref && systemDark) || darkPref === true) {
+        Store.local.set('darkmode', true)
         loadDarkMode()
     }
 
-	const displayServerInfo = Store.local.get('serverinfo') == 'true'
+	const displayServerInfo = Store.local.get('serverinfo') == true
 	waitForElement('#server-info').then(_ => toggleServerInfo(displayServerInfo))
 
-	const displayPlayerList = Store.local.get('playerlist') == 'true'
+	const displayPlayerList = Store.local.get('playerlist') == true
 	waitForElement('#players').then(_ => togglePlayerList(displayPlayerList))
 
 	// Initialize date input from stored date. 20260801 -> 2026-08-01
@@ -363,10 +363,10 @@ function initToggleOptions() {
 		waitForElement('#archive-input').then(dateInputEl => dateInputEl.value = formattedDate)
 	}
 
-	const showCapitalStars = Store.local.get('capital-stars') == 'true'
+	const showCapitalStars = Store.local.get('capital-stars') == true
 	waitForElement('.leaflet-pane.leaflet-marker-pane').then(_ => toggleShowCapitalStars(showCapitalStars))
 	
-	const normalizeScroll = Store.local.get('normalize-scroll') == 'true'
+	const normalizeScroll = Store.local.get('normalize-scroll') == true
 	toggleScrollNormalize(normalizeScroll)
 }
 
@@ -631,7 +631,7 @@ function addNationClaimsPanel(parent) {
 		INSERTABLE_HTML.options.label.replace('{option}', 'show-excluded').replace('{optionText}', 'Show irrelevant towns'),
 		{ selector: 'input' }
 	)
-	showExcludedCheckbox.checked = Store.local.get('nation-claims-show-excluded') == 'true'
+	showExcludedCheckbox.checked = Store.local.get('nation-claims-show-excluded') == true
 	showExcludedCheckbox.addEventListener('change', e => Store.local.set('nation-claims-show-excluded', e.target.checked))
 
 	/** @type {HTMLInputElement} */
@@ -640,7 +640,7 @@ function addNationClaimsPanel(parent) {
 		INSERTABLE_HTML.options.label.replace('{option}', 'use-opaque-colors').replace('{optionText}', 'Use opaque colors'),
 		{ selector: 'input' }
 	)
-	useOpaqueCheckbox.checked = Store.local.get('nation-claims-opaque-colors') == 'true'
+	useOpaqueCheckbox.checked = Store.local.get('nation-claims-opaque-colors') == true
 	useOpaqueCheckbox.addEventListener('change', e => Store.local.set('nation-claims-opaque-colors', e.target.checked))
 
 	/** @type {HTMLDivElement} */
@@ -755,6 +755,7 @@ async function updateServerInfo(element) {
 }
 
 async function insertPlayerList() {
+	// Move the player list to the top right corner and add the appropriate classes for styling.
 	waitForElement('#players').then(el => {
 		el?.classList.add('leaflet-control-layers')
 		el?.classList.add('leaflet-control')

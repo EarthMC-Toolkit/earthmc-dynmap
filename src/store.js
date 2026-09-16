@@ -28,14 +28,31 @@ class Store {
 					return parsed.value
 				}
 
-				if (Array.isArray(parsed) || (parsed && typeof parsed === "object")) {
-					return parsed
-				}
+				if (Array.isArray(parsed) || (parsed && typeof parsed === "object")) return parsed
+				if (typeof parsed === 'boolean' || typeof parsed === 'number') return parsed
 			} catch {}
 
 			return raw
 		}
 
+		/**
+		 * @template T
+		 * @param {string} key
+		 * @param {T} [defaultValue=null]
+		 * @returns {T}
+		 */
+		static tryInit(key, defaultValue = null) {
+			if (localStorage.getItem(this.#key(key)) !== null) return
+			this.set(key, defaultValue)
+		}
+
+		/**
+		 * @template T
+		 * @param {string} key
+		 * @param {T} [value=undefined]
+		 * @param {string?} [prefix=null]
+		 * @returns {T}
+		 */
 		static set(key, value, prefix = null) {
 			if (typeof value === 'boolean') {
 				localStorage.setItem(this.#key(key, prefix), String(value))

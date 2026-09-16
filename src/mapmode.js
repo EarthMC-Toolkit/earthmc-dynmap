@@ -41,8 +41,8 @@ const NATIONCLAIMS = {
             const nationClaimsEntries = nationClaimsInfo.filter(o => !!o.input).map(o => [o.input?.toLowerCase(), o.color])
             this.cache = {
                 entries: new Map(nationClaimsEntries), // <input string, hex color string>
-                useOpaque: Store.local.get('nation-claims-opaque-colors') == 'true',
-                showExcluded: Store.local.get('nation-claims-show-excluded') == 'true'
+                useOpaque: Store.local.get('nation-claims-opaque-colors') == true,
+                showExcluded: Store.local.get('nation-claims-show-excluded') == true
             }
         }
 
@@ -68,7 +68,7 @@ const OVERCLAIM = {
 const NEWDAY = {
     name: "newday", img: "resources/img/map-mode-newday.png", skipIf: () => IS_AURORA,
     preload: async data => {
-        console.log('preloading new day')
+        //console.log('preloading new day')
         if (cachedFallingTowns == null) cachedFallingTowns = await fetchFallingTowns()
 		if (cachedRuinedTowns == null) cachedRuinedTowns = await fetchRuinedTowns()
 
